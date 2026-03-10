@@ -119,12 +119,25 @@
     margin-block-start: 0;
   }
 
-  /* Policies and links: 메뉴 항상 오른쪽 정렬, 가로 구조 유지 */
-  .utilities .menu.menu--horizontal {
+  /*
+   * Policies and links(.utilities) 전용: Link layout 설정과 무관하게
+   * 항상 가로 한 줄 + 오른쪽 정렬. (menu--horizontal 클래스 없어도 적용)
+   */
+  .utilities .menu {
     text-align: right;
   }
-  .utilities .menu--horizontal .list-unstyled {
+  .utilities .menu .list-unstyled {
+    display: inline-flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--spacing--size);
+    margin-block-start: 0;
+    width: fit-content;
+    max-width: 100%;
     justify-content: flex-end;
+  }
+  .utilities .menu .menu__item + .menu__item {
+    margin-block-start: 0;
   }
 
   @media screen and (max-width: 749px) {
@@ -135,14 +148,8 @@
     .menu--accordion.menu--horizontal .menu__item + .menu__item {
       margin-block-start: var(--spacing--size);
     }
-    /* Policies and links: 메뉴 항상 가로 유지, 세로로 바뀌지 않음 */
-    .utilities .menu--horizontal .list-unstyled {
+    .utilities .menu .list-unstyled {
       flex-direction: row;
-      flex-wrap: wrap;
-      gap: var(--spacing--size);
-    }
-    .utilities .menu--horizontal .menu__item + .menu__item {
-      margin-block-start: 0;
     }
   }
 
