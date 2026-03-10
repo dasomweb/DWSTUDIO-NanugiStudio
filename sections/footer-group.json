@@ -165,7 +165,7 @@
           "settings": {
             "menu": "business",
             "heading": "",
-            "horizontal_alignment": "left",
+            "horizontal_alignment": "right",
             "layout": "horizontal",
             "menu_spacing": 12,
             "show_as_accordion": false,
