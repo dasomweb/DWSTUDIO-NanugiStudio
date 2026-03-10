@@ -170,7 +170,7 @@ Theme Access 앱이나 레거시 커스텀 앱의 장기 토큰은 사용하지 
 
 ```bash
 npm install -g @shopify/cli @shopify/theme
-cd H:\GitHub\DW-STUDIO-The-Barber-Spot
+cd H:\GitHub\DWSTUDIO-TheBarberSpot
 shopify theme dev
 ```
 
