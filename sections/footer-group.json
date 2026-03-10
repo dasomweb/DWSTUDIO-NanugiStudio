@@ -180,7 +180,7 @@
                 "menu": "business",
                 "heading": "",
                 "horizontal_alignment": "left",
-                "layout": "vertical",
+                "layout": "horizontal",
                 "menu_spacing": 12,
                 "show_as_accordion": false,
                 "accordion_icon": "caret",
