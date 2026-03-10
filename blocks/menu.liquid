@@ -120,12 +120,10 @@
   }
 
   /*
-   * Policies and links(.utilities) 전용: Link layout 설정과 무관하게
-   * 항상 가로 한 줄 + 오른쪽 정렬. (menu--horizontal 클래스 없어도 적용)
+   * Policies and links(.utilities) 전용:
+   * - Link layout 설정 무관하게 항상 가로 한 줄 유지 (menu--horizontal 없어도 적용)
+   * - Horizontal alignment(Left/Center/Right) 정상 적용
    */
-  .utilities .menu {
-    text-align: right;
-  }
   .utilities .menu .list-unstyled {
     display: inline-flex;
     flex-direction: row;
@@ -134,6 +132,23 @@
     margin-block-start: 0;
     width: fit-content;
     max-width: 100%;
+  }
+  .utilities .menu.menu--align-left {
+    text-align: left;
+  }
+  .utilities .menu.menu--align-left .list-unstyled {
+    justify-content: flex-start;
+  }
+  .utilities .menu.menu--align-center {
+    text-align: center;
+  }
+  .utilities .menu.menu--align-center .list-unstyled {
+    justify-content: center;
+  }
+  .utilities .menu.menu--align-right {
+    text-align: right;
+  }
+  .utilities .menu.menu--align-right .list-unstyled {
     justify-content: flex-end;
   }
   .utilities .menu .menu__item + .menu__item {
