@@ -1,6 +1,6 @@
 # The Barber Spot – Shopify Theme
 
-Tinker 기반 The Barber Spot 스토어 테마. **GitHub Actions**로 배포하고, 로컬에서는 CLI로 개발합니다.
+**DWSTUDIO** 테마 v1.0 – The Barber Spot 스토어 전용 (Tinker 기반). **GitHub Actions**로 배포하고, 로컬에서는 CLI로 개발합니다.
 
 - **스토어**: thebarberspot.myshopify.com  
 - **에디터**: [테마 에디터](https://admin.shopify.com/store/thebarberspot/themes/153245647037/editor)  
