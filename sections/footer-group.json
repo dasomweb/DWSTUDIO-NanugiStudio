@@ -166,7 +166,7 @@
             "menu": "business",
             "heading": "",
             "horizontal_alignment": "right",
-            "layout": "horizontal",
+            "layout": "vertical",
             "menu_spacing": 12,
             "show_as_accordion": false,
             "accordion_icon": "caret",
