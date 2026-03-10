@@ -1,0 +1,19 @@
+# Dependencies & tooling
+node_modules/
+.git/
+.github/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# IDE and OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Docs and dev
+*.md

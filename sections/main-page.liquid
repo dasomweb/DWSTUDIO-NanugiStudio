@@ -1,0 +1,126 @@
+
+
+<div class="section-background color-{{ section.settings.color_scheme }}"></div>
+<div class="section section--{{ section.settings.section_width | default: 'page-width' }} section--content-{{ section.settings.content_width | default: 'default' }} color-{{ section.settings.color_scheme }}">
+  <div
+    class="
+      spacing-style
+      layout-panel-flex
+      layout-panel-flex--column
+      section-content-wrapper
+      mobile-column
+    "
+    style="
+      {% render 'layout-panel-style', settings: section.settings %}
+      {% render 'spacing-style', settings: section.settings %}
+    "
+  >
+    {% content_for 'blocks' %}
+  </div>
+</div>
+
+{% stylesheet %}
+  .section.section--content-wider {
+    --full-page-grid-central-column-width: min(90vw, calc(100% - var(--page-margin, 16px) * 2));
+  }
+  .section.section--content-full {
+    --full-page-grid-central-column-width: min(100vw, 100%);
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "t:names.page",
+  "class": "section-wrapper",
+  "blocks": [
+    {
+      "type": "@theme"
+    },
+    {
+      "type": "@app"
+    },
+    {
+      "type": "_divider"
+    }
+  ],
+  "disabled_on": {
+    "groups": ["header"]
+  },
+  "settings": [
+    {
+      "type": "select",
+      "id": "content_direction",
+      "label": "t:settings.direction",
+      "options": [
+        {
+          "value": "column",
+          "label": "t:options.vertical"
+        }
+      ],
+      "default": "column",
+      "visible_if": "{{ section.settings.gap < 0 }}"
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "label": "t:settings.gap",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "select",
+      "id": "section_width",
+      "label": "t:settings.width",
+      "options": [
+        { "value": "page-width", "label": "t:options.page" },
+        { "value": "full-width", "label": "t:options.full" }
+      ],
+      "default": "page-width"
+    },
+    {
+      "type": "select",
+      "id": "content_width",
+      "label": "Content width (horizontal)",
+      "options": [
+        { "value": "default", "label": "Default (theme)" },
+        { "value": "wider", "label": "Wider (90%)" },
+        { "value": "full", "label": "Full (100%)" }
+      ],
+      "default": "default"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:settings.color_scheme",
+      "default": "scheme-1"
+    },
+    {
+      "type": "header",
+      "content": "t:content.padding"
+    },
+    {
+      "type": "range",
+      "id": "padding-block-start",
+      "label": "t:settings.top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding-block-end",
+      "label": "t:settings.bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    }
+  ]
+}
+{% endschema %}

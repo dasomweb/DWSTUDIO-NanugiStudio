@@ -1,0 +1,53 @@
+name: Deploy Shopify Theme
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to The Barber Spot
+    runs-on: ubuntu-latest
+    environment: shopify-thebarberspot
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get Shopify access token
+        id: token
+        env:
+          SHOP: ${{ secrets.SHOPIFY_FLAG_STORE }}
+          CLIENT_ID: ${{ secrets.SHOPIFY_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.SHOPIFY_CLIENT_SECRET }}
+        run: |
+          RES=$(curl -s -X POST "https://${SHOP}/admin/oauth/access_token" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "grant_type=client_credentials&client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}")
+          TOKEN=$(echo "$RES" | jq -r '.access_token')
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "::error::Failed to get access token. Check SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET."
+            echo "$RES" | jq .
+            exit 1
+          fi
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Shopify CLI
+        run: npm install -g @shopify/cli @shopify/theme
+
+      - name: Deploy theme
+        env:
+          SHOPIFY_FLAG_STORE: ${{ secrets.SHOPIFY_FLAG_STORE }}
+          SHOPIFY_CLI_THEME_TOKEN: ${{ steps.token.outputs.token }}
+          SHOPIFY_THEME_ID: ${{ secrets.SHOPIFY_THEME_ID }}
+        run: |
+          if [ -n "$SHOPIFY_THEME_ID" ]; then
+            shopify theme push --store "$SHOPIFY_FLAG_STORE" --password "$SHOPIFY_CLI_THEME_TOKEN" --theme "$SHOPIFY_THEME_ID" --allow-live
+          else
+            shopify theme push --store "$SHOPIFY_FLAG_STORE" --password "$SHOPIFY_CLI_THEME_TOKEN" --allow-live
+          fi
