@@ -48,7 +48,7 @@
             "max_width": "normal",
             "content_width_percent": 100,
             "alignment": "left",
-            "type_preset": "rte",
+            "type_preset": "custom",
             "font": "var(--font-body--family)",
             "font_size": "1rem",
             "line_height": "normal",
