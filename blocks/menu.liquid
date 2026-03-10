@@ -118,6 +118,15 @@
   .menu--horizontal .menu__item + .menu__item {
     margin-block-start: 0;
   }
+
+  /* Policies and links: 메뉴 항상 오른쪽 정렬, 가로 구조 유지 */
+  .utilities .menu.menu--horizontal {
+    text-align: right;
+  }
+  .utilities .menu--horizontal .list-unstyled {
+    justify-content: flex-end;
+  }
+
   @media screen and (max-width: 749px) {
     .menu--accordion.menu--horizontal .list-unstyled {
       flex-direction: column;
@@ -125,6 +134,15 @@
     }
     .menu--accordion.menu--horizontal .menu__item + .menu__item {
       margin-block-start: var(--spacing--size);
+    }
+    /* Policies and links: 메뉴 항상 가로 유지, 세로로 바뀌지 않음 */
+    .utilities .menu--horizontal .list-unstyled {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: var(--spacing--size);
+    }
+    .utilities .menu--horizontal .menu__item + .menu__item {
+      margin-block-start: 0;
     }
   }
 
