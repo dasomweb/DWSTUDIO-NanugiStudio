@@ -99,10 +99,12 @@
   }
 
   .menu--horizontal .list-unstyled {
-    display: flex;
+    display: inline-flex;
     flex-wrap: wrap;
     gap: var(--spacing--size);
     margin-block-start: 0;
+    width: fit-content;
+    max-width: 100%;
   }
   .menu--horizontal.menu--align-left .list-unstyled {
     justify-content: flex-start;
