@@ -13,3 +13,9 @@ GitHub Actions를 통한 배포 파이프라인 검증 기록입니다.
 - **목적**: 커밋 → 푸시 → 태그 → 릴리즈 흐름 실행
 - **트리거**: main 푸시, v1.0.14 태그 푸시
 - **대상**: origin, dwstudiomall
+
+## 2025-03-11 (v1.0.15)
+
+- **목적**: TheBarberSpot 전용 배포 (커밋→푸시→태그→릴리즈)
+- **트리거**: main 푸시, v1.0.15 태그 푸시
+- **대상**: origin (TheBarberSpot)
