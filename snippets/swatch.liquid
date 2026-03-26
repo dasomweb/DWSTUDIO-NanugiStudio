@@ -4,6 +4,7 @@
   @param {object} swatch - a swatch object
   @param {object} [variant_image] - an alternate image when there is no swatch value
   @param {string} [mode] - one of 'unscaled', 'filter', 'pill'
+  @param {string} [color_value] - fallback CSS color/name when no swatch object exists
 
   @example
   {% render 'swatch', swatch: swatch, variant_image: variant_image, mode: 'unscaled' %}
@@ -22,6 +23,8 @@
     assign swatch_value = 'url(' | append: swatch_image_url | append: ')'
   elsif swatch.color
     assign swatch_value = 'rgb(' | append: swatch.color.rgb | append: ')'
+  elsif color_value != blank
+    assign swatch_value = color_value | downcase
   endif
 
   case mode

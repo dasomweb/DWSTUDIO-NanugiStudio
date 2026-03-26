@@ -86,9 +86,14 @@
     {%- for product_option in product_resource.options_with_values -%}
       {%- liquid
         assign swatch_count = product_option.values | map: 'swatch' | compact | size
+        assign option_name_downcase = product_option.name | downcase
+        assign allow_color_name_fallback = false
+        if option_name_downcase == 'color' or option_name_downcase == 'colour'
+          assign allow_color_name_fallback = true
+        endif
       -%}
 
-      {% if swatch_count == 0 %}
+      {% if swatch_count == 0 and allow_color_name_fallback == false %}
         {% continue %}
       {% endif %}
 
@@ -155,6 +160,7 @@
                 {% render 'swatch',
                   swatch: product_option_value.swatch,
                   variant_image: featured_media,
+                  color_value: product_option_value.name,
                 %}
                 {% render 'strikethrough-variant', product_option: product_option_value %}
               </label>
