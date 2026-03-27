@@ -719,16 +719,12 @@
       "name": "t:names.collections_carousel",
       "settings": {
         "collection_list": [
-          "clipper-trimmer",
-          "blade",
-          "shampoo-conditioner",
-          "shaver",
-          "beard-care",
-          "barber-apron",
-          "barber-vest",
           "blower",
-          "clipper-guard",
-          "clipper-oil"
+          "andis-collections",
+          "babyliss-collections",
+          "black-ice-collection",
+          "wahl-collections",
+          "stylecraft-collections"
         ],
         "layout_type": "carousel",
         "carousel_on_mobile": false,

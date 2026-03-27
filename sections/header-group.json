@@ -64,7 +64,7 @@
             "menu": "main-menu",
             "color_scheme": "scheme-3",
             "type_font_primary_size": "1rem",
-            "menu_font_style": "inverse",
+            "menu_font_style": "inverse_large",
             "type_font_primary_link": "subheading",
             "type_case_primary_link": "uppercase",
             "menu_style": "featured_products",
