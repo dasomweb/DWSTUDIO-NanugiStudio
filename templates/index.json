@@ -329,7 +329,7 @@
         "color_scheme": "scheme-3f8267df-3b2d-40bf-bd06-95229a6a5144",
         "icons_style": "arrows_large",
         "icons_shape": "none",
-        "slideshow_controls_style": "dots",
+        "slideshow_controls_style": "none",
         "autoplay": true,
         "autoplay_speed": 4,
         "padding-block-start": 0,
