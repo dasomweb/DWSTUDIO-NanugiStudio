@@ -15,8 +15,9 @@
         "slide_6dwjab": {
           "type": "_slide",
           "settings": {
-            "media_type_1": "image",
+            "media_type_1": "video",
             "image_1": "shopify://shop_images/main_slide_01-01.jpg",
+            "video_1": "shopify://files/videos/2026-03-30 16:12:53.MP4",
             "content_direction": "column",
             "vertical_on_mobile": true,
             "horizontal_alignment": "flex-start",
@@ -37,59 +38,6 @@
             "padding-inline-end": 48
           },
           "blocks": {
-            "text_qCfr8e": {
-              "type": "text",
-              "name": "t:names.heading",
-              "settings": {
-                "text": "<h2>MASTER YOUR CRAFT</h2>",
-                "width": "fit-content",
-                "max_width": "normal",
-                "content_width_percent": 0,
-                "alignment": "left",
-                "type_preset": "h1",
-                "font": "var(--font-body--family)",
-                "font_size": "1rem",
-                "line_height": "normal",
-                "letter_spacing": "normal",
-                "case": "none",
-                "wrap": "pretty",
-                "color": "var(--color-foreground)",
-                "background": false,
-                "background_color": "#00000026",
-                "corner_radius": 0,
-                "padding-block-start": 0,
-                "padding-block-end": 0,
-                "padding-inline-start": 0,
-                "padding-inline-end": 0
-              },
-              "blocks": {}
-            },
-            "text_6gtU7X": {
-              "type": "text",
-              "settings": {
-                "text": "<h5>High-performance tools designed for the heat of the shop. Master your technique with gear that never fails.</h5>",
-                "width": "100%",
-                "max_width": "narrow",
-                "content_width_percent": 0,
-                "alignment": "center",
-                "type_preset": "rte",
-                "font": "var(--font-body--family)",
-                "font_size": "1rem",
-                "line_height": "normal",
-                "letter_spacing": "normal",
-                "case": "none",
-                "wrap": "pretty",
-                "color": "var(--color-foreground)",
-                "background": false,
-                "background_color": "#00000026",
-                "corner_radius": 0,
-                "padding-block-start": 0,
-                "padding-block-end": 20,
-                "padding-inline-start": 0,
-                "padding-inline-end": 0
-              },
-              "blocks": {}
-            },
             "button_LKFr3i": {
               "type": "button",
               "settings": {
@@ -106,8 +54,6 @@
             }
           },
           "block_order": [
-            "text_qCfr8e",
-            "text_6gtU7X",
             "button_LKFr3i"
           ]
         },
