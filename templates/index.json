@@ -17,7 +17,7 @@
           "settings": {
             "media_type_1": "video",
             "image_1": "shopify://shop_images/main_slide_01-01.jpg",
-            "video_1": "shopify://files/videos/2026-03-30 16:12:53.MP4",
+            "video_1": "shopify://files/videos/2026-03-30 16:17:04.MP4",
             "content_direction": "column",
             "vertical_on_mobile": true,
             "horizontal_alignment": "flex-start",
@@ -62,7 +62,7 @@
           "settings": {
             "media_type_1": "video",
             "image_1": "shopify://shop_images/barber-adds-final-touches-to-a-haircut.jpg",
-            "video_1": "shopify://files/videos/2026-03-30 16:17:04.MP4",
+            "video_1": "shopify://files/videos/2026-03-30 16:12:53.MP4",
             "content_direction": "column",
             "vertical_on_mobile": true,
             "horizontal_alignment": "flex-start",
