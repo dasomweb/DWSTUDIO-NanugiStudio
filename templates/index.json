@@ -60,9 +60,9 @@
         "slide_Qh9aGY": {
           "type": "_slide",
           "settings": {
-            "media_type_1": "image",
+            "media_type_1": "video",
             "image_1": "shopify://shop_images/1774899820404_target.jpg",
-            "video_1": "shopify://files/videos/2026-03-30 16:12:53.MP4",
+            "video_1": "shopify://files/videos/copy_86140FBF-ACD0-480F-8A00-E3A72E5A76AB.MOV",
             "content_direction": "column",
             "vertical_on_mobile": true,
             "horizontal_alignment": "flex-start",
