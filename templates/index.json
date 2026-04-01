@@ -15,7 +15,7 @@
         "slide_6dwjab": {
           "type": "_slide",
           "settings": {
-            "media_type_1": "video",
+            "media_type_1": "image",
             "image_1": "shopify://shop_images/IMG_1539.jpg",
             "video_1": "shopify://files/videos/copy_6C43F67A-3CD4-4448-B758-3A2AFB47B5FC.MOV",
             "content_direction": "column",
@@ -60,7 +60,7 @@
         "slide_Qh9aGY": {
           "type": "_slide",
           "settings": {
-            "media_type_1": "video",
+            "media_type_1": "image",
             "image_1": "shopify://shop_images/1774899820404_target.jpg",
             "video_1": "shopify://files/videos/copy_86140FBF-ACD0-480F-8A00-E3A72E5A76AB.MOV",
             "content_direction": "column",
