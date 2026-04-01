@@ -25,7 +25,7 @@
             "align_baseline": false,
             "horizontal_alignment_flex_direction_column": "center",
             "vertical_alignment_flex_direction_column": "center",
-            "gap": 12,
+            "gap": 20,
             "inherit_color_scheme": false,
             "color_scheme": "scheme-3f8267df-3b2d-40bf-bd06-95229a6a5144",
             "toggle_overlay": false,
