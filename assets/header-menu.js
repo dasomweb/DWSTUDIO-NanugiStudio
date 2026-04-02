@@ -167,7 +167,7 @@ class HeaderMenu extends Component {
         const itemRect = listItem.getBoundingClientRect();
         const vw = window.innerWidth;
         const margin = 16;
-        const minWidth = vw * 0.5;
+        const minWidth = vw * 0.7;
 
         let offset = 0;
         let availableRight = vw - itemRect.left - margin;
