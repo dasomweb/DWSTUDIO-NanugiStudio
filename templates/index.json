@@ -611,12 +611,14 @@
       "name": "t:names.collections_carousel",
       "settings": {
         "collection_list": [
-          "blower",
           "andis-collections",
           "babyliss-collections",
           "black-ice-collection",
           "wahl-collections",
-          "stylecraft-collections"
+          "stylecraft-collections",
+          "tomb45-collections",
+          "gamma-collections",
+          "tpob-collection"
         ],
         "layout_type": "carousel",
         "carousel_on_mobile": false,
