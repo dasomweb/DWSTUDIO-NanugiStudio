@@ -160,44 +160,33 @@ class HeaderMenu extends Component {
     this.#setFullOpenHeaderHeight(finalHeight);
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Each 1st-level menu item = anchor point for its submenu.
+    // Each 1st-level menu item = anchor. Move inner grid content to align.
     if (isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
-      if (listItem) {
-        // Clear previous inline positioning
-        submenu.style.removeProperty('left');
-        submenu.style.removeProperty('width');
-        submenu.style.removeProperty('right');
-        submenu.style.removeProperty('padding-inline');
+      const grid = submenu.querySelector('.mega-menu__grid');
+      if (listItem && grid) {
+        // Reset previous margins
+        grid.style.removeProperty('margin-left');
+        grid.style.removeProperty('margin-right');
 
-        // Measure actual positions
         const itemRect = listItem.getBoundingClientRect();
-        const base = submenu.getBoundingClientRect().left; // submenu at CSS left:0
+        const gridRect = grid.getBoundingClientRect();
         const vw = window.innerWidth;
         const itemCx = itemRect.left + itemRect.width / 2;
         const pos = itemCx / vw;
 
-        let targetLeft, w;
-
         if (pos < 0.33) {
-          // Left: S of "SHOP BY BRANDS" = left anchor
-          targetLeft = itemRect.left;
-          w = vw - targetLeft;
+          // Left: content starts at menu item left edge
+          grid.style.marginLeft = `${itemRect.left - gridRect.left}px`;
         } else if (pos > 0.67) {
-          // Right: last letter = right anchor
-          targetLeft = 0;
-          w = itemRect.right;
+          // Right: content ends at menu item right edge
+          grid.style.marginRight = `${gridRect.right - itemRect.right}px`;
         } else {
-          // Center: center of menu text = center anchor
-          w = vw * 0.85;
-          targetLeft = itemCx - w / 2;
-          if (targetLeft < 0) targetLeft = 0;
-          if (targetLeft + w > vw) targetLeft = vw - w;
+          // Center: content centered under menu item
+          const gridCx = gridRect.left + gridRect.width / 2;
+          const shift = itemCx - gridCx;
+          grid.style.marginLeft = `${shift}px`;
         }
-
-        const shift = targetLeft - base;
-        submenu.style.setProperty('left', `${shift}px`, 'important');
-        submenu.style.setProperty('width', `${w}px`, 'important');
       }
     }
   };
