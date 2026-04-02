@@ -160,26 +160,17 @@ class HeaderMenu extends Component {
     this.#setFullOpenHeaderHeight(finalHeight);
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Position submenu below the parent menu item
+    // Position submenu below the parent menu item, fill to right edge
     if (isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
       if (listItem) {
         const itemRect = listItem.getBoundingClientRect();
         const vw = window.innerWidth;
         const margin = 16;
-        const minWidth = vw * 0.7;
+        const width = vw - itemRect.left - margin;
 
-        let offset = 0;
-        let availableRight = vw - itemRect.left - margin;
-
-        // Only shift left when right space is too narrow
-        if (availableRight < minWidth) {
-          offset = -(minWidth - availableRight);
-          availableRight = minWidth;
-        }
-
-        submenu.style.setProperty('--submenu-width', `${availableRight}px`);
-        submenu.style.left = `${offset}px`;
+        submenu.style.setProperty('--submenu-width', `${width}px`);
+        submenu.style.left = '0';
       }
     }
   };
