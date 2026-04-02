@@ -160,33 +160,31 @@ class HeaderMenu extends Component {
     this.#setFullOpenHeaderHeight(finalHeight);
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Each 1st-level menu item = anchor. Move inner grid content to align.
+    // Each 1st-level menu item = anchor. Adjust inner padding to align content.
     if (isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
-      const grid = submenu.querySelector('.mega-menu__grid');
-      if (listItem && grid) {
-        // Reset previous margins
-        grid.style.removeProperty('margin-left');
-        grid.style.removeProperty('margin-right');
-
+      const inner = submenu.querySelector('.menu-list__submenu-inner');
+      if (listItem && inner) {
         const itemRect = listItem.getBoundingClientRect();
-        const gridRect = grid.getBoundingClientRect();
         const vw = window.innerWidth;
         const itemCx = itemRect.left + itemRect.width / 2;
         const pos = itemCx / vw;
+        const min = 16;
 
+        let pl, pr;
         if (pos < 0.33) {
-          // Left: content starts at menu item left edge
-          grid.style.marginLeft = `${itemRect.left - gridRect.left}px`;
+          pl = Math.max(min, itemRect.left);
+          pr = min;
         } else if (pos > 0.67) {
-          // Right: content ends at menu item right edge
-          grid.style.marginRight = `${gridRect.right - itemRect.right}px`;
+          pl = min;
+          pr = Math.max(min, vw - itemRect.right);
         } else {
-          // Center: content centered under menu item
-          const gridCx = gridRect.left + gridRect.width / 2;
-          const shift = itemCx - gridCx;
-          grid.style.marginLeft = `${shift}px`;
+          const half = vw * 0.4;
+          pl = Math.max(min, itemCx - half);
+          pr = Math.max(min, vw - itemCx - half);
         }
+
+        inner.style.setProperty('padding-inline', `${pl}px ${pr}px`, 'important');
       }
     }
   };
