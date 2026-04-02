@@ -160,31 +160,33 @@ class HeaderMenu extends Component {
     this.#setFullOpenHeaderHeight(finalHeight);
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Each 1st-level menu item = anchor. Adjust inner padding to align content.
+    // Method 3: full-width submenu, inner content aligned to menu item
     if (isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
       const inner = submenu.querySelector('.menu-list__submenu-inner');
       if (listItem && inner) {
+        // Reset
+        inner.style.marginLeft = '';
+        inner.style.marginRight = '';
+
         const itemRect = listItem.getBoundingClientRect();
+        const submenuRect = submenu.getBoundingClientRect();
         const vw = window.innerWidth;
-        const itemCx = itemRect.left + itemRect.width / 2;
-        const pos = itemCx / vw;
-        const min = 16;
 
-        let pl, pr;
-        if (pos < 0.33) {
-          pl = Math.max(min, itemRect.left);
-          pr = min;
-        } else if (pos > 0.67) {
-          pl = min;
-          pr = Math.max(min, vw - itemRect.right);
-        } else {
-          const half = vw * 0.4;
-          pl = Math.max(min, itemCx - half);
-          pr = Math.max(min, vw - itemCx - half);
-        }
+        // Content starts at menu item left edge
+        const offsetLeft = itemRect.left - submenuRect.left;
+        inner.style.marginLeft = `${offsetLeft}px`;
 
-        inner.style.setProperty('padding-inline', `${pl}px ${pr}px`, 'important');
+        // Overflow check: if content goes past right edge, shift back
+        requestAnimationFrame(() => {
+          const innerRect = inner.getBoundingClientRect();
+          if (innerRect.right > vw) {
+            // Instead of left-align, right-align to menu item right edge
+            inner.style.marginLeft = '';
+            const offsetRight = submenuRect.right - itemRect.right;
+            inner.style.marginRight = `${offsetRight}px`;
+          }
+        });
       }
     }
   };
