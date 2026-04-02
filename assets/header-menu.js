@@ -160,45 +160,35 @@ class HeaderMenu extends Component {
     this.#setFullOpenHeaderHeight(finalHeight);
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Position submenu based on menu item's viewport zone (left / center / right)
+    // Align full-width submenu so content starts from parent menu item
     if (isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
       if (listItem) {
         const itemRect = listItem.getBoundingClientRect();
+        const submenuParent = submenu.offsetParent || document.body;
+        const parentRect = submenuParent.getBoundingClientRect();
         const vw = window.innerWidth;
-        const margin = 16;
         const itemCenter = itemRect.left + itemRect.width / 2;
         const zone = itemCenter / vw;
 
-        // Reset
-        submenu.style.right = 'auto';
-        submenu.style.transform = 'none';
-
+        let left;
         if (zone < 0.33) {
-          // Left zone: align left edge to menu item
-          const width = vw - itemRect.left - margin;
-          submenu.style.setProperty('--submenu-width', `${width}px`);
-          submenu.style.left = '0';
+          // Left zone: submenu left edge = menu item left edge
+          left = itemRect.left - parentRect.left;
         } else if (zone > 0.66) {
-          // Right zone: align right edge to menu item
-          const width = itemRect.right - margin;
-          submenu.style.setProperty('--submenu-width', `${width}px`);
-          submenu.style.left = 'auto';
-          submenu.style.right = '0';
+          // Right zone: submenu right edge = menu item right edge
+          left = itemRect.right - parentRect.left - submenu.offsetWidth;
         } else {
-          // Center zone: center submenu under menu item
-          const width = vw - margin * 2;
-          submenu.style.setProperty('--submenu-width', `${width}px`);
-          const offset = -(width / 2) + (itemRect.width / 2);
-          // Clamp so it doesn't overflow viewport
-          const absLeft = itemRect.left + offset;
-          const clampedOffset = absLeft < margin
-            ? offset + (margin - absLeft)
-            : absLeft + width > vw - margin
-              ? offset - (absLeft + width - (vw - margin))
-              : offset;
-          submenu.style.left = `${clampedOffset}px`;
+          // Center zone: submenu centered under menu item
+          left = itemCenter - parentRect.left - submenu.offsetWidth / 2;
         }
+
+        // Clamp to viewport
+        const absLeft = parentRect.left + left;
+        if (absLeft < 0) left -= absLeft;
+        if (absLeft + submenu.offsetWidth > vw) left -= (absLeft + submenu.offsetWidth - vw);
+
+        submenu.style.left = `${left}px`;
       }
     }
   };

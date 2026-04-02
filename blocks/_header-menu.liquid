@@ -306,7 +306,6 @@
 
   .menu-list__list-item:not([slot='overflow']) {
     flex-direction: column;
-    position: relative;
   }
   .menu-list__list-item:not([slot='overflow'])::after {
     content: '';
@@ -374,7 +373,7 @@
 
     visibility: hidden;
     position: absolute;
-    width: var(--submenu-width, 100%);
+    width: 100%;
     left: 0;
     top: calc(100% - 1px + var(--border-bottom-width) - (var(--full-open-header-height) - var(--submenu-height)));
     z-index: var(--layer-header-menu);
