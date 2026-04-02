@@ -161,41 +161,42 @@ class HeaderMenu extends Component {
     this.style.setProperty('--submenu-opacity', '1');
 
     // Each 1st-level menu item = anchor point for its submenu.
-    // parent has position:relative, so left is relative to menu item.
     if (isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
       if (listItem) {
-        // Clean up any leftover inline styles
+        // Clear previous inline positioning
+        submenu.style.removeProperty('left');
+        submenu.style.removeProperty('width');
         submenu.style.removeProperty('right');
         submenu.style.removeProperty('padding-inline');
 
+        // Measure actual positions
         const itemRect = listItem.getBoundingClientRect();
+        const base = submenu.getBoundingClientRect().left; // submenu at CSS left:0
         const vw = window.innerWidth;
-        const itemW = itemRect.width;
-        const pos = (itemRect.left + itemW / 2) / vw;
+        const itemCx = itemRect.left + itemRect.width / 2;
+        const pos = itemCx / vw;
 
-        let left, width;
+        let targetLeft, w;
 
         if (pos < 0.33) {
-          // Left zone: submenu left = menu item left, extends right to viewport edge
-          left = 0;
-          width = vw - itemRect.left;
+          // Left: S of "SHOP BY BRANDS" = left anchor
+          targetLeft = itemRect.left;
+          w = vw - targetLeft;
         } else if (pos > 0.67) {
-          // Right zone: submenu right = menu item right, extends left to viewport edge
-          left = -itemRect.left;
-          width = itemRect.right;
+          // Right: last letter = right anchor
+          targetLeft = 0;
+          w = itemRect.right;
         } else {
-          // Center zone: submenu centered under menu item
-          width = vw * 0.85;
-          left = -(width / 2 - itemW / 2);
-          // Clamp: don't overflow viewport left
-          if (itemRect.left + left < 0) left = -itemRect.left;
-          // Clamp: don't overflow viewport right
-          if (itemRect.left + left + width > vw) left = vw - itemRect.left - width;
+          // Center: center of menu text = center anchor
+          w = vw * 0.85;
+          targetLeft = itemCx - w / 2;
+          if (targetLeft < 0) targetLeft = 0;
+          if (targetLeft + w > vw) targetLeft = vw - w;
         }
 
-        submenu.style.left = `${left}px`;
-        submenu.style.width = `${width}px`;
+        submenu.style.left = `${targetLeft - base}px`;
+        submenu.style.width = `${w}px`;
       }
     }
   };
