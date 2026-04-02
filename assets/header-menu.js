@@ -167,21 +167,18 @@ class HeaderMenu extends Component {
         const itemRect = listItem.getBoundingClientRect();
         const vw = window.innerWidth;
         const margin = 16;
-        const itemCenter = itemRect.left + itemRect.width / 2;
-        const vpCenter = vw / 2;
+        const minWidth = vw * 0.5;
 
         let offset = 0;
-        let width = vw - itemRect.left - margin;
+        let availableRight = vw - itemRect.left - margin;
 
-        // Past center: gradually shift left
-        if (itemCenter > vpCenter) {
-          const ratio = (itemCenter - vpCenter) / vpCenter; // 0 at center, 1 at right edge
-          const maxShift = itemRect.left - margin;
-          offset = -(ratio * maxShift);
-          width = vw - (itemRect.left + offset) - margin;
+        // Only shift left when right space is too narrow
+        if (availableRight < minWidth) {
+          offset = -(minWidth - availableRight);
+          availableRight = minWidth;
         }
 
-        submenu.style.setProperty('--submenu-width', `${width}px`);
+        submenu.style.setProperty('--submenu-width', `${availableRight}px`);
         submenu.style.left = `${offset}px`;
       }
     }
