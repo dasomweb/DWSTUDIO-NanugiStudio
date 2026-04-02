@@ -160,24 +160,34 @@ class HeaderMenu extends Component {
     this.#setFullOpenHeaderHeight(finalHeight);
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Align submenu to start from the parent menu item position
+    // Align submenu relative to the parent menu item position
     if (isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
       if (listItem) {
         const itemRect = listItem.getBoundingClientRect();
-        const leftOffset = itemRect.left;
-        submenu.style.setProperty('--submenu-left-offset', `${leftOffset}px`);
+        const viewportWidth = window.innerWidth;
+        const itemCenter = itemRect.left + itemRect.width / 2;
 
-        // If submenu overflows viewport right edge, shift it left
-        requestAnimationFrame(() => {
-          const submenuRect = submenu.getBoundingClientRect();
-          if (submenuRect.right > window.innerWidth) {
-            const overflow = submenuRect.right - window.innerWidth;
-            submenu.style.left = `-${overflow}px`;
-          } else {
-            submenu.style.left = '0';
-          }
-        });
+        // If menu item is in the right half, align submenu's right edge to item's right edge
+        if (itemCenter > viewportWidth / 2) {
+          submenu.style.left = 'auto';
+          submenu.style.right = '0';
+          submenu.style.removeProperty('--submenu-left-offset');
+        } else {
+          // Left half: align submenu's left edge to item's left edge
+          submenu.style.left = '0';
+          submenu.style.right = 'auto';
+          submenu.style.setProperty('--submenu-left-offset', `${itemRect.left}px`);
+
+          // If still overflows right, shift left
+          requestAnimationFrame(() => {
+            const submenuRect = submenu.getBoundingClientRect();
+            if (submenuRect.right > viewportWidth) {
+              const overflow = submenuRect.right - viewportWidth;
+              submenu.style.left = `-${overflow}px`;
+            }
+          });
+        }
       }
     }
   };
