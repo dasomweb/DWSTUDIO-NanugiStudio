@@ -177,20 +177,19 @@ class HeaderMenu extends Component {
         const pos = itemCenter / vw;
         const min = 16;
 
+        let pl, pr;
         if (pos < 0.33) {
-          // Left: content starts at menu item
-          submenu.style.paddingLeft = `${Math.max(min, itemRect.left)}px`;
-          submenu.style.paddingRight = `${min}px`;
+          pl = Math.max(min, itemRect.left);
+          pr = min;
         } else if (pos > 0.67) {
-          // Right: content ends at menu item
-          submenu.style.paddingLeft = `${min}px`;
-          submenu.style.paddingRight = `${Math.max(min, vw - itemRect.right)}px`;
+          pl = min;
+          pr = Math.max(min, vw - itemRect.right);
         } else {
-          // Center: content centered under menu item
           const half = vw * 0.35;
-          submenu.style.paddingLeft = `${Math.max(min, itemCenter - half)}px`;
-          submenu.style.paddingRight = `${Math.max(min, vw - itemCenter - half)}px`;
+          pl = Math.max(min, itemCenter - half);
+          pr = Math.max(min, vw - itemCenter - half);
         }
+        submenu.style.setProperty('padding-inline', `${pl}px ${pr}px`, 'important');
       }
     }
   };
