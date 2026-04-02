@@ -160,16 +160,39 @@ class HeaderMenu extends Component {
     this.#setFullOpenHeaderHeight(finalHeight);
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Submenu starts at 1st-level menu item. Always.
+    // Submenu anchored to each 1st-level menu item
     if (isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
       if (listItem) {
         const itemRect = listItem.getBoundingClientRect();
         const submenuParent = submenu.offsetParent || document.body;
         const parentRect = submenuParent.getBoundingClientRect();
+        const vw = window.innerWidth;
+        const parentW = parentRect.width;
+        const itemL = itemRect.left - parentRect.left;
+        const itemR = itemRect.right - parentRect.left;
+        const itemCx = (itemL + itemR) / 2;
+        const pos = (itemRect.left + itemRect.width / 2) / vw;
 
-        submenu.style.left = `${itemRect.left - parentRect.left}px`;
-        submenu.style.right = '0';
+        let left, right;
+
+        if (pos < 0.33) {
+          // Left: start at menu item, extend right
+          left = itemL;
+          right = 0;
+        } else if (pos > 0.67) {
+          // Right: end at menu item, extend left
+          left = 0;
+          right = parentW - itemR;
+        } else {
+          // Center: centered under menu item
+          const half = vw * 0.4;
+          left = Math.max(0, itemCx - half);
+          right = Math.max(0, parentW - itemCx - half);
+        }
+
+        submenu.style.left = `${left}px`;
+        submenu.style.right = `${right}px`;
         submenu.style.width = 'auto';
       }
     }
