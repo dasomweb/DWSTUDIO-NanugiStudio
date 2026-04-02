@@ -160,32 +160,38 @@ class HeaderMenu extends Component {
     this.#setFullOpenHeaderHeight(finalHeight);
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Each menu item = anchor. Adjust padding to position content under it.
+    // Each 1st-level menu item = anchor point for submenu
     if (isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
       if (listItem) {
-        // Clean up any leftover inline styles from previous logic
+        // Reset inline styles to measure base position
         submenu.style.removeProperty('left');
         submenu.style.removeProperty('right');
         submenu.style.removeProperty('width');
-        submenu.style.removeProperty('--submenu-width');
-        submenu.style.removeProperty('--submenu-left-offset');
+        submenu.style.removeProperty('padding-inline');
 
         const itemRect = listItem.getBoundingClientRect();
+        const baseRect = submenu.getBoundingClientRect();
         const vw = window.innerWidth;
-        const itemCenter = itemRect.left + itemRect.width / 2;
-        const pos = itemCenter / vw;
-        const min = 16;
+        const pos = (itemRect.left + itemRect.width / 2) / vw;
 
         if (pos < 0.33) {
-          // Left: content starts at menu item
-          submenu.style.setProperty('padding-inline', `${Math.max(min, itemRect.left)}px ${min}px`, 'important');
+          // Left: submenu starts at menu item, extends to right
+          submenu.style.left = `${itemRect.left - baseRect.left}px`;
+          submenu.style.width = `${vw - itemRect.left}px`;
         } else if (pos > 0.67) {
-          // Right: content ends at menu item
-          submenu.style.setProperty('padding-inline', `${min}px ${Math.max(min, vw - itemRect.right)}px`, 'important');
+          // Right: submenu ends at menu item right, extends to left
+          submenu.style.left = `${0 - baseRect.left}px`;
+          submenu.style.width = `${itemRect.right}px`;
         } else {
-          // Center: keep default padding, content spreads naturally
-          submenu.style.removeProperty('padding-inline');
+          // Center: submenu centered under menu item
+          const itemCx = itemRect.left + itemRect.width / 2;
+          const w = vw * 0.85;
+          let targetLeft = itemCx - w / 2;
+          if (targetLeft < 0) targetLeft = 0;
+          if (targetLeft + w > vw) targetLeft = vw - w;
+          submenu.style.left = `${targetLeft - baseRect.left}px`;
+          submenu.style.width = `${w}px`;
         }
       }
     }
