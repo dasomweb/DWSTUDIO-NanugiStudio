@@ -160,34 +160,33 @@ class HeaderMenu extends Component {
     this.#setFullOpenHeaderHeight(finalHeight);
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Align submenu relative to the parent menu item position
+    // Position submenu centered on the parent menu item, clamped to viewport
     if (isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
       if (listItem) {
-        const itemRect = listItem.getBoundingClientRect();
-        const viewportWidth = window.innerWidth;
-        const itemCenter = itemRect.left + itemRect.width / 2;
+        // Reset to measure natural width
+        submenu.style.left = '0';
+        submenu.style.right = 'auto';
 
-        // If menu item is in the right half, align submenu's right edge to item's right edge
-        if (itemCenter > viewportWidth / 2) {
-          submenu.style.left = 'auto';
-          submenu.style.right = '0';
-          submenu.style.removeProperty('--submenu-left-offset');
-        } else {
-          // Left half: align submenu's left edge to item's left edge
-          submenu.style.left = '0';
+        requestAnimationFrame(() => {
+          const itemRect = listItem.getBoundingClientRect();
+          const submenuWidth = submenu.scrollWidth;
+          const vw = window.innerWidth;
+          const margin = 16;
+
+          // Try to center submenu under the menu item
+          const itemCenter = itemRect.left + itemRect.width / 2;
+          let idealLeft = itemCenter - submenuWidth / 2;
+
+          // Clamp: don't overflow left or right of viewport
+          const maxLeft = vw - submenuWidth - margin;
+          idealLeft = Math.max(margin, Math.min(idealLeft, maxLeft));
+
+          // Convert to offset relative to listItem (since parent is position:relative)
+          const offset = idealLeft - itemRect.left;
+          submenu.style.left = `${offset}px`;
           submenu.style.right = 'auto';
-          submenu.style.setProperty('--submenu-left-offset', `${itemRect.left}px`);
-
-          // If still overflows right, shift left
-          requestAnimationFrame(() => {
-            const submenuRect = submenu.getBoundingClientRect();
-            if (submenuRect.right > viewportWidth) {
-              const overflow = submenuRect.right - viewportWidth;
-              submenu.style.left = `-${overflow}px`;
-            }
-          });
-        }
+        });
       }
     }
   };
