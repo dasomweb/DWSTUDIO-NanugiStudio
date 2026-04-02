@@ -159,6 +159,27 @@ class HeaderMenu extends Component {
     this.headerComponent.style.setProperty('--submenu-height', `${finalHeight}px`);
     this.#setFullOpenHeaderHeight(finalHeight);
     this.style.setProperty('--submenu-opacity', '1');
+
+    // Align submenu to start from the parent menu item position
+    if (isDefaultSlot && submenu) {
+      const listItem = item.closest('.menu-list__list-item');
+      if (listItem) {
+        const itemRect = listItem.getBoundingClientRect();
+        const leftOffset = itemRect.left;
+        submenu.style.setProperty('--submenu-left-offset', `${leftOffset}px`);
+
+        // If submenu overflows viewport right edge, shift it left
+        requestAnimationFrame(() => {
+          const submenuRect = submenu.getBoundingClientRect();
+          if (submenuRect.right > window.innerWidth) {
+            const overflow = submenuRect.right - window.innerWidth;
+            submenu.style.left = `-${overflow}px`;
+          } else {
+            submenu.style.left = '0';
+          }
+        });
+      }
+    }
   };
 
   /**
