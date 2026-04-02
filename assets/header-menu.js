@@ -164,6 +164,13 @@ class HeaderMenu extends Component {
     if (isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
       if (listItem) {
+        // Clean up any leftover inline styles from previous logic
+        submenu.style.removeProperty('left');
+        submenu.style.removeProperty('right');
+        submenu.style.removeProperty('width');
+        submenu.style.removeProperty('--submenu-width');
+        submenu.style.removeProperty('--submenu-left-offset');
+
         const itemRect = listItem.getBoundingClientRect();
         const vw = window.innerWidth;
         const itemCenter = itemRect.left + itemRect.width / 2;
@@ -171,12 +178,15 @@ class HeaderMenu extends Component {
         const min = 16;
 
         if (pos < 0.33) {
+          // Left: content starts at menu item
           submenu.style.paddingLeft = `${Math.max(min, itemRect.left)}px`;
           submenu.style.paddingRight = `${min}px`;
         } else if (pos > 0.67) {
+          // Right: content ends at menu item
           submenu.style.paddingLeft = `${min}px`;
           submenu.style.paddingRight = `${Math.max(min, vw - itemRect.right)}px`;
         } else {
+          // Center: content centered under menu item
           const half = vw * 0.35;
           submenu.style.paddingLeft = `${Math.max(min, itemCenter - half)}px`;
           submenu.style.paddingRight = `${Math.max(min, vw - itemCenter - half)}px`;
