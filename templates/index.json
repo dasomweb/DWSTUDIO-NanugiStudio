@@ -611,6 +611,7 @@
       "name": "t:names.collections_carousel",
       "settings": {
         "collection_list": [
+          "jrl-collections",
           "andis-collections",
           "babyliss-collections",
           "black-ice-collection",
