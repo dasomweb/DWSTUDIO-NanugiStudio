@@ -160,8 +160,7 @@ class HeaderMenu extends Component {
     this.#setFullOpenHeaderHeight(finalHeight);
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Position submenu: starts from menu item, fills to right edge of viewport
-    // Only shifts left when there isn't enough space on the right
+    // Position submenu directly below the parent menu item
     if (isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
       if (listItem) {
@@ -169,31 +168,10 @@ class HeaderMenu extends Component {
         const vw = window.innerWidth;
         const margin = 16;
 
-        // Available width from menu item to right edge
-        const availableRight = vw - itemRect.left - margin;
-
-        // Get natural content width
-        submenu.style.setProperty('--submenu-width', 'max-content');
-        const contentWidth = submenu.scrollWidth;
-
-        // Use the larger of: content width or available right space
-        const finalWidth = Math.max(contentWidth, availableRight);
-
-        // Default: start from menu item position
-        let offset = 0;
-
-        // If final width exceeds available right space, shift left
-        if (finalWidth > availableRight) {
-          offset = -(finalWidth - availableRight);
-        }
-
-        // Safety: don't go past left viewport edge
-        if (itemRect.left + offset < margin) {
-          offset = margin - itemRect.left;
-        }
-
-        submenu.style.setProperty('--submenu-width', `${finalWidth}px`);
-        submenu.style.left = `${offset}px`;
+        // Width: from menu item left edge to viewport right edge
+        const width = vw - itemRect.left - margin;
+        submenu.style.setProperty('--submenu-width', `${width}px`);
+        submenu.style.left = '0';
       }
     }
   };
