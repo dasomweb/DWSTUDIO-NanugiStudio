@@ -160,40 +160,27 @@ class HeaderMenu extends Component {
     this.#setFullOpenHeaderHeight(finalHeight);
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Submenu anchored to each 1st-level menu item
+    // Each menu item = anchor. Adjust padding to position content under it.
     if (isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
       if (listItem) {
         const itemRect = listItem.getBoundingClientRect();
-        const submenuParent = submenu.offsetParent || document.body;
-        const parentRect = submenuParent.getBoundingClientRect();
         const vw = window.innerWidth;
-        const parentW = parentRect.width;
-        const itemL = itemRect.left - parentRect.left;
-        const itemR = itemRect.right - parentRect.left;
-        const itemCx = (itemL + itemR) / 2;
-        const pos = (itemRect.left + itemRect.width / 2) / vw;
-
-        let left, right;
+        const itemCenter = itemRect.left + itemRect.width / 2;
+        const pos = itemCenter / vw;
+        const min = 16;
 
         if (pos < 0.33) {
-          // Left: start at menu item, extend right
-          left = itemL;
-          right = 0;
+          submenu.style.paddingLeft = `${Math.max(min, itemRect.left)}px`;
+          submenu.style.paddingRight = `${min}px`;
         } else if (pos > 0.67) {
-          // Right: end at menu item, extend left
-          left = 0;
-          right = parentW - itemR;
+          submenu.style.paddingLeft = `${min}px`;
+          submenu.style.paddingRight = `${Math.max(min, vw - itemRect.right)}px`;
         } else {
-          // Center: centered under menu item
-          const half = vw * 0.4;
-          left = Math.max(0, itemCx - half);
-          right = Math.max(0, parentW - itemCx - half);
+          const half = vw * 0.35;
+          submenu.style.paddingLeft = `${Math.max(min, itemCenter - half)}px`;
+          submenu.style.paddingRight = `${Math.max(min, vw - itemCenter - half)}px`;
         }
-
-        submenu.style.left = `${left}px`;
-        submenu.style.right = `${right}px`;
-        submenu.style.width = 'auto';
       }
     }
   };
