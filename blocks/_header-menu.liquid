@@ -374,8 +374,7 @@
 
     visibility: hidden;
     position: absolute;
-    width: max-content;
-    max-width: calc(100vw - 32px);
+    width: var(--submenu-width, 100%);
     left: 0;
     top: calc(100% - 1px + var(--border-bottom-width) - (var(--full-open-header-height) - var(--submenu-height)));
     z-index: var(--layer-header-menu);

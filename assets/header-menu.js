@@ -160,35 +160,40 @@ class HeaderMenu extends Component {
     this.#setFullOpenHeaderHeight(finalHeight);
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Position submenu starting from below the menu item, shift left only if it overflows
+    // Position submenu: starts from menu item, fills to right edge of viewport
+    // Only shifts left when there isn't enough space on the right
     if (isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
       if (listItem) {
-        submenu.style.left = '0';
-        submenu.style.right = 'auto';
+        const itemRect = listItem.getBoundingClientRect();
+        const vw = window.innerWidth;
+        const margin = 16;
 
-        requestAnimationFrame(() => {
-          const itemRect = listItem.getBoundingClientRect();
-          const submenuWidth = submenu.scrollWidth;
-          const vw = window.innerWidth;
-          const margin = 16;
+        // Available width from menu item to right edge
+        const availableRight = vw - itemRect.left - margin;
 
-          // Default: left edge of submenu = left edge of menu item (offset 0)
-          let offset = 0;
+        // Get natural content width
+        submenu.style.setProperty('--submenu-width', 'max-content');
+        const contentWidth = submenu.scrollWidth;
 
-          // If overflows right, shift left just enough to fit
-          const rightEdge = itemRect.left + submenuWidth;
-          if (rightEdge > vw - margin) {
-            offset = -(rightEdge - (vw - margin));
-          }
+        // Use the larger of: content width or available right space
+        const finalWidth = Math.max(contentWidth, availableRight);
 
-          // Safety: don't let submenu go past left viewport edge
-          if (itemRect.left + offset < margin) {
-            offset = margin - itemRect.left;
-          }
+        // Default: start from menu item position
+        let offset = 0;
 
-          submenu.style.left = `${offset}px`;
-        });
+        // If final width exceeds available right space, shift left
+        if (finalWidth > availableRight) {
+          offset = -(finalWidth - availableRight);
+        }
+
+        // Safety: don't go past left viewport edge
+        if (itemRect.left + offset < margin) {
+          offset = margin - itemRect.left;
+        }
+
+        submenu.style.setProperty('--submenu-width', `${finalWidth}px`);
+        submenu.style.left = `${offset}px`;
       }
     }
   };
