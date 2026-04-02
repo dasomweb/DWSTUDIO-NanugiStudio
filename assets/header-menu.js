@@ -160,11 +160,10 @@ class HeaderMenu extends Component {
     this.#setFullOpenHeaderHeight(finalHeight);
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Position submenu centered on the parent menu item, clamped to viewport
+    // Position submenu starting from below the menu item, shift left only if it overflows
     if (isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
       if (listItem) {
-        // Reset to measure natural width
         submenu.style.left = '0';
         submenu.style.right = 'auto';
 
@@ -174,18 +173,21 @@ class HeaderMenu extends Component {
           const vw = window.innerWidth;
           const margin = 16;
 
-          // Try to center submenu under the menu item
-          const itemCenter = itemRect.left + itemRect.width / 2;
-          let idealLeft = itemCenter - submenuWidth / 2;
+          // Default: left edge of submenu = left edge of menu item (offset 0)
+          let offset = 0;
 
-          // Clamp: don't overflow left or right of viewport
-          const maxLeft = vw - submenuWidth - margin;
-          idealLeft = Math.max(margin, Math.min(idealLeft, maxLeft));
+          // If overflows right, shift left just enough to fit
+          const rightEdge = itemRect.left + submenuWidth;
+          if (rightEdge > vw - margin) {
+            offset = -(rightEdge - (vw - margin));
+          }
 
-          // Convert to offset relative to listItem (since parent is position:relative)
-          const offset = idealLeft - itemRect.left;
+          // Safety: don't let submenu go past left viewport edge
+          if (itemRect.left + offset < margin) {
+            offset = margin - itemRect.left;
+          }
+
           submenu.style.left = `${offset}px`;
-          submenu.style.right = 'auto';
         });
       }
     }
