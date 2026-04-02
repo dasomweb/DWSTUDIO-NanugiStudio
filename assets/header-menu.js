@@ -160,35 +160,17 @@ class HeaderMenu extends Component {
     this.#setFullOpenHeaderHeight(finalHeight);
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Align full-width submenu so content starts from parent menu item
+    // Submenu left edge = menu item left edge. Always.
     if (isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
       if (listItem) {
         const itemRect = listItem.getBoundingClientRect();
         const submenuParent = submenu.offsetParent || document.body;
         const parentRect = submenuParent.getBoundingClientRect();
-        const vw = window.innerWidth;
-        const itemCenter = itemRect.left + itemRect.width / 2;
-        const zone = itemCenter / vw;
 
-        let left;
-        if (zone < 0.33) {
-          // Left zone: submenu left edge = menu item left edge
-          left = itemRect.left - parentRect.left;
-        } else if (zone > 0.66) {
-          // Right zone: submenu right edge = menu item right edge
-          left = itemRect.right - parentRect.left - submenu.offsetWidth;
-        } else {
-          // Center zone: submenu centered under menu item
-          left = itemCenter - parentRect.left - submenu.offsetWidth / 2;
-        }
-
-        // Clamp to viewport
-        const absLeft = parentRect.left + left;
-        if (absLeft < 0) left -= absLeft;
-        if (absLeft + submenu.offsetWidth > vw) left -= (absLeft + submenu.offsetWidth - vw);
-
-        submenu.style.left = `${left}px`;
+        submenu.style.left = `${itemRect.left - parentRect.left}px`;
+        submenu.style.right = '0';
+        submenu.style.width = 'auto';
       }
     }
   };
