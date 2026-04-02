@@ -196,9 +196,8 @@ class HeaderMenu extends Component {
         }
 
         const shift = targetLeft - base;
-        console.log('[mega-menu]', {base, targetLeft, shift, pos: pos.toFixed(2), itemLeft: itemRect.left, itemRight: itemRect.right, vw});
-        submenu.style.left = `${shift}px`;
-        submenu.style.width = `${w}px`;
+        submenu.style.setProperty('left', `${shift}px`, 'important');
+        submenu.style.setProperty('width', `${w}px`, 'important');
       }
     }
   };
