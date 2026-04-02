@@ -160,39 +160,42 @@ class HeaderMenu extends Component {
     this.#setFullOpenHeaderHeight(finalHeight);
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Each 1st-level menu item = anchor point for submenu
+    // Each 1st-level menu item = anchor point for its submenu.
+    // parent has position:relative, so left is relative to menu item.
     if (isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
       if (listItem) {
-        // Reset inline styles to measure base position
-        submenu.style.removeProperty('left');
+        // Clean up any leftover inline styles
         submenu.style.removeProperty('right');
-        submenu.style.removeProperty('width');
         submenu.style.removeProperty('padding-inline');
 
         const itemRect = listItem.getBoundingClientRect();
-        const baseRect = submenu.getBoundingClientRect();
         const vw = window.innerWidth;
-        const pos = (itemRect.left + itemRect.width / 2) / vw;
+        const itemW = itemRect.width;
+        const pos = (itemRect.left + itemW / 2) / vw;
+
+        let left, width;
 
         if (pos < 0.33) {
-          // Left: submenu starts at menu item, extends to right
-          submenu.style.left = `${itemRect.left - baseRect.left}px`;
-          submenu.style.width = `${vw - itemRect.left}px`;
+          // Left zone: submenu left = menu item left, extends right to viewport edge
+          left = 0;
+          width = vw - itemRect.left;
         } else if (pos > 0.67) {
-          // Right: submenu ends at menu item right, extends to left
-          submenu.style.left = `${0 - baseRect.left}px`;
-          submenu.style.width = `${itemRect.right}px`;
+          // Right zone: submenu right = menu item right, extends left to viewport edge
+          left = -itemRect.left;
+          width = itemRect.right;
         } else {
-          // Center: submenu centered under menu item
-          const itemCx = itemRect.left + itemRect.width / 2;
-          const w = vw * 0.85;
-          let targetLeft = itemCx - w / 2;
-          if (targetLeft < 0) targetLeft = 0;
-          if (targetLeft + w > vw) targetLeft = vw - w;
-          submenu.style.left = `${targetLeft - baseRect.left}px`;
-          submenu.style.width = `${w}px`;
+          // Center zone: submenu centered under menu item
+          width = vw * 0.85;
+          left = -(width / 2 - itemW / 2);
+          // Clamp: don't overflow viewport left
+          if (itemRect.left + left < 0) left = -itemRect.left;
+          // Clamp: don't overflow viewport right
+          if (itemRect.left + left + width > vw) left = vw - itemRect.left - width;
         }
+
+        submenu.style.left = `${left}px`;
+        submenu.style.width = `${width}px`;
       }
     }
   };
