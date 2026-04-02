@@ -160,25 +160,16 @@ class HeaderMenu extends Component {
     this.#setFullOpenHeaderHeight(finalHeight);
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Each 1st-level menu item is the anchor. Submenu flows from it.
+    // Submenu starts at 1st-level menu item. Always.
     if (isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
       if (listItem) {
         const itemRect = listItem.getBoundingClientRect();
         const submenuParent = submenu.offsetParent || document.body;
         const parentRect = submenuParent.getBoundingClientRect();
-        const vw = window.innerWidth;
 
-        // ratio: 0 = left edge, 1 = right edge
-        const ratio = (itemRect.left + itemRect.width / 2) / vw;
-
-        // left side pulls toward menu item, right side pulls toward 0
-        const left = (itemRect.left - parentRect.left) * (1 - ratio);
-        // right side pulls toward menu item, left side pulls toward 0
-        const right = (parentRect.right - itemRect.right) * ratio;
-
-        submenu.style.left = `${left}px`;
-        submenu.style.right = `${right}px`;
+        submenu.style.left = `${itemRect.left - parentRect.left}px`;
+        submenu.style.right = '0';
         submenu.style.width = 'auto';
       }
     }
