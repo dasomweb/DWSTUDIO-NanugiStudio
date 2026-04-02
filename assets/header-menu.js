@@ -160,7 +160,7 @@ class HeaderMenu extends Component {
     this.#setFullOpenHeaderHeight(finalHeight);
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Position submenu anchored to the 1st-level menu item
+    // Each 1st-level menu item is the anchor. Submenu flows from it.
     if (isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
       if (listItem) {
@@ -168,29 +168,17 @@ class HeaderMenu extends Component {
         const submenuParent = submenu.offsetParent || document.body;
         const parentRect = submenuParent.getBoundingClientRect();
         const vw = window.innerWidth;
-        const itemCenter = itemRect.left + itemRect.width / 2;
-        const zone = itemCenter / vw;
 
-        const itemL = itemRect.left - parentRect.left;
-        const itemR = parentRect.right - itemRect.right;
+        // ratio: 0 = left edge, 1 = right edge
+        const ratio = (itemRect.left + itemRect.width / 2) / vw;
 
-        if (zone <= 0.4) {
-          // Left: submenu starts at menu item, extends to right edge
-          submenu.style.left = `${itemL}px`;
-          submenu.style.right = '0';
-        } else if (zone >= 0.6) {
-          // Right: submenu ends at menu item right edge, extends to left edge
-          submenu.style.left = '0';
-          submenu.style.right = `${itemR}px`;
-        } else {
-          // Center: submenu centered under menu item, clamped to viewport
-          const panelWidth = vw * 0.85;
-          let left = itemCenter - parentRect.left - panelWidth / 2;
-          if (left < 0) left = 0;
-          if (left + panelWidth > parentRect.width) left = parentRect.width - panelWidth;
-          submenu.style.left = `${left}px`;
-          submenu.style.right = `${parentRect.width - left - panelWidth}px`;
-        }
+        // left side pulls toward menu item, right side pulls toward 0
+        const left = (itemRect.left - parentRect.left) * (1 - ratio);
+        // right side pulls toward menu item, left side pulls toward 0
+        const right = (parentRect.right - itemRect.right) * ratio;
+
+        submenu.style.left = `${left}px`;
+        submenu.style.right = `${right}px`;
         submenu.style.width = 'auto';
       }
     }
