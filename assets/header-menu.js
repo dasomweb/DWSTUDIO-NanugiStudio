@@ -165,36 +165,6 @@ class HeaderMenu extends Component {
     this.headerComponent.style.setProperty('--submenu-height', `${finalHeight}px`);
     this.#setFullOpenHeaderHeight(finalHeight);
     this.style.setProperty('--submenu-opacity', '1');
-
-    // Method 3: full-width submenu, inner content aligned to menu item
-    if (isDefaultSlot && submenu) {
-      const listItem = item.closest('.menu-list__list-item');
-      const inner = submenu.querySelector('.menu-list__submenu-inner');
-      if (listItem && inner) {
-        // Reset
-        inner.style.marginLeft = '';
-        inner.style.marginRight = '';
-
-        const itemRect = listItem.getBoundingClientRect();
-        const submenuRect = submenu.getBoundingClientRect();
-        const vw = window.innerWidth;
-
-        // Content starts at menu item left edge
-        const offsetLeft = itemRect.left - submenuRect.left;
-        inner.style.marginLeft = `${offsetLeft}px`;
-
-        // Overflow check: if content goes past right edge, shift back
-        requestAnimationFrame(() => {
-          const innerRect = inner.getBoundingClientRect();
-          if (innerRect.right > vw) {
-            // Instead of left-align, right-align to menu item right edge
-            inner.style.marginLeft = '';
-            const offsetRight = submenuRect.right - itemRect.right;
-            inner.style.marginRight = `${offsetRight}px`;
-          }
-        });
-      }
-    }
   };
 
   /**
