@@ -706,14 +706,15 @@
   header-menu[data-submenu-style="dropdown"] .menu-list__submenu-inner {
     transform: none;
     padding: 0;
-    max-height: calc(80vh - var(--header-height));
+    max-height: none;
     background-color: rgb(var(--color-background-rgb));
     border-radius: 0;
     box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
-    overflow: visible;
+    overflow: visible !important;
+    scrollbar-width: none !important;
   }
 
   /* Remove the ::after bridge gap in dropdown mode */
