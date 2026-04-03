@@ -697,8 +697,8 @@
         "gap": 48,
         "enable_sticky_add_to_cart": true,
         "color_scheme": "scheme-1",
-        "padding-block-start": 0,
-        "padding-block-end": 32
+        "padding-block-start": 25,
+        "padding-block-end": 25
       }
     },
     "product_recommendations_9cKGXA": {
