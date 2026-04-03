@@ -166,11 +166,17 @@ class HeaderMenu extends Component {
       finalHeight = 0;
     }
 
-    this.headerComponent.style.setProperty('--submenu-height', `${finalHeight}px`);
-    this.#setFullOpenHeaderHeight(finalHeight);
+    if (this.isDropdownStyle) {
+      // Dropdown mode: no full-width background, only set opacity
+      this.headerComponent.style.setProperty('--submenu-height', '0px');
+      this.#setFullOpenHeaderHeight(0);
+    } else {
+      this.headerComponent.style.setProperty('--submenu-height', `${finalHeight}px`);
+      this.#setFullOpenHeaderHeight(finalHeight);
+    }
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Dropdown style: position submenu relative to menu item, check right-edge overflow
+    // Dropdown style: check right-edge overflow
     if (this.isDropdownStyle && isDefaultSlot && submenu) {
       delete submenu.dataset.alignRight;
       requestAnimationFrame(() => {

@@ -716,19 +716,23 @@
   }
 
   header-menu[data-submenu-style="dropdown"] .mega-menu__grid {
-    grid-template-columns: repeat(auto-fit, minmax(180px, max-content));
-    gap: var(--gap-sm) var(--gap-3xl);
+    display: flex;
+    gap: 0 var(--gap-3xl);
     width: max-content;
   }
 
   header-menu[data-submenu-style="dropdown"] .mega-menu__list {
-    grid-column: auto;
-    grid-template-columns: repeat(auto-fit, minmax(180px, max-content));
-    gap: var(--gap-sm) var(--gap-3xl);
+    display: flex;
+    gap: 0 var(--gap-3xl);
   }
 
   header-menu[data-submenu-style="dropdown"] .mega-menu__column {
-    grid-column: span 1;
+    min-width: 180px;
+  }
+
+  /* Remove the ::after bridge gap in dropdown mode — not needed */
+  header-menu[data-submenu-style="dropdown"] .menu-list__list-item:not([slot='overflow'])::after {
+    display: none;
   }
 
   header-menu[data-submenu-style="dropdown"] .section--full-width-margin {
