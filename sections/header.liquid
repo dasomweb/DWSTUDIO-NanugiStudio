@@ -917,6 +917,11 @@
     background-color: rgb(var(--color-foreground-rgb) / 0.03);
   }
 
+  /* Logo bottom padding only when bottom row exists */
+  .header:has(.header__row--bottom) .header-logo {
+    padding-bottom: 15px;
+  }
+
   /* Header inline search */
   .header-inline-search {
     position: relative;
