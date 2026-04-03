@@ -68,9 +68,9 @@
           "settings": {
             "text": "{{ closest.article.content }}",
             "width": "100%",
-            "max_width": "normal",
-            "content_width_percent": 0,
-            "alignment": "center",
+            "max_width": "narrow",
+            "content_width_percent": 100,
+            "alignment": "left",
             "type_preset": "paragraph",
             "font": "var(--font-body--family)",
             "font_size": "1rem",
