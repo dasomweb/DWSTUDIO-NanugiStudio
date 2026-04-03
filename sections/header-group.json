@@ -83,10 +83,10 @@
       "settings": {
         "logo_position": "left",
         "menu_position": "center",
-        "menu_row": "bottom",
+        "menu_row": "top",
         "customer_account_menu": "customer-account-main-menu",
         "show_search": true,
-        "search_display_style": "inline",
+        "search_display_style": "modal",
         "search_placeholder": "Search products...",
         "search_position": "right",
         "search_row": "top",
