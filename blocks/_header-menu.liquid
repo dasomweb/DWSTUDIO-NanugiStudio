@@ -684,14 +684,16 @@
     display: contents;
   }
 
-  /* Dropdown style submenu */
+  /* ================================
+   * Flyout dropdown style submenu
+   * ================================ */
   header-menu[data-submenu-style="dropdown"] .menu-list__list-item:not([slot='overflow']) {
     position: relative;
   }
 
   header-menu[data-submenu-style="dropdown"] .menu-list__list-item:not([slot='overflow']) > .menu-list__submenu {
     width: auto;
-    min-width: 240px;
+    min-width: 260px;
     left: 50%;
     transform: translateX(-50%);
     top: 100%;
@@ -703,35 +705,17 @@
 
   header-menu[data-submenu-style="dropdown"] .menu-list__submenu-inner {
     transform: none;
-    padding-block-start: var(--padding-lg);
-    padding-block-end: var(--padding-lg);
-    padding-inline: var(--padding-xl);
+    padding: 0;
     max-height: calc(80vh - var(--header-height));
     background-color: rgb(var(--color-background-rgb));
     border-radius: 0 0 8px 8px;
     box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
-  }
-
-  header-menu[data-submenu-style="dropdown"] .mega-menu {
-    grid-template-columns: 1fr;
-  }
-
-  header-menu[data-submenu-style="dropdown"] .mega-menu__grid {
     display: flex;
-    gap: 0 var(--gap-3xl);
-    width: max-content;
+    flex-direction: row;
+    flex-wrap: nowrap;
   }
 
-  header-menu[data-submenu-style="dropdown"] .mega-menu__list {
-    display: flex;
-    gap: 0 var(--gap-3xl);
-  }
-
-  header-menu[data-submenu-style="dropdown"] .mega-menu__column {
-    min-width: 180px;
-  }
-
-  /* Remove the ::after bridge gap in dropdown mode — not needed */
+  /* Remove the ::after bridge gap in dropdown mode */
   header-menu[data-submenu-style="dropdown"] .menu-list__list-item:not([slot='overflow'])::after {
     display: none;
   }
@@ -740,10 +724,114 @@
     padding-inline: 0;
   }
 
-  /* Submenu inner: override the default translateY transform in dropdown mode */
+  header-menu[data-submenu-style="dropdown"] .mega-menu {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  /* Override the default translateY transform */
   header-menu[data-submenu-style="dropdown"] .menu-list__submenu-inner,
   header-menu[data-submenu-style="dropdown"] .overflow-menu::part(overflow-list) {
     transform: none;
+  }
+
+  /* Flyout grid: single vertical column for parent items */
+  header-menu[data-submenu-style="dropdown"] .mega-menu__grid {
+    display: block;
+    width: auto;
+  }
+
+  header-menu[data-submenu-style="dropdown"] .mega-menu__list {
+    display: block;
+    position: relative;
+  }
+
+  header-menu[data-submenu-style="dropdown"] .mega-menu__column {
+    position: static;
+  }
+
+  /* Parent links: vertical list style */
+  header-menu[data-submenu-style="dropdown"] .mega-menu__link--parent {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--gap-xl);
+    padding: var(--padding-xs) var(--padding-xl);
+    white-space: nowrap;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
+  }
+
+  header-menu[data-submenu-style="dropdown"] .mega-menu__link--parent:hover {
+    background-color: rgb(var(--color-foreground-rgb) / 0.06);
+  }
+
+  /* Chevron arrow for parent items with children */
+  header-menu[data-submenu-style="dropdown"] .mega-menu__link--parent::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-right: 1.5px solid currentColor;
+    border-top: 1.5px solid currentColor;
+    transform: rotate(45deg);
+    flex-shrink: 0;
+    opacity: 0.5;
+  }
+
+  /* Child links without sub-items: simple list style */
+  header-menu[data-submenu-style="dropdown"] .mega-menu__link:not(.mega-menu__link--parent) {
+    padding: var(--padding-xs) var(--padding-xl);
+    white-space: nowrap;
+    display: block;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
+  }
+
+  header-menu[data-submenu-style="dropdown"] .mega-menu__link:not(.mega-menu__link--parent):hover {
+    background-color: rgb(var(--color-foreground-rgb) / 0.06);
+  }
+
+  /* Child list (3rd level): hidden by default, shown as right panel on hover */
+  header-menu[data-submenu-style="dropdown"] .mega-menu__column > div > ul {
+    display: none;
+    position: absolute;
+    left: 100%;
+    top: 0;
+    min-width: 240px;
+    min-height: 100%;
+    padding: var(--padding-sm) 0;
+    background-color: rgb(var(--color-background-rgb));
+    border-left: 1px solid rgb(var(--color-foreground-rgb) / 0.08);
+    border-radius: 0 0 8px 0;
+    box-shadow: 8px 8px 24px rgb(0 0 0 / 8%);
+  }
+
+  /* Show child list on parent hover */
+  header-menu[data-submenu-style="dropdown"] .mega-menu__column:hover > div > ul {
+    display: block;
+  }
+
+  /* Highlight active parent when child panel is open */
+  header-menu[data-submenu-style="dropdown"] .mega-menu__column:hover > div > .mega-menu__link--parent {
+    background-color: rgb(var(--color-foreground-rgb) / 0.06);
+  }
+
+  /* Child list items */
+  header-menu[data-submenu-style="dropdown"] .mega-menu__column > div > ul .mega-menu__link {
+    padding: var(--padding-xs) var(--padding-xl);
+    white-space: nowrap;
+    display: block;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
+  }
+
+  header-menu[data-submenu-style="dropdown"] .mega-menu__column > div > ul .mega-menu__link:hover {
+    background-color: rgb(var(--color-foreground-rgb) / 0.06);
+  }
+
+  /* Left panel padding */
+  header-menu[data-submenu-style="dropdown"] .mega-menu__list {
+    padding: var(--padding-sm) 0;
   }
 {% endstylesheet %}
 
