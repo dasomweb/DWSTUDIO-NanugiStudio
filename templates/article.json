@@ -67,7 +67,7 @@
           "name": "t:names.text",
           "settings": {
             "text": "{{ closest.article.content }}",
-            "width": "100%",
+            "width": "fit-content",
             "max_width": "narrow",
             "content_width_percent": 100,
             "alignment": "left",
