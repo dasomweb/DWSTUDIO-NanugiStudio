@@ -161,6 +161,7 @@
       {{ block.shopify_attributes }}
       data-hydration-key="header-menu"
       {% if block_settings.menu_style == 'dropdown' %}data-submenu-style="dropdown"{% endif %}
+      data-menu-row="{{ section.settings.menu_row | default: 'top' }}"
     >
       <div class="header-menu__inner">
         <nav
@@ -721,7 +722,6 @@
 
   header-menu[data-submenu-style="dropdown"] .menu-list__list-item:not([slot='overflow']) > .menu-list__submenu {
     width: auto;
-    top: var(--header-height);
     clip-path: none;
     padding-inline: 0;
     transition: opacity var(--submenu-animation-speed) var(--animation-easing),

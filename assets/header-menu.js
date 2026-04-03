@@ -187,6 +187,15 @@ class HeaderMenu extends Component {
         submenu.style.left = `${leftOffset}px`;
         submenu.style.removeProperty('right');
 
+        // Menu in bottom row: position below full header
+        // Menu in top row: position below menu row only
+        if (this.dataset.menuRow === 'bottom') {
+          submenu.style.top = `${container.offsetHeight}px`;
+        } else {
+          const row = this.closest('.header__row');
+          submenu.style.top = row ? `${row.offsetHeight}px` : `${container.offsetHeight}px`;
+        }
+
         requestAnimationFrame(() => {
           const submenuRect = submenu.getBoundingClientRect();
           if (submenuRect.right > window.innerWidth) {
