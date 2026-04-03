@@ -176,13 +176,22 @@ class HeaderMenu extends Component {
     }
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Dropdown style: check right-edge overflow
+    // Dropdown style: fix overflow when centered submenu exceeds viewport edges
     if (this.isDropdownStyle && isDefaultSlot && submenu) {
-      delete submenu.dataset.alignRight;
+      submenu.style.removeProperty('left');
+      submenu.style.removeProperty('right');
+      submenu.style.removeProperty('transform');
       requestAnimationFrame(() => {
         const submenuRect = submenu.getBoundingClientRect();
         if (submenuRect.right > window.innerWidth) {
-          submenu.dataset.alignRight = '';
+          // Overflows right: align to right edge of menu item
+          submenu.style.left = 'auto';
+          submenu.style.right = '0';
+          submenu.style.transform = 'none';
+        } else if (submenuRect.left < 0) {
+          // Overflows left: align to left edge of menu item
+          submenu.style.left = '0';
+          submenu.style.transform = 'none';
         }
       });
     }
