@@ -1,0 +1,230 @@
+{%- doc -%}
+  Inline search section with live product dropdown.
+  Uses Shopify Predictive Search API via Section Rendering API.
+{%- enddoc -%}
+
+<script src="{{ 'inline-search.js' | asset_url }}" type="module" defer></script>
+
+<inline-search
+  class="inline-search color-{{ section.settings.color_scheme }}"
+  data-section-id="{{ section.id }}"
+>
+  <div class="inline-search__input-wrap">
+    <svg class="inline-search__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+    <input
+      type="search"
+      data-inline-search-input
+      placeholder="{{ section.settings.placeholder }}"
+      autocomplete="off"
+      aria-label="{{ section.settings.placeholder }}"
+    >
+  </div>
+  <div class="inline-search__dropdown" data-inline-search-dropdown hidden></div>
+</inline-search>
+
+{%- comment -%} Results rendered via Section Rendering API {%- endcomment -%}
+{%- if predictive_search.performed -%}
+  {%- if predictive_search.resources.products.size > 0 -%}
+    {% for product in predictive_search.resources.products limit: section.settings.results_count %}
+      <a href="{{ product.url }}" class="inline-search__result">
+        <div class="inline-search__result-image">
+          {% if product.featured_image %}
+            {{ product.featured_image | image_url: width: 80 | image_tag: loading: 'lazy', width: 80 }}
+          {% endif %}
+        </div>
+        <div class="inline-search__result-info">
+          <span class="inline-search__result-title">{{ product.title }}</span>
+          <span class="inline-search__result-price">{{ product.price | money }}</span>
+        </div>
+      </a>
+    {% endfor %}
+    <a href="{{ routes.search_url }}?q={{ predictive_search.terms | url_encode }}" class="inline-search__view-all">
+      View all results &rarr;
+    </a>
+  {%- else -%}
+    <div class="inline-search__no-results">
+      No products found for "{{ predictive_search.terms }}"
+    </div>
+  {%- endif -%}
+{%- endif -%}
+
+{% stylesheet %}
+  .inline-search {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .inline-search__input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .inline-search__icon {
+    position: absolute;
+    left: 16px;
+    color: rgb(var(--color-foreground-rgb) / 0.5);
+    pointer-events: none;
+  }
+
+  .inline-search__input-wrap input {
+    width: 100%;
+    padding: 14px 16px 14px 48px;
+    font-size: var(--font-size--base);
+    border: 1px solid rgb(var(--color-foreground-rgb) / 0.15);
+    border-radius: 6px;
+    background: rgb(var(--color-background-rgb));
+    color: var(--color-foreground);
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+
+  .inline-search__input-wrap input:focus {
+    border-color: rgb(var(--color-foreground-rgb) / 0.4);
+  }
+
+  .inline-search__input-wrap input::placeholder {
+    color: rgb(var(--color-foreground-rgb) / 0.4);
+  }
+
+  /* Dropdown */
+  .inline-search__dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    margin-top: 4px;
+    background: rgb(var(--color-background-rgb));
+    border: 1px solid rgb(var(--color-foreground-rgb) / 0.1);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+    max-height: 480px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .inline-search__dropdown[hidden] {
+    display: none;
+  }
+
+  /* Result item */
+  .inline-search__result {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    text-decoration: none;
+    color: var(--color-foreground);
+    transition: background-color 0.15s ease;
+  }
+
+  .inline-search__result:hover {
+    background-color: rgb(var(--color-foreground-rgb) / 0.04);
+    color: var(--color-foreground);
+  }
+
+  .inline-search__result + .inline-search__result {
+    border-top: 1px solid rgb(var(--color-foreground-rgb) / 0.06);
+  }
+
+  .inline-search__result-image {
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+    border-radius: 4px;
+    overflow: hidden;
+    background: rgb(var(--color-foreground-rgb) / 0.04);
+  }
+
+  .inline-search__result-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .inline-search__result-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .inline-search__result-title {
+    font-size: var(--font-size--small);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .inline-search__result-price {
+    font-size: var(--font-size--small);
+    opacity: 0.6;
+  }
+
+  /* View all link */
+  .inline-search__view-all {
+    display: block;
+    text-align: center;
+    padding: 12px 16px;
+    font-size: var(--font-size--small);
+    font-weight: 500;
+    color: var(--color-foreground);
+    text-decoration: none;
+    border-top: 1px solid rgb(var(--color-foreground-rgb) / 0.08);
+    transition: background-color 0.15s ease;
+  }
+
+  .inline-search__view-all:hover {
+    background-color: rgb(var(--color-foreground-rgb) / 0.04);
+    color: var(--color-foreground);
+  }
+
+  /* No results */
+  .inline-search__no-results {
+    padding: 24px 16px;
+    text-align: center;
+    font-size: var(--font-size--small);
+    color: rgb(var(--color-foreground-rgb) / 0.5);
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Inline Search",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "placeholder",
+      "label": "Placeholder text",
+      "default": "Search products..."
+    },
+    {
+      "type": "range",
+      "id": "results_count",
+      "label": "Max results",
+      "min": 3,
+      "max": 10,
+      "step": 1,
+      "default": 6
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "Color scheme",
+      "default": "primary"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Inline Search"
+    }
+  ]
+}
+{% endschema %}
