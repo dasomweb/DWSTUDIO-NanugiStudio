@@ -176,18 +176,16 @@ class HeaderMenu extends Component {
     }
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Dropdown style: position submenu aligned to menu item
+    // Dropdown style: position submenu fixed to viewport, below header
     if (this.isDropdownStyle && isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
       const container = this.headerComponent;
       if (listItem && container) {
         const itemRect = listItem.getBoundingClientRect();
         const containerRect = container.getBoundingClientRect();
-        const leftOffset = itemRect.left - containerRect.left;
-        submenu.style.left = `${leftOffset}px`;
+        submenu.style.left = `${itemRect.left}px`;
+        submenu.style.top = `${containerRect.bottom}px`;
         submenu.style.removeProperty('right');
-
-        submenu.style.top = `${container.offsetHeight}px`;
 
         requestAnimationFrame(() => {
           const submenuRect = submenu.getBoundingClientRect();
