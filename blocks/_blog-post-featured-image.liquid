@@ -14,6 +14,8 @@
   style="
     --ratio: {% case block_settings.image_ratio %}
       {% when 'landscape' %}16 / 9
+      {% when 'wide' %}21 / 9
+      {% when 'ultrawide' %}3 / 1
       {% when 'portrait' %}4 / 5
       {% when 'adapt' %}{{ image.aspect_ratio | default: 1 }}
       {% else %}1
@@ -114,6 +116,14 @@
         {
           "value": "landscape",
           "label": "t:options.landscape"
+        },
+        {
+          "value": "wide",
+          "label": "Wide (21:9)"
+        },
+        {
+          "value": "ultrawide",
+          "label": "Ultra wide (3:1)"
         }
       ],
       "default": "adapt"

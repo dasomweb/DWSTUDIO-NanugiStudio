@@ -13,6 +13,12 @@
     style="
       {% render 'layout-panel-style', settings: section.settings %}
       {% render 'spacing-style', settings: section.settings %}
+      align-items: {{ section.settings.content_alignment | default: 'center' }};
+      {% case section.settings.content_alignment %}
+        {% when 'flex-start' %}text-align: left;
+        {% when 'flex-end' %}text-align: right;
+        {% else %}text-align: center;
+      {% endcase %}
     "
   >
     {% content_for 'blocks' %}
@@ -126,6 +132,26 @@
       ],
       "default": "column",
       "visible_if": "{{ section.settings.gap < 0 }}"
+    },
+    {
+      "type": "select",
+      "id": "content_alignment",
+      "label": "Content alignment",
+      "options": [
+        {
+          "value": "flex-start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "flex-end",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
     },
     {
       "type": "range",
