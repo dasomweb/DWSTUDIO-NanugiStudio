@@ -865,18 +865,15 @@
     scrollbar-width: thin;
   }
 
-  /* Kill ALL horizontal scroll sources in dropdown mode */
-  header-menu[data-submenu-style="dropdown"] *,
-  header-menu[data-submenu-style="dropdown"] .menu-list__submenu-inner,
+  /* Prevent horizontal scroll on specific containers only */
+  header-menu[data-submenu-style="dropdown"] .menu-list__submenu,
   header-menu[data-submenu-style="dropdown"] .mega-menu,
   header-menu[data-submenu-style="dropdown"] .mega-menu__grid,
+  header-menu[data-submenu-style="dropdown"] .mega-menu__column,
+  header-menu[data-submenu-style="dropdown"] .mega-menu__column > div,
   header-menu[data-submenu-style="dropdown"] .section--full-width-margin {
-    overflow-x: visible !important;
+    overflow: visible !important;
     scrollbar-width: none !important;
-  }
-
-  header-menu[data-submenu-style="dropdown"] .mega-menu__list {
-    scrollbar-width: thin !important;
   }
 {% endstylesheet %}
 
