@@ -730,6 +730,15 @@
     position: relative;
     background-color: rgb(var(--color-background-rgb));
     box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+    overflow: visible;
+  }
+
+  .flyout__scroll {
+    max-height: calc(80vh - var(--header-height));
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: auto;
+    scrollbar-color: rgb(var(--color-foreground-rgb) / 0.25) transparent;
   }
 
   .flyout__list {
@@ -737,10 +746,6 @@
     margin: 0;
     padding: var(--padding-sm) 0;
     min-width: 260px;
-    max-height: calc(80vh - var(--header-height));
-    overflow-y: auto;
-    scrollbar-width: auto;
-    scrollbar-color: rgb(var(--color-foreground-rgb) / 0.25) transparent;
   }
 
   .flyout__link {
@@ -776,27 +781,15 @@
     top: 0;
     bottom: 0;
     min-width: 240px;
-    padding: var(--padding-sm) var(--padding-md) var(--padding-sm) 0;
+    padding: var(--padding-sm) 0;
     background-color: rgb(var(--color-background-rgb));
     border-left: 1px solid rgb(var(--color-foreground-rgb) / 0.1);
     box-shadow: 8px 0 24px rgb(0 0 0 / 6%);
-    overflow-y: auto;
-    scrollbar-width: auto;
-    scrollbar-color: rgb(var(--color-foreground-rgb) / 0.25) transparent;
   }
 
   /* Extend hover area so mouse doesn't lose contact traveling to panel */
   .flyout__item--has-children {
-    position: relative;
-  }
-
-  .flyout__item--has-children::after {
-    content: '';
-    position: absolute;
-    right: -10px;
-    top: 0;
-    bottom: 0;
-    width: 10px;
+    position: static;
   }
 
   .flyout__item--has-children:hover > .flyout__panel {

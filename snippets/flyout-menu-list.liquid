@@ -6,6 +6,7 @@
 {%- enddoc -%}
 
 <div class="flyout">
+  <div class="flyout__scroll">
   <ul class="flyout__list">
     {% for link in parent_link.links %}
       <li class="flyout__item{% if link.links != blank %} flyout__item--has-children{% endif %}">
@@ -29,4 +30,5 @@
       </li>
     {% endfor %}
   </ul>
+  </div>
 </div>
