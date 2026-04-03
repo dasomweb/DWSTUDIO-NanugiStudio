@@ -1,0 +1,32 @@
+{%- doc -%}
+  Renders a flyout dropdown menu list.
+  Clean HTML structure: vertical list with hover-triggered right panel.
+
+  @param {object} parent_link - The parent link containing child links.
+{%- enddoc -%}
+
+<div class="flyout">
+  <ul class="flyout__list">
+    {% for link in parent_link.links %}
+      <li class="flyout__item{% if link.links != blank %} flyout__item--has-children{% endif %}">
+        <a href="{{ link.url }}" class="flyout__link">
+          <span>{{ link.title }}</span>
+          {%- if link.links != blank -%}
+            <svg class="flyout__chevron" width="6" height="10" viewBox="0 0 6 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1L5 5L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          {%- endif -%}
+        </a>
+        {%- if link.links != blank -%}
+          <ul class="flyout__panel">
+            {% for child in link.links %}
+              <li>
+                <a href="{{ child.url }}" class="flyout__panel-link">{{ child.title }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        {%- endif -%}
+      </li>
+    {% endfor %}
+  </ul>
+</div>
