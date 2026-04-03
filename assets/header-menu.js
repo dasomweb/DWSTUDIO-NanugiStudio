@@ -22,6 +22,11 @@ class HeaderMenu extends Component {
    */
   #submenuMutationObserver = null;
 
+  /**
+   * @type {ReturnType<typeof setTimeout> | null}
+   */
+  #deactivateTimer = null;
+
   connectedCallback() {
     super.connectedCallback();
 
@@ -80,6 +85,7 @@ class HeaderMenu extends Component {
    * @param {PointerEvent | FocusEvent} event
    */
   activate = (event) => {
+    clearTimeout(this.#deactivateTimer);
     this.dispatchEvent(new MegaMenuHoverEvent());
 
     if (!(event.target instanceof Element) || !this.headerComponent) return;
@@ -201,13 +207,22 @@ class HeaderMenu extends Component {
     const menu = findSubmenu(this.#state.activeItem);
     const isMovingWithinMenu = event.relatedTarget instanceof Node && menu?.contains(document.activeElement);
     const isMovingToSubmenu =
-      event.relatedTarget instanceof Node && event.type === 'blur' && menu?.contains(event.relatedTarget);
+      event.relatedTarget instanceof Node && menu?.contains(event.relatedTarget);
     const isMovingToOverflowMenu =
       event.relatedTarget instanceof Node && event.relatedTarget.parentElement?.matches('[slot="overflow"]');
 
     if (isMovingWithinMenu || isMovingToOverflowMenu || isMovingToSubmenu) return;
 
-    this.#deactivate();
+    // Delay deactivation to allow pointer to cross the gap between menu item and submenu
+    const itemToDeactivate = this.#state.activeItem;
+    clearTimeout(this.#deactivateTimer);
+    this.#deactivateTimer = setTimeout(() => {
+      // Re-check if the submenu or menu item is now hovered before closing
+      const submenu = findSubmenu(itemToDeactivate);
+      const listItem = itemToDeactivate?.closest('.menu-list__list-item');
+      if (submenu?.matches(':hover') || listItem?.matches(':hover')) return;
+      this.#deactivate(itemToDeactivate);
+    }, 120);
   }
 
   /**
