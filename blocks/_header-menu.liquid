@@ -169,7 +169,7 @@
             class: class,
             ref: 'overflowMenu',
             children: children,
-            minimum-items: 999,
+            minimum-items: 2,
             data-testid: 'header-menu-overflow-list',
             attributes: 'data-skip-node-update'
           %}
@@ -719,6 +719,12 @@
   /* Remove the ::after bridge gap in dropdown mode */
   header-menu[data-submenu-style="dropdown"] .menu-list__list-item:not([slot='overflow'])::after {
     display: none;
+  }
+
+  /* Hide MORE button and overflow items in dropdown mode */
+  header-menu[data-submenu-style="dropdown"] .menu-list__list-item[slot="more"],
+  header-menu[data-submenu-style="dropdown"] .menu-list__list-item[slot="overflow"] {
+    display: none !important;
   }
 
   header-menu[data-submenu-style="dropdown"] .section--full-width-margin {
