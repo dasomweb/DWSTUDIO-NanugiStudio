@@ -362,6 +362,10 @@
     border-radius: 2px;
   }
 
+  .menu-list__list-item:hover > .menu-list__link .menu-list__link-title::after {
+    background-color: rgb(var(--color-background-rgb));
+  }
+
   .overflow-menu::part(list) {
     /* Make sure focus outline is not cut off by overflow hidden */
     --focus-outline-size: calc(var(--focus-outline-offset) + var(--focus-outline-width));
