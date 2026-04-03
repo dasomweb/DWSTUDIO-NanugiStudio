@@ -722,11 +722,21 @@
 
   header-menu[data-submenu-style="dropdown"] .menu-list__list-item:not([slot='overflow']) > .menu-list__submenu {
     width: auto;
-    position: fixed;
     clip-path: none;
     padding-inline: 0;
     transition: opacity var(--submenu-animation-speed) var(--animation-easing),
                 visibility var(--submenu-animation-speed) var(--animation-easing);
+  }
+
+  /* Portal: dropdown rendered in body to escape contain:layout */
+  .flyout-portal {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: auto;
+  }
+
+  .flyout-portal[hidden] {
+    display: none;
   }
 
   header-menu[data-submenu-style="dropdown"] .menu-list__submenu-inner {

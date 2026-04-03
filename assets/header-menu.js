@@ -176,25 +176,9 @@ class HeaderMenu extends Component {
     }
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Dropdown style: position submenu fixed to viewport, below header
+    // Dropdown style: render submenu in body portal to escape contain:layout
     if (this.isDropdownStyle && isDefaultSlot && submenu) {
-      const listItem = item.closest('.menu-list__list-item');
-      const container = this.headerComponent;
-      if (listItem && container) {
-        const itemRect = listItem.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-        submenu.style.left = `${itemRect.left}px`;
-        submenu.style.top = `${containerRect.bottom}px`;
-        submenu.style.removeProperty('right');
-
-        requestAnimationFrame(() => {
-          const submenuRect = submenu.getBoundingClientRect();
-          if (submenuRect.right > window.innerWidth) {
-            submenu.style.left = 'auto';
-            submenu.style.right = '0';
-          }
-        });
-      }
+      this.#showDropdownPortal(item, submenu);
     }
   };
 
@@ -221,7 +205,7 @@ class HeaderMenu extends Component {
       // Re-check if the submenu or menu item is now hovered before closing
       const submenu = findSubmenu(itemToDeactivate);
       const listItem = itemToDeactivate?.closest('.menu-list__list-item');
-      if (submenu?.matches(':hover') || listItem?.matches(':hover')) return;
+      if (submenu?.matches(':hover') || listItem?.matches(':hover') || this.#dropdownPortal?.matches(':hover')) return;
       this.#deactivate(itemToDeactivate);
     }, 120);
   }
@@ -233,9 +217,11 @@ class HeaderMenu extends Component {
   #deactivate = (item = this.#state.activeItem) => {
     if (!item || item != this.#state.activeItem) return;
 
-    // Don't deactivate if the overflow menu or overflow list is still being hovered
+    // Don't deactivate if the overflow menu, overflow list, or dropdown portal is still being hovered
     if (this.overflowListHovered || this.overflowMenu?.matches(':hover')) return;
+    if (this.#dropdownPortal?.matches(':hover')) return;
 
+    this.#hideDropdownPortal();
     this.headerComponent?.style.setProperty('--submenu-height', '0px');
     this.#setFullOpenHeaderHeight(0);
     this.style.setProperty('--submenu-opacity', '0');
@@ -297,6 +283,53 @@ class HeaderMenu extends Component {
     const fullOpenHeaderHeight = nothingToOpen ? 0 : submenuHeight + (headerVisibleHeight ?? 0);
 
     this.headerComponent?.style.setProperty('--full-open-header-height', `${fullOpenHeaderHeight}px`);
+  }
+
+  /**
+   * Show dropdown submenu via a portal appended to <body>
+   */
+  #dropdownPortal = null;
+
+  #showDropdownPortal(item, submenu) {
+    this.#hideDropdownPortal();
+
+    const listItem = item.closest('.menu-list__list-item');
+    const container = this.headerComponent;
+    if (!listItem || !container) return;
+
+    const portal = document.createElement('div');
+    portal.className = 'flyout-portal';
+    const itemRect = listItem.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+
+    portal.style.left = `${itemRect.left}px`;
+    portal.style.top = `${containerRect.bottom}px`;
+    portal.innerHTML = submenu.querySelector('.flyout')?.outerHTML || submenu.innerHTML;
+
+    document.body.appendChild(portal);
+    this.#dropdownPortal = portal;
+
+    // Right-edge overflow check
+    requestAnimationFrame(() => {
+      const portalRect = portal.getBoundingClientRect();
+      if (portalRect.right > window.innerWidth) {
+        portal.style.left = 'auto';
+        portal.style.right = '0';
+      }
+    });
+
+    // Close portal when mouse leaves
+    portal.addEventListener('mouseleave', () => {
+      this.#hideDropdownPortal();
+      this.#deactivate();
+    });
+  }
+
+  #hideDropdownPortal() {
+    if (this.#dropdownPortal) {
+      this.#dropdownPortal.remove();
+      this.#dropdownPortal = null;
+    }
   }
 
   /**
