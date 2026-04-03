@@ -713,10 +713,7 @@
     overflow: visible;
   }
 
-  /* Remove ::after bridge gap */
-  header-menu[data-submenu-style="dropdown"] .menu-list__list-item:not([slot='overflow'])::after {
-    display: none;
-  }
+  /* Keep ::after bridge so submenu starts below header bottom line */
 
   /* Hide MORE button */
   header-menu[data-submenu-style="dropdown"] .menu-list__list-item[slot="more"],
