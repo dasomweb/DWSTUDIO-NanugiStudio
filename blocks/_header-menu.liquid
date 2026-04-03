@@ -827,7 +827,10 @@
     background-color: rgb(var(--color-background-rgb));
     border-left: 1px solid rgb(var(--color-foreground-rgb) / 0.1);
     border-radius: 0;
-    overflow-y: auto;
+    max-height: calc(80vh - var(--header-height));
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    scrollbar-width: thin !important;
   }
 
   /* Show child list on parent hover */
