@@ -745,6 +745,14 @@
     overflow: visible;
   }
 
+  /* Hide original submenu in dropdown mode — portal handles display */
+  header-menu[data-submenu-style="dropdown"] .menu-list__list-item:not([slot='overflow']) > .menu-list__submenu {
+    visibility: hidden !important;
+    pointer-events: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+
   /* Keep ::after bridge so submenu starts below header bottom line */
 
   /* Hide MORE button */

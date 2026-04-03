@@ -304,6 +304,11 @@ class HeaderMenu extends Component {
 
     portal.style.left = `${itemRect.left}px`;
     portal.style.top = `${containerRect.bottom}px`;
+
+    // Copy color scheme class from header for CSS variables
+    const colorClass = Array.from(container.classList).find(c => c.startsWith('color-'));
+    if (colorClass) portal.classList.add(colorClass);
+
     portal.innerHTML = submenu.querySelector('.flyout')?.outerHTML || submenu.innerHTML;
 
     document.body.appendChild(portal);
