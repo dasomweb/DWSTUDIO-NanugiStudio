@@ -11,7 +11,7 @@
   assign search_style = 'none'
 
   if section.settings.show_search
-    assign search_style = 'modal'
+    assign search_style = section.settings.search_display_style | default: 'modal'
   endif
 
   if section.settings.enable_transparent_header_home and template.name == 'index'
@@ -92,7 +92,11 @@
     endif
   endif
   capture search
-    render 'search', style: search_style, class: search_class, display_style: section.settings.actions_display_style
+    if search_style == 'inline'
+      render 'header-inline-search', placeholder: section.settings.search_placeholder
+    else
+      render 'search', style: search_style, class: search_class, display_style: section.settings.actions_display_style
+    endif
   endcapture
 
   # Skip drawer search under specific conditions:
@@ -911,6 +915,74 @@
     --header-padding: var(--padding-xs);
   }
 
+  /* Header inline search */
+  .header-inline-search {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+    max-width: 500px;
+  }
+
+  .header-inline-search__wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .header-inline-search__icon {
+    position: absolute;
+    left: 12px;
+    color: rgb(var(--color-foreground-rgb) / 0.4);
+    pointer-events: none;
+  }
+
+  .header-inline-search__wrap input {
+    width: 100%;
+    padding: 10px 12px 10px 40px;
+    font-size: var(--font-size--small);
+    border: 1px solid rgb(var(--color-foreground-rgb) / 0.15);
+    border-radius: 6px;
+    background: rgb(var(--color-foreground-rgb) / 0.04);
+    color: var(--color-foreground);
+    outline: none;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+  }
+
+  .header-inline-search__wrap input:focus {
+    border-color: rgb(var(--color-foreground-rgb) / 0.3);
+    background: rgb(var(--color-background-rgb));
+  }
+
+  .header-inline-search__wrap input::placeholder {
+    color: rgb(var(--color-foreground-rgb) / 0.4);
+  }
+
+  .header-inline-search__dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: var(--layer-header-menu, 100);
+    margin-top: 4px;
+    background: rgb(var(--color-background-rgb));
+    border: 1px solid rgb(var(--color-foreground-rgb) / 0.1);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+    max-height: 480px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .header-inline-search__dropdown[hidden] {
+    display: none;
+  }
+
+  @media screen and (max-width: 749px) {
+    .header-inline-search {
+      display: none;
+    }
+  }
+
   .header--collapse-row-paddings {
     .header__row--top .header__columns {
       --padding-block-end: 0px;
@@ -1218,6 +1290,30 @@
       "id": "show_search",
       "label": "t:settings.search_icon",
       "default": true
+    },
+    {
+      "type": "select",
+      "id": "search_display_style",
+      "label": "Search style",
+      "options": [
+        {
+          "value": "modal",
+          "label": "Icon (modal)"
+        },
+        {
+          "value": "inline",
+          "label": "Inline search bar"
+        }
+      ],
+      "default": "modal",
+      "visible_if": "{{ section.settings.show_search }}"
+    },
+    {
+      "type": "text",
+      "id": "search_placeholder",
+      "label": "Search placeholder",
+      "default": "Search products...",
+      "visible_if": "{{ section.settings.search_display_style == 'inline' }}"
     },
     {
       "type": "select",
