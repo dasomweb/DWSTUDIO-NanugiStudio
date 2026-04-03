@@ -6,7 +6,8 @@
  * or related systems. Please exercise caution as any changes
  * made to this file may be overwritten.
  * ------------------------------------------------------------
- */{
+ */
+{
   "sections": {
     "section": {
       "type": "main-blog-post",
@@ -19,6 +20,7 @@
             "text": "<h1>{{ article.title }}</h1>",
             "width": "100%",
             "max_width": "normal",
+            "content_width_percent": 0,
             "alignment": "center",
             "type_preset": "h2",
             "font": "var(--font-body--family)",
@@ -54,8 +56,7 @@
           "blocks": {}
         },
         "blog-post-image": {
-          "type": "image",
-          "name": "Featured image",
+          "type": "_blog-post-featured-image",
           "static": true,
           "settings": {
             "image_ratio": "landscape",
