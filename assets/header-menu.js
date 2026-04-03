@@ -179,10 +179,11 @@ class HeaderMenu extends Component {
     // Dropdown style: position submenu aligned to menu item
     if (this.isDropdownStyle && isDefaultSlot && submenu) {
       const listItem = item.closest('.menu-list__list-item');
-      if (listItem) {
+      const container = this.headerComponent;
+      if (listItem && container) {
         const itemRect = listItem.getBoundingClientRect();
-        const headerRect = this.getBoundingClientRect();
-        const leftOffset = itemRect.left - headerRect.left;
+        const containerRect = container.getBoundingClientRect();
+        const leftOffset = itemRect.left - containerRect.left;
         submenu.style.left = `${leftOffset}px`;
         submenu.style.removeProperty('right');
 
