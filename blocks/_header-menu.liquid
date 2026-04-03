@@ -70,7 +70,9 @@
         assign color_scheme_classes = color_scheme_classes | append: ' color-scheme-matches-parent'
       endif
 
-      if block_settings.menu_style == 'featured_collections'
+      if block_settings.menu_style == 'dropdown'
+        assign menu_content_type = 'text'
+      elsif block_settings.menu_style == 'featured_collections'
         assign ratio = block_settings.featured_collections_aspect_ratio
       elsif block_settings.menu_style == 'featured_products'
         assign ratio = block_settings.featured_products_aspect_ratio
@@ -154,6 +156,7 @@
       class="header-menu"
       {{ block.shopify_attributes }}
       data-hydration-key="header-menu"
+      {% if block_settings.menu_style == 'dropdown' %}data-submenu-style="dropdown"{% endif %}
     >
       <div class="header-menu__inner">
         <nav
@@ -680,6 +683,63 @@
     /* preserves the inherited grid layout when this submenu wrapper is used */
     display: contents;
   }
+
+  /* Dropdown style submenu */
+  header-menu[data-submenu-style="dropdown"] .menu-list__list-item:not([slot='overflow']) {
+    position: relative;
+  }
+
+  header-menu[data-submenu-style="dropdown"] .menu-list__list-item:not([slot='overflow']) > .menu-list__submenu {
+    width: auto;
+    min-width: 240px;
+    left: 0;
+    top: 100%;
+    clip-path: none;
+    padding-inline: 0;
+    transition: opacity var(--submenu-animation-speed) var(--animation-easing),
+                visibility var(--submenu-animation-speed) var(--animation-easing);
+  }
+
+  header-menu[data-submenu-style="dropdown"] .menu-list__submenu-inner {
+    transform: none;
+    padding-block-start: var(--padding-lg);
+    padding-block-end: var(--padding-lg);
+    padding-inline: var(--padding-xl);
+    max-height: calc(80vh - var(--header-height));
+    background-color: rgb(var(--color-background-rgb));
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+  }
+
+  header-menu[data-submenu-style="dropdown"] .mega-menu {
+    grid-template-columns: 1fr;
+  }
+
+  header-menu[data-submenu-style="dropdown"] .mega-menu__grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, max-content));
+    gap: var(--gap-sm) var(--gap-3xl);
+    width: max-content;
+  }
+
+  header-menu[data-submenu-style="dropdown"] .mega-menu__list {
+    grid-column: auto;
+    grid-template-columns: repeat(auto-fit, minmax(180px, max-content));
+    gap: var(--gap-sm) var(--gap-3xl);
+  }
+
+  header-menu[data-submenu-style="dropdown"] .mega-menu__column {
+    grid-column: span 1;
+  }
+
+  header-menu[data-submenu-style="dropdown"] .section--full-width-margin {
+    padding-inline: 0;
+  }
+
+  /* Right-edge overflow: shift dropdown to align right edge with menu item */
+  header-menu[data-submenu-style="dropdown"] .menu-list__list-item:not([slot='overflow']) > .menu-list__submenu[data-align-right] {
+    left: auto;
+    right: 0;
+  }
 {% endstylesheet %}
 
 {% schema %}
@@ -816,6 +876,10 @@
         {
           "value": "featured_collections",
           "label": "t:options.featured_collections"
+        },
+        {
+          "value": "dropdown",
+          "label": "Dropdown"
         }
       ],
       "default": "collection_images"

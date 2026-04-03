@@ -80,6 +80,10 @@ class HeaderMenu extends Component {
     return /** @type {HTMLElement | null} */ (this.closest('header-component'));
   }
 
+  get isDropdownStyle() {
+    return this.dataset.submenuStyle === 'dropdown';
+  }
+
   /**
    * Activate the selected menu item immediately
    * @param {PointerEvent | FocusEvent} event
@@ -165,6 +169,17 @@ class HeaderMenu extends Component {
     this.headerComponent.style.setProperty('--submenu-height', `${finalHeight}px`);
     this.#setFullOpenHeaderHeight(finalHeight);
     this.style.setProperty('--submenu-opacity', '1');
+
+    // Dropdown style: position submenu relative to menu item, check right-edge overflow
+    if (this.isDropdownStyle && isDefaultSlot && submenu) {
+      delete submenu.dataset.alignRight;
+      requestAnimationFrame(() => {
+        const submenuRect = submenu.getBoundingClientRect();
+        if (submenuRect.right > window.innerWidth) {
+          submenu.dataset.alignRight = '';
+        }
+      });
+    }
   };
 
   /**
