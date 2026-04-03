@@ -809,6 +809,11 @@
     position: relative;
   }
 
+  /* Force single column in 3rd level */
+  header-menu[data-submenu-style="dropdown"] .mega-menu__column > div > ul[style] {
+    column-count: 1 !important;
+  }
+
   /* Child list (3rd level): hidden by default, shown as right panel on hover */
   header-menu[data-submenu-style="dropdown"] .mega-menu__column > div > ul {
     display: none;
@@ -821,6 +826,7 @@
     background-color: rgb(var(--color-background-rgb));
     border-left: 1px solid rgb(var(--color-foreground-rgb) / 0.1);
     border-radius: 0;
+    overflow-y: auto;
   }
 
   /* Show child list on parent hover */
