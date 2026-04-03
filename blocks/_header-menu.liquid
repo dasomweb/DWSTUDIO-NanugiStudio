@@ -344,20 +344,22 @@
     color: var(--menu-top-level-font-color);
   }
 
-  /* Active menu indicator */
-  .menu-list__link--active .menu-list__link-title {
+  /* Active & hover menu indicator */
+  .menu-list__link .menu-list__link-title {
     position: relative;
   }
 
-  .menu-list__link--active .menu-list__link-title::after {
+  .menu-list__link--active .menu-list__link-title::after,
+  .menu-list__list-item:hover > .menu-list__link .menu-list__link-title::after {
     content: '';
     position: absolute;
-    bottom: -4px;
+    bottom: -6px;
     left: 50%;
     transform: translateX(-50%);
-    width: 15px;
-    height: 2px;
+    width: 30px;
+    height: 4px;
     background-color: var(--menu-top-level-font-color);
+    border-radius: 2px;
   }
 
   .overflow-menu::part(list) {
