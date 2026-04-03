@@ -305,9 +305,12 @@ class HeaderMenu extends Component {
     portal.style.left = `${itemRect.left}px`;
     portal.style.top = `${containerRect.bottom}px`;
 
-    // Copy color scheme class from header for CSS variables
-    const colorClass = Array.from(container.classList).find(c => c.startsWith('color-'));
-    if (colorClass) portal.classList.add(colorClass);
+    // Copy computed styles from header for color
+    const headerStyles = getComputedStyle(container);
+    portal.style.setProperty('--color-background-rgb', headerStyles.getPropertyValue('--color-background-rgb'));
+    portal.style.setProperty('--color-foreground-rgb', headerStyles.getPropertyValue('--color-foreground-rgb'));
+    portal.style.setProperty('--color-foreground', headerStyles.getPropertyValue('--color-foreground'));
+    portal.style.setProperty('--color-background', headerStyles.getPropertyValue('--color-background'));
 
     portal.innerHTML = submenu.querySelector('.flyout')?.outerHTML || submenu.innerHTML;
 
