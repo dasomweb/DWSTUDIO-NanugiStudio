@@ -176,17 +176,24 @@ class HeaderMenu extends Component {
     }
     this.style.setProperty('--submenu-opacity', '1');
 
-    // Dropdown style: fix overflow when submenu exceeds viewport edges
+    // Dropdown style: position submenu aligned to menu item
     if (this.isDropdownStyle && isDefaultSlot && submenu) {
-      submenu.style.removeProperty('left');
-      submenu.style.removeProperty('right');
-      requestAnimationFrame(() => {
-        const submenuRect = submenu.getBoundingClientRect();
-        if (submenuRect.right > window.innerWidth) {
-          submenu.style.left = 'auto';
-          submenu.style.right = '0';
-        }
-      });
+      const listItem = item.closest('.menu-list__list-item');
+      if (listItem) {
+        const itemRect = listItem.getBoundingClientRect();
+        const headerRect = this.getBoundingClientRect();
+        const leftOffset = itemRect.left - headerRect.left;
+        submenu.style.left = `${leftOffset}px`;
+        submenu.style.removeProperty('right');
+
+        requestAnimationFrame(() => {
+          const submenuRect = submenu.getBoundingClientRect();
+          if (submenuRect.right > window.innerWidth) {
+            submenu.style.left = 'auto';
+            submenu.style.right = '0';
+          }
+        });
+      }
     }
   };
 

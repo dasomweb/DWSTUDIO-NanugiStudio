@@ -692,14 +692,17 @@
    * Flyout dropdown style
    * ================================ */
 
-  /* Submenu container: positioned under menu item, centered */
-  header-menu[data-submenu-style="dropdown"] .menu-list__list-item:not([slot='overflow']) {
+  /* Submenu container: positioned under header-menu, not under <li> */
+  header-menu[data-submenu-style="dropdown"] {
     position: relative;
+  }
+
+  header-menu[data-submenu-style="dropdown"] .menu-list__list-item:not([slot='overflow']) {
+    position: static;
   }
 
   header-menu[data-submenu-style="dropdown"] .menu-list__list-item:not([slot='overflow']) > .menu-list__submenu {
     width: auto;
-    left: 0;
     top: 100%;
     clip-path: none;
     padding-inline: 0;
