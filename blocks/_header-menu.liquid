@@ -744,11 +744,11 @@
 
   header-menu[data-submenu-style="dropdown"] .mega-menu__list {
     display: block;
-    position: relative;
+    position: static;
   }
 
   header-menu[data-submenu-style="dropdown"] .mega-menu__column {
-    position: relative;
+    position: static;
   }
 
   /* Parent links: vertical list style */
@@ -798,19 +798,23 @@
     font-size: var(--font-size--small);
   }
 
+  /* The submenu-inner is the positioning context for the 3rd level panel */
+  header-menu[data-submenu-style="dropdown"] .menu-list__submenu-inner {
+    position: relative;
+  }
+
   /* Child list (3rd level): hidden by default, shown as right panel on hover */
   header-menu[data-submenu-style="dropdown"] .mega-menu__column > div > ul {
     display: none;
     position: absolute;
     left: 100%;
     top: 0;
+    bottom: 0;
     min-width: 240px;
-    min-height: 100%;
     padding: var(--padding-sm) 0;
     background-color: rgb(var(--color-background-rgb));
-    border-left: 1px solid rgb(var(--color-foreground-rgb) / 0.08);
+    border-left: 1px solid rgb(var(--color-foreground-rgb) / 0.1);
     border-radius: 0 0 8px 0;
-    box-shadow: 8px 8px 24px rgb(0 0 0 / 8%);
   }
 
   /* Show child list on parent hover */
