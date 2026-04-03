@@ -761,6 +761,7 @@
     white-space: nowrap;
     border-radius: 4px;
     transition: background-color 0.15s ease;
+    font-size: var(--font-size--small);
   }
 
   header-menu[data-submenu-style="dropdown"] .mega-menu__link--parent:hover {
@@ -790,6 +791,11 @@
 
   header-menu[data-submenu-style="dropdown"] .mega-menu__link:not(.mega-menu__link--parent):hover {
     background-color: rgb(var(--color-foreground-rgb) / 0.06);
+  }
+
+  /* 3rd level links: smaller font */
+  header-menu[data-submenu-style="dropdown"] .mega-menu__column > div > ul .mega-menu__link {
+    font-size: var(--font-size--small);
   }
 
   /* Child list (3rd level): hidden by default, shown as right panel on hover */
