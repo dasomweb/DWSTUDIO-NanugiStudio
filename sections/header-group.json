@@ -115,10 +115,20 @@
         "enable_transparent_header_collection": false,
         "collection_color_scheme": "inverse"
       }
+    },
+    "inline_search_LRH7FA": {
+      "type": "inline-search",
+      "name": "Inline Search",
+      "settings": {
+        "placeholder": "Search products...",
+        "results_count": 6,
+        "color_scheme": ""
+      }
     }
   },
   "order": [
     "header_announcements_WbCTVz",
-    "header_section"
+    "header_section",
+    "inline_search_LRH7FA"
   ]
 }
