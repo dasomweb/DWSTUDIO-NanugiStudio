@@ -16,7 +16,6 @@
           "type": "_slide",
           "settings": {
             "media_type_1": "image",
-            "image_1": "",
             "content_direction": "column",
             "vertical_on_mobile": true,
             "horizontal_alignment": "flex-start",
@@ -60,7 +59,6 @@
           "type": "_slide",
           "settings": {
             "media_type_1": "image",
-            "image_1": "",
             "content_direction": "column",
             "vertical_on_mobile": true,
             "horizontal_alignment": "flex-start",
@@ -105,7 +103,6 @@
           "name": "t:names.slide",
           "settings": {
             "media_type_1": "image",
-            "image_1": "",
             "content_direction": "column",
             "vertical_on_mobile": true,
             "horizontal_alignment": "flex-start",
@@ -444,7 +441,7 @@
       },
       "name": "Featured collection",
       "settings": {
-        "collection": "new-arrivals",
+        "collection": "tired-but-living",
         "layout_type": "grid",
         "carousel_on_mobile": false,
         "max_products": 10,
