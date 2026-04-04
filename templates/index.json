@@ -17,7 +17,6 @@
           "settings": {
             "media_type_1": "image",
             "image_1": "",
-            "video_1": "",
             "content_direction": "column",
             "vertical_on_mobile": true,
             "horizontal_alignment": "flex-start",
@@ -62,7 +61,6 @@
           "settings": {
             "media_type_1": "image",
             "image_1": "",
-            "video_1": "",
             "content_direction": "column",
             "vertical_on_mobile": true,
             "horizontal_alignment": "flex-start",
