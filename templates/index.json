@@ -1379,7 +1379,7 @@
               "settings": {
                 "text": "<p>{{ closest.product.description }}</p>",
                 "width": "100%",
-                "max_width": "none",
+                "max_width": "normal",
                 "alignment": "left",
                 "type_preset": "paragraph",
                 "font": "var(--font-body--family)",
