@@ -2164,7 +2164,7 @@
         "type": "checkbox",
         "id": "show_variant_image",
         "label": "t:settings.variant_images",
-        "default": false
+        "default": true
       },
       {
         "type": "range",

@@ -37,8 +37,13 @@
         {%- liquid
           assign swatch_count = product_option.values | map: 'swatch' | compact | size
           assign variant_style = block_settings.variant_style
+          assign is_color_option = false
+          assign option_name_lower = product_option.name | downcase
+          if option_name_lower == 'color' or option_name_lower == 'colour'
+            assign is_color_option = true
+          endif
 
-          if swatch_count > 0 and block_settings.show_swatches
+          if block_settings.show_swatches and swatch_count > 0 or is_color_option
             if block_settings.variant_style == 'dropdown'
               assign variant_style = 'swatch_dropdown'
             else
@@ -126,7 +131,8 @@
                   {% render 'swatch',
                     swatch: product_option_value.swatch,
                     variant_image: featured_media,
-                    mode: 'unscaled'
+                    mode: 'unscaled',
+                    color_value: product_option_value
                   %}
                 {% else %}
                   {% if product_option_value.available == true %}
