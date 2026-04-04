@@ -1,0 +1,141 @@
+{%- doc -%}
+  Renders breadcrumb navigation.
+  Works in collection, product, blog, article templates.
+{%- enddoc -%}
+
+<nav class="breadcrumb spacing-style" aria-label="Breadcrumb" style="{% render 'spacing-style', settings: block.settings %}" {{ block.shopify_attributes }}>
+  <ol class="breadcrumb__list">
+    <li class="breadcrumb__item">
+      <a href="/" class="breadcrumb__link">{{ block.settings.home_label | default: 'Home' }}</a>
+    </li>
+
+    {%- if template.name == 'collection' -%}
+      <li class="breadcrumb__item breadcrumb__item--current" aria-current="page">
+        <span>{{ collection.title }}</span>
+      </li>
+
+    {%- elsif template.name == 'product' -%}
+      {%- if product.collections.size > 0 -%}
+        {%- assign primary_collection = product.collections | first -%}
+        <li class="breadcrumb__item">
+          <a href="{{ primary_collection.url }}" class="breadcrumb__link">{{ primary_collection.title }}</a>
+        </li>
+      {%- endif -%}
+      <li class="breadcrumb__item breadcrumb__item--current" aria-current="page">
+        <span>{{ product.title }}</span>
+      </li>
+
+    {%- elsif template.name == 'blog' -%}
+      <li class="breadcrumb__item breadcrumb__item--current" aria-current="page">
+        <span>{{ blog.title }}</span>
+      </li>
+
+    {%- elsif template.name == 'article' -%}
+      <li class="breadcrumb__item">
+        <a href="{{ blog.url }}" class="breadcrumb__link">{{ blog.title }}</a>
+      </li>
+      <li class="breadcrumb__item breadcrumb__item--current" aria-current="page">
+        <span>{{ article.title }}</span>
+      </li>
+
+    {%- elsif template.name == 'page' -%}
+      <li class="breadcrumb__item breadcrumb__item--current" aria-current="page">
+        <span>{{ page.title }}</span>
+      </li>
+
+    {%- elsif template.name == 'search' -%}
+      <li class="breadcrumb__item breadcrumb__item--current" aria-current="page">
+        <span>Search</span>
+      </li>
+    {%- endif -%}
+  </ol>
+</nav>
+
+{% stylesheet %}
+  .breadcrumb__list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: var(--font-size--small);
+  }
+
+  .breadcrumb__item {
+    display: flex;
+    align-items: center;
+  }
+
+  .breadcrumb__item + .breadcrumb__item::before {
+    content: '';
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-right: 1.5px solid currentColor;
+    border-top: 1.5px solid currentColor;
+    transform: rotate(45deg);
+    margin-inline: 8px;
+    opacity: 0.4;
+  }
+
+  .breadcrumb__link {
+    color: rgb(var(--color-foreground-rgb) / 0.6);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .breadcrumb__link:hover {
+    color: var(--color-foreground);
+  }
+
+  .breadcrumb__item--current span {
+    color: var(--color-foreground);
+    font-weight: 500;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Breadcrumb",
+  "tag": null,
+  "settings": [
+    {
+      "type": "text",
+      "id": "home_label",
+      "label": "Home label",
+      "default": "Home"
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "range",
+      "id": "padding-block-start",
+      "label": "Top",
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "padding-block-end",
+      "label": "Bottom",
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    }
+  ],
+  "presets": [
+    {
+      "name": "Breadcrumb"
+    }
+  ]
+}
+{% endschema %}
