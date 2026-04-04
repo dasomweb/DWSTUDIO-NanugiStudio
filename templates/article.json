@@ -66,10 +66,10 @@
           "type": "text",
           "name": "t:names.text",
           "settings": {
-            "text": "<p>{{ closest.article.content }}</p>",
+            "text": "{{ closest.article.content }}",
             "width": "fit-content",
             "max_width": "narrow",
-            "content_width_percent": 65,
+            "content_width_percent": 75,
             "alignment": "left",
             "type_preset": "paragraph",
             "font": "var(--font-body--family)",
