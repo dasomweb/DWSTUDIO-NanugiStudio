@@ -34,25 +34,37 @@
             "corner_radius": 0,
             "padding-block-start": 0,
             "padding-block-end": 0,
-            "padding-inline-start": 10,
+            "padding-inline-start": 0,
             "padding-inline-end": 0
+          },
+          "blocks": {}
+        },
+        "breadcrumb_dgAJEL": {
+          "type": "breadcrumb",
+          "name": "Breadcrumb",
+          "settings": {
+            "home_label": "Home",
+            "font_size": "0.75rem",
+            "padding-block-start": 16,
+            "padding-block-end": 16
           },
           "blocks": {}
         }
       },
       "block_order": [
-        "text_tqQTNE"
+        "text_tqQTNE",
+        "breadcrumb_dgAJEL"
       ],
       "name": "Collection heading",
       "settings": {
-        "content_direction": "row",
+        "content_direction": "column",
         "vertical_on_mobile": true,
         "horizontal_alignment": "space-between",
         "vertical_alignment": "center",
         "align_baseline": false,
         "horizontal_alignment_flex_direction_column": "flex-start",
         "vertical_alignment_flex_direction_column": "center",
-        "gap": 12,
+        "gap": 0,
         "section_width": "page-width",
         "content_width": "default",
         "section_height": "",
@@ -70,7 +82,7 @@
         "overlay_style": "solid",
         "gradient_direction": "to top",
         "padding-block-start": 32,
-        "padding-block-end": 32,
+        "padding-block-end": 20,
         "padding-inline-start": 0,
         "padding-inline-end": 0
       }
