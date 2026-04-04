@@ -68,6 +68,16 @@
             "padding-inline-end": 12
           },
           "blocks": {
+            "breadcrumb_3ndrDm": {
+              "type": "breadcrumb",
+              "name": "Breadcrumb",
+              "settings": {
+                "home_label": "Home",
+                "padding-block-start": 16,
+                "padding-block-end": 16
+              },
+              "blocks": {}
+            },
             "text_GnyQiN": {
               "type": "text",
               "name": "t:names.title",
@@ -679,6 +689,7 @@
             }
           },
           "block_order": [
+            "breadcrumb_3ndrDm",
             "text_GnyQiN",
             "reviews",
             "price_a7krng",
