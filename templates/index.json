@@ -850,13 +850,40 @@
                 }
               },
               "block_order": []
+            },
+            "product_description_FTBm9Y": {
+              "type": "product-description",
+              "name": "t:names.product_description",
+              "settings": {
+                "text": "<p>{{ closest.product.description }}</p>",
+                "width": "fit-content",
+                "max_width": "normal",
+                "alignment": "left",
+                "type_preset": "rte",
+                "font": "var(--font-body--family)",
+                "font_size": "1rem",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "wrap": "pretty",
+                "color": "var(--color-foreground)",
+                "background": false,
+                "background_color": "#00000026",
+                "corner_radius": 0,
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
             }
           },
           "block_order": [
             "group_ttqtxT",
             "review_KYWPTq",
             "variant_picker_zat8dY",
-            "buy_buttons_jcUEDx"
+            "buy_buttons_jcUEDx",
+            "product_description_FTBm9Y"
           ]
         }
       },
@@ -1084,13 +1111,40 @@
                 }
               },
               "block_order": []
+            },
+            "product_description_r77ygj": {
+              "type": "product-description",
+              "name": "t:names.product_description",
+              "settings": {
+                "text": "<p>{{ closest.product.description }}</p>",
+                "width": "fit-content",
+                "max_width": "normal",
+                "alignment": "left",
+                "type_preset": "rte",
+                "font": "var(--font-body--family)",
+                "font_size": "1rem",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "wrap": "pretty",
+                "color": "var(--color-foreground)",
+                "background": false,
+                "background_color": "#00000026",
+                "corner_radius": 0,
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
             }
           },
           "block_order": [
             "group_c6E8FK",
             "review_Qqr99F",
             "variant_picker_aGCwzh",
-            "buy_buttons_MbdrxC"
+            "buy_buttons_MbdrxC",
+            "product_description_r77ygj"
           ]
         }
       },
@@ -1318,13 +1372,40 @@
                 }
               },
               "block_order": []
+            },
+            "product_description_kd78x7": {
+              "type": "product-description",
+              "name": "t:names.product_description",
+              "settings": {
+                "text": "<p>{{ closest.product.description }}</p>",
+                "width": "fit-content",
+                "max_width": "normal",
+                "alignment": "left",
+                "type_preset": "rte",
+                "font": "var(--font-body--family)",
+                "font_size": "1rem",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "wrap": "pretty",
+                "color": "var(--color-foreground)",
+                "background": false,
+                "background_color": "#00000026",
+                "corner_radius": 0,
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
             }
           },
           "block_order": [
             "group_ABBygL",
             "review_fqJTFH",
             "variant_picker_ULY9eP",
-            "buy_buttons_fMRGeW"
+            "buy_buttons_fMRGeW",
+            "product_description_kd78x7"
           ]
         }
       },
