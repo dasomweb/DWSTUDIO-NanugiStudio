@@ -62,6 +62,20 @@
           },
           "blocks": {}
         },
+        "blog_post_details_NwrXX8": {
+          "type": "blog-post-details",
+          "name": "t:names.details",
+          "settings": {
+            "show_date": true,
+            "show_author": false,
+            "type_preset": "h5",
+            "alignment": "left",
+            "show_alignment": true,
+            "padding-block-start": 0,
+            "padding-block-end": 0
+          },
+          "blocks": {}
+        },
         "text_bHPdgT": {
           "type": "text",
           "name": "t:names.text",
@@ -93,6 +107,7 @@
       "block_order": [
         "image_YVBNTK",
         "text_4VFprA",
+        "blog_post_details_NwrXX8",
         "text_bHPdgT"
       ],
       "settings": {
