@@ -59,7 +59,7 @@
     {% render 'typography-style', settings: block_settings %}
     --width: {{ text_width }};
     {% if block_settings.content_width_percent > 0 %}
-    --max-width: {{ block_settings.content_width_percent }}%;
+    --max-width: none;
     width: {{ block_settings.content_width_percent }}%;
     {% else %}
     --max-width: var(--max-width--{{ type }}-{{ block_settings.max_width }});
