@@ -9,8 +9,8 @@
  */
 {
   "current": {
-    "logo": "shopify://shop_images/TheBaberSpot-Logo-Black.png",
-    "logo_inverse": "shopify://shop_images/TheBaberSpot-Logo-white.png",
+    "logo": "",
+    "logo_inverse": "",
     "logo_height": 44,
     "logo_height_mobile": 28,
     "type_body_font": "roboto_n4",

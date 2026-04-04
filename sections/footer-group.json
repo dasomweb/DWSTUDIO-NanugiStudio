@@ -56,7 +56,7 @@
             "text_jBr8nr": {
               "type": "text",
               "settings": {
-                "text": "<p>THE BARBER SPOT</p>",
+                "text": "<p>NANUGI</p>",
                 "width": "100%",
                 "max_width": "normal",
                 "content_width_percent": 0,
@@ -111,9 +111,9 @@
               "name": "t:names.social_media_links",
               "settings": {
                 "facebook_url": "https://facebook.com",
-                "instagram_url": "https://instagram.com/thebarberspot.official",
+                "instagram_url": "",
                 "youtube_url": "",
-                "tiktok_url": "https://tiktok.com/thebarberspot.official",
+                "tiktok_url": "",
                 "twitter_url": "https://x.com",
                 "threads_url": "",
                 "linkedin_url": "",

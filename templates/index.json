@@ -16,8 +16,8 @@
           "type": "_slide",
           "settings": {
             "media_type_1": "image",
-            "image_1": "shopify://shop_images/photo_2026-04-01_10.16.19_f359c727-bd90-4436-8d93-7cbc04fb140f.jpg",
-            "video_1": "shopify://files/videos/copy_6C43F67A-3CD4-4448-B758-3A2AFB47B5FC.MOV",
+            "image_1": "",
+            "video_1": "",
             "content_direction": "column",
             "vertical_on_mobile": true,
             "horizontal_alignment": "flex-start",
@@ -61,8 +61,8 @@
           "type": "_slide",
           "settings": {
             "media_type_1": "image",
-            "image_1": "shopify://shop_images/photo_2026-04-01_10.16.24_1229066b-9d5c-4924-a82e-2eced62de382.jpg",
-            "video_1": "shopify://files/videos/copy_86140FBF-ACD0-480F-8A00-E3A72E5A76AB.MOV",
+            "image_1": "",
+            "video_1": "",
             "content_direction": "column",
             "vertical_on_mobile": true,
             "horizontal_alignment": "flex-start",
@@ -107,7 +107,7 @@
           "name": "t:names.slide",
           "settings": {
             "media_type_1": "image",
-            "image_1": "shopify://shop_images/main_slide_03-01.jpg",
+            "image_1": "",
             "content_direction": "column",
             "vertical_on_mobile": true,
             "horizontal_alignment": "flex-start",
@@ -2213,7 +2213,7 @@
                   "type": "text",
                   "name": "t:names.text",
                   "settings": {
-                    "text": "<h3>BARBER-GRADE QUALITY</h3>",
+                    "text": "",
                     "width": "fit-content",
                     "max_width": "normal",
                     "content_width_percent": 0,
@@ -2240,7 +2240,7 @@
                   "type": "text",
                   "name": "t:names.text",
                   "settings": {
-                    "text": "<p>Selected for the modern barber</p>",
+                    "text": "",
                     "width": "fit-content",
                     "max_width": "normal",
                     "content_width_percent": 0,

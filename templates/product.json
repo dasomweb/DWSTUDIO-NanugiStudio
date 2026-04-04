@@ -646,7 +646,7 @@
                           "type": "text",
                           "name": "Heading",
                           "settings": {
-                            "text": "<p>BARBER-GRADE QUALITY</p>",
+                            "text": "",
                             "width": "100%",
                             "max_width": "normal",
                             "content_width_percent": 0,
