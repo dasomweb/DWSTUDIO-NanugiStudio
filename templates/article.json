@@ -69,7 +69,7 @@
             "text": "{{ closest.article.content }}",
             "width": "fit-content",
             "max_width": "narrow",
-            "content_width_percent": 75,
+            "content_width_percent": 60,
             "alignment": "left",
             "type_preset": "paragraph",
             "font": "var(--font-body--family)",
