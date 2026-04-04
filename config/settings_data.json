@@ -33,6 +33,7 @@
     "currency_code_enabled_product_cards": false,
     "product_corner_radius": 10,
     "card_corner_radius": 10,
+    "show_variant_image": false,
     "variant_button_radius": 100,
     "variant_button_width": "default-width-buttons",
     "content_for_index": [],
