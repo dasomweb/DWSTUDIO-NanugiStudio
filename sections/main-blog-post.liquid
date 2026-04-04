@@ -105,6 +105,22 @@
   .blog-post-comments-pagination a:hover {
     border-bottom: 1px solid var(--color-foreground);
   }
+  /* Content alignment override for child blocks */
+  .section-content-wrapper[style*="align-items: center"] > * {
+    text-align: center;
+    margin-inline: auto;
+  }
+
+  .section-content-wrapper[style*="align-items: flex-start"] > * {
+    text-align: left;
+    margin-inline: 0;
+  }
+
+  .section-content-wrapper[style*="align-items: flex-end"] > * {
+    text-align: right;
+    margin-left: auto;
+    margin-right: 0;
+  }
 {% endstylesheet %}
 
 {% schema %}

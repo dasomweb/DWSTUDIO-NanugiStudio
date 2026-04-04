@@ -7,6 +7,10 @@
   case block_settings.image_ratio
     when 'landscape'
       assign ratio = '16 / 9'
+    when 'wide'
+      assign ratio = '21 / 9'
+    when 'ultrawide'
+      assign ratio = '3 / 1'
     when 'portrait'
       assign ratio = '4 / 5'
     when 'adapt'
@@ -142,6 +146,14 @@
         {
           "value": "landscape",
           "label": "t:options.landscape"
+        },
+        {
+          "value": "wide",
+          "label": "Wide (21:9)"
+        },
+        {
+          "value": "ultrawide",
+          "label": "Ultra wide (3:1)"
         }
       ],
       "default": "adapt"
