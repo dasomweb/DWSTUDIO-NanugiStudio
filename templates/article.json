@@ -18,7 +18,7 @@
           "settings": {
             "image": "{{ closest.article.image }}",
             "link": "",
-            "image_ratio": "landscape",
+            "image_ratio": "wide",
             "width": "fill",
             "custom_width": 100,
             "width_mobile": "fill",
@@ -66,10 +66,10 @@
           "type": "text",
           "name": "t:names.text",
           "settings": {
-            "text": "{{ closest.article.content }}",
+            "text": "<p>{{ closest.article.content }}</p>",
             "width": "fit-content",
             "max_width": "narrow",
-            "content_width_percent": 70,
+            "content_width_percent": 65,
             "alignment": "left",
             "type_preset": "paragraph",
             "font": "var(--font-body--family)",
@@ -97,6 +97,7 @@
       ],
       "settings": {
         "content_direction": "column",
+        "content_alignment": "center",
         "gap": 32,
         "color_scheme": "",
         "padding-block-start": 20,
