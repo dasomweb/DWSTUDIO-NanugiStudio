@@ -24,7 +24,10 @@
   elsif swatch.color
     assign swatch_value = 'rgb(' | append: swatch.color.rgb | append: ')'
   elsif color_value != blank
-    assign swatch_value = color_value | downcase
+    capture mapped_color
+      render 'color-mapping', color_name: color_value
+    endcapture
+    assign swatch_value = mapped_color | strip
   endif
 
   case mode

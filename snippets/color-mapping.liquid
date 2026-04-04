@@ -1,0 +1,107 @@
+{%- doc -%}
+  Maps color name text to hex color code.
+  Used for swatch rendering when products are imported via CSV with text color values.
+
+  @param {string} color_name - The color name to map (case-insensitive)
+  @return Outputs the hex color code
+{%- enddoc -%}
+
+{%- assign _cn = color_name | strip | downcase -%}
+{%- case _cn -%}
+  {%- comment -%} Blacks & Grays {%- endcomment -%}
+  {%- when 'black' -%}#000000
+  {%- when 'jet black' -%}#0A0A0A
+  {%- when 'matte black' -%}#1C1C1C
+  {%- when 'charcoal' -%}#36454F
+  {%- when 'dark gray' or 'dark grey' -%}#555555
+  {%- when 'gray' or 'grey' -%}#808080
+  {%- when 'light gray' or 'light grey' -%}#C0C0C0
+  {%- when 'silver' -%}#C0C0C0
+  {%- when 'silver chrome' -%}#D0D0D0
+  {%- when 'gunmetal' -%}#2C3539
+
+  {%- comment -%} Whites & Creams {%- endcomment -%}
+  {%- when 'white' -%}#FFFFFF
+  {%- when 'off white' or 'off-white' -%}#FAF9F6
+  {%- when 'cream' -%}#FFFDD0
+  {%- when 'ivory' -%}#FFFFF0
+  {%- when 'beige' -%}#F5F5DC
+
+  {%- comment -%} Reds {%- endcomment -%}
+  {%- when 'red' -%}#FF0000
+  {%- when 'dark red' -%}#8B0000
+  {%- when 'maroon' -%}#800000
+  {%- when 'burgundy' -%}#800020
+  {%- when 'crimson' -%}#DC143C
+  {%- when 'wine' -%}#722F37
+  {%- when 'ruby' -%}#9B111E
+  {%- when 'coral' -%}#FF7F50
+
+  {%- comment -%} Blues {%- endcomment -%}
+  {%- when 'blue' -%}#0000FF
+  {%- when 'navy' or 'navy blue' -%}#000080
+  {%- when 'dark blue' -%}#00008B
+  {%- when 'royal blue' -%}#4169E1
+  {%- when 'sky blue' -%}#87CEEB
+  {%- when 'light blue' -%}#ADD8E6
+  {%- when 'baby blue' -%}#89CFF0
+  {%- when 'teal' -%}#008080
+  {%- when 'cyan' -%}#00FFFF
+  {%- when 'turquoise' -%}#40E0D0
+
+  {%- comment -%} Greens {%- endcomment -%}
+  {%- when 'green' -%}#008000
+  {%- when 'dark green' -%}#006400
+  {%- when 'forest green' -%}#228B22
+  {%- when 'olive' -%}#808000
+  {%- when 'lime' or 'lime green' -%}#32CD32
+  {%- when 'mint' or 'mint green' -%}#98FF98
+  {%- when 'sage' -%}#BCB88A
+
+  {%- comment -%} Yellows & Oranges {%- endcomment -%}
+  {%- when 'yellow' -%}#FFD700
+  {%- when 'orange' -%}#FFA500
+  {%- when 'amber' -%}#FFBF00
+  {%- when 'peach' -%}#FFCBA4
+  {%- when 'tan' -%}#D2B48C
+  {%- when 'khaki' -%}#C3B091
+
+  {%- comment -%} Pinks & Purples {%- endcomment -%}
+  {%- when 'pink' -%}#FFC0CB
+  {%- when 'hot pink' -%}#FF69B4
+  {%- when 'magenta' or 'fuchsia' -%}#FF00FF
+  {%- when 'purple' -%}#800080
+  {%- when 'violet' -%}#EE82EE
+  {%- when 'lavender' -%}#E6E6FA
+  {%- when 'plum' -%}#8E4585
+  {%- when 'mauve' -%}#E0B0FF
+
+  {%- comment -%} Browns {%- endcomment -%}
+  {%- when 'brown' -%}#8B4513
+  {%- when 'dark brown' -%}#5C4033
+  {%- when 'chocolate' -%}#7B3F00
+  {%- when 'coffee' -%}#6F4E37
+  {%- when 'camel' -%}#C19A6B
+  {%- when 'bronze' -%}#CD7F32
+
+  {%- comment -%} Metallics {%- endcomment -%}
+  {%- when 'gold' -%}#FFD700
+  {%- when 'rose gold' -%}#B76E79
+  {%- when 'copper' -%}#B87333
+  {%- when 'chrome' -%}#DBE4EB
+  {%- when 'platinum' -%}#E5E4E2
+  {%- when 'titanium' -%}#878681
+  {%- when 'nickel' -%}#727472
+  {%- when 'brass' -%}#B5A642
+  {%- when 'steel' -%}#71797E
+
+  {%- comment -%} Multi / Pattern {%- endcomment -%}
+  {%- when 'camo' or 'camouflage' -%}#78866B
+  {%- when 'zebra' -%}#3D3D3D
+  {%- when 'leopard' -%}#C69749
+  {%- when 'rainbow' -%}#FF0000
+  {%- when 'transparent' or 'clear' -%}transparent
+
+  {%- comment -%} Fallback: try CSS named color {%- endcomment -%}
+  {%- else -%}{{ _cn }}
+{%- endcase -%}
