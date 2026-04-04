@@ -9,9 +9,9 @@ on:
 
 jobs:
   deploy:
-    name: Deploy to The Barber Spot
+    name: Deploy to Nanugi Studio
     runs-on: ubuntu-latest
-    environment: shopify-thebarberspot
+    environment: shopify-nanugi
     steps:
       - name: Checkout
         uses: actions/checkout@v4
