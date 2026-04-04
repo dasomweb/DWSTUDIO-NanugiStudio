@@ -1378,8 +1378,8 @@
               "name": "t:names.product_description",
               "settings": {
                 "text": "<p>{{ closest.product.description }}</p>",
-                "width": "fit-content",
-                "max_width": "normal",
+                "width": "100%",
+                "max_width": "none",
                 "alignment": "left",
                 "type_preset": "rte",
                 "font": "var(--font-body--family)",
