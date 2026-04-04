@@ -1152,11 +1152,11 @@
       "settings": {
         "product": "black-ice-professional-off-set-adjustable-gold-6-5-inch-shear-copy",
         "content_width": "content-center-aligned",
-        "desktop_media_position": "left",
+        "desktop_media_position": "right",
         "equal_columns": true,
         "limit_details_width": false,
         "gap": 48,
-        "color_scheme": "scheme-3",
+        "color_scheme": "scheme-2",
         "padding-block-start": 40,
         "padding-block-end": 40
       }
