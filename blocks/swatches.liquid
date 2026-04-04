@@ -4,8 +4,11 @@
   assign block_settings = block.settings
   for product_option in closest.product.options_with_values
     assign swatch_count = product_option.values | map: 'swatch' | compact | size
+    assign option_name_lower = product_option.name | downcase
 
     if swatch_count > 0
+      assign product_has_swatches = true
+    elsif option_name_lower == 'color' or option_name_lower == 'colour'
       assign product_has_swatches = true
     endif
   endfor
