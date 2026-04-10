@@ -9,6 +9,12 @@
     "test:snippets": "node --test tests/snippet-references.test.js",
     "test:assets": "node --test tests/asset-references.test.js",
     "test:structure": "node --test tests/theme-structure.test.js",
-    "test:sections": "node --test tests/section-schema.test.js"
+    "test:sections": "node --test tests/section-schema.test.js",
+    "test:e2e": "npx playwright test",
+    "test:e2e:desktop": "npx playwright test --project=desktop",
+    "test:e2e:mobile": "npx playwright test --project=mobile"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
   }
 }
