@@ -1,0 +1,14 @@
+{
+  "name": "dwstudio-nanugistudio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DWSTUDIO theme for nanugi.myshopify.com",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "test:json": "node --test tests/json-validation.test.js",
+    "test:snippets": "node --test tests/snippet-references.test.js",
+    "test:assets": "node --test tests/asset-references.test.js",
+    "test:structure": "node --test tests/theme-structure.test.js",
+    "test:sections": "node --test tests/section-schema.test.js"
+  }
+}

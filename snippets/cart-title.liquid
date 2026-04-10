@@ -1,0 +1,19 @@
+{%- doc -%}
+  Cart Title (snippet version)
+
+  블록 _cart-title.liquid의 스니펫 버전.
+  render 'cart-title'로 호출될 때 사용됩니다.
+
+  @param {boolean} [force_empty] - Force render empty cart state
+
+  @example
+  {% render 'cart-title', force_empty: true %}
+{%- enddoc -%}
+
+<h1 class="h2">
+  {%- if cart.empty? or force_empty -%}
+    {{ 'content.your_cart_is_empty' | t }}
+  {%- else -%}
+    {{ 'sections.cart.title' | t }}
+  {%- endif -%}
+</h1>

@@ -17,3 +17,5 @@ Thumbs.db
 
 # Docs and dev
 *.md
+tests/
+package.json
