@@ -267,29 +267,6 @@
             "padding-inline-end": 40
           },
           "blocks": {
-            "video_t4b8by": {
-              "type": "video",
-              "name": "t:names.video",
-              "settings": {
-                "source": "uploaded",
-                "video": "shopify://files/videos/samehere1.mp4",
-                "video_autoplay": true,
-                "video_loop": true,
-                "alt": "",
-                "custom_width": 100,
-                "custom_width_mobile": 100,
-                "aspect_ratio": "auto",
-                "border": "none",
-                "border_width": 1,
-                "border_opacity": 100,
-                "border_radius": 0,
-                "padding-block-start": 0,
-                "padding-block-end": 0,
-                "padding-inline-start": 0,
-                "padding-inline-end": 0
-              },
-              "blocks": {}
-            },
             "spacer_XLCkKp": {
               "type": "spacer",
               "settings": {
@@ -345,7 +322,6 @@
             }
           },
           "block_order": [
-            "video_t4b8by",
             "spacer_XLCkKp",
             "text_Ecfj3e",
             "button_xhMxjA"
