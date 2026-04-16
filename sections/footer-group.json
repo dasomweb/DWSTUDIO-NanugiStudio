@@ -53,26 +53,23 @@
             "padding-inline-end": 0
           },
           "blocks": {
-            "text_jBr8nr": {
-              "type": "text",
+            "image_NdH3Fw": {
+              "type": "image",
+              "name": "t:names.image",
               "settings": {
-                "text": "<p>NANUGI</p>",
-                "width": "100%",
-                "max_width": "normal",
-                "content_width_percent": 0,
-                "alignment": "left",
-                "type_preset": "h3",
-                "font": "var(--font-primary--family)",
-                "font_size": "",
-                "line_height": "normal",
-                "letter_spacing": "normal",
-                "case": "none",
-                "wrap": "pretty",
-                "color": "",
-                "background": false,
-                "background_color": "#00000026",
-                "corner_radius": 0,
-                "padding-block-start": 10,
+                "image": "shopify://shop_images/nanugi-studio-logo-11.png",
+                "link": "",
+                "image_ratio": "adapt",
+                "width": "custom",
+                "custom_width": 14,
+                "width_mobile": "fill",
+                "custom_width_mobile": 100,
+                "height": "fit",
+                "border": "none",
+                "border_width": 1,
+                "border_opacity": 100,
+                "border_radius": 0,
+                "padding-block-start": 0,
                 "padding-block-end": 0,
                 "padding-inline-start": 0,
                 "padding-inline-end": 0
@@ -128,7 +125,7 @@
             }
           },
           "block_order": [
-            "text_jBr8nr",
+            "image_NdH3Fw",
             "text_YqTNQg",
             "social_links_JBkCiP"
           ]
@@ -163,7 +160,7 @@
           "type": "menu",
           "name": "t:names.menu",
           "settings": {
-            "menu": "business",
+            "menu": "",
             "heading": "",
             "horizontal_alignment": "right",
             "layout": "vertical",
