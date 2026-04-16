@@ -225,6 +225,107 @@
     "section_T437DJ": {
       "type": "section",
       "blocks": {
+        "group_TUBaAK": {
+          "type": "group",
+          "settings": {
+            "content_direction": "column",
+            "vertical_on_mobile": true,
+            "horizontal_alignment": "flex-start",
+            "vertical_alignment": "center",
+            "align_baseline": false,
+            "horizontal_alignment_flex_direction_column": "center",
+            "vertical_alignment_flex_direction_column": "space-between",
+            "gap": 32,
+            "width": "fill",
+            "custom_width": 100,
+            "width_mobile": "fill",
+            "custom_width_mobile": 100,
+            "height": "fill",
+            "custom_height": 100,
+            "inherit_color_scheme": false,
+            "color_scheme": "scheme-5",
+            "background_media": "image",
+            "video": "shopify://files/videos/samehere1.mp4",
+            "video_position": "contain",
+            "background_image": "shopify://shop_images/1x1_4.png",
+            "background_image_position": "cover",
+            "border": "none",
+            "border_width": 1,
+            "border_opacity": 100,
+            "border_radius": 0,
+            "toggle_overlay": false,
+            "overlay_color": "#00000026",
+            "overlay_style": "solid",
+            "gradient_direction": "to top",
+            "link": "",
+            "open_in_new_tab": false,
+            "placeholder": "hero-apparel-2",
+            "padding-block-start": 40,
+            "padding-block-end": 40,
+            "padding-inline-start": 40,
+            "padding-inline-end": 40
+          },
+          "blocks": {
+            "spacer_XLCkKp": {
+              "type": "spacer",
+              "settings": {
+                "size": "pixel",
+                "percent_size": 100,
+                "pixel_size": 16,
+                "custom_mobile_size": false,
+                "size_mobile": "percent",
+                "percent_size_mobile": 100,
+                "pixel_size_mobile": 120
+              },
+              "blocks": {}
+            },
+            "text_Ecfj3e": {
+              "type": "text",
+              "settings": {
+                "text": "<h3>Momo</h3>",
+                "width": "fit-content",
+                "max_width": "normal",
+                "content_width_percent": 0,
+                "alignment": "center",
+                "type_preset": "h3",
+                "font": "var(--font-body--family)",
+                "font_size": "1rem",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "wrap": "pretty",
+                "color": "var(--color-foreground)",
+                "background": false,
+                "background_color": "#00000026",
+                "corner_radius": 0,
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            },
+            "button_xhMxjA": {
+              "type": "button",
+              "settings": {
+                "label": "Shop now",
+                "link": "shopify://collections/all",
+                "open_in_new_tab": false,
+                "style_class": "link",
+                "width": "fit-content",
+                "custom_width": 100,
+                "width_mobile": "fit-content",
+                "custom_width_mobile": 100
+              },
+              "blocks": {}
+            }
+          },
+          "block_order": [
+            "spacer_XLCkKp",
+            "text_Ecfj3e",
+            "button_xhMxjA"
+          ]
+        },
         "group_hj9Qpe": {
           "type": "group",
           "settings": {
@@ -246,7 +347,7 @@
             "color_scheme": "scheme-5",
             "background_media": "image",
             "video_position": "cover",
-            "background_image": "shopify://shop_images/AllWeek_SameHere_White_01.jpg",
+            "background_image": "shopify://shop_images/Sunday_SleepingGirl_Black_02.jpg",
             "background_image_position": "cover",
             "border": "none",
             "border_width": 1,
@@ -281,7 +382,7 @@
             "text_YGHCNp": {
               "type": "text",
               "settings": {
-                "text": "<h3>Bestsellers</h3>",
+                "text": "<h3>Tired But Living</h3>",
                 "width": "fit-content",
                 "max_width": "normal",
                 "content_width_percent": 0,
@@ -325,7 +426,7 @@
             "button_8tdrUD"
           ]
         },
-        "group_TUBaAK": {
+        "group_qA4Ciq": {
           "type": "group",
           "settings": {
             "content_direction": "column",
@@ -347,7 +448,7 @@
             "background_media": "image",
             "video": "shopify://files/videos/samehere1.mp4",
             "video_position": "contain",
-            "background_image": "shopify://shop_images/AllWeek_SameHere_White_01.jpg",
+            "background_image": "shopify://shop_images/40-year-old_East_Asian_Korean_man_with_short_dark_hair_stands_looking_away_to_-0.jpg",
             "background_image_position": "cover",
             "border": "none",
             "border_width": 1,
@@ -366,7 +467,7 @@
             "padding-inline-end": 40
           },
           "blocks": {
-            "spacer_XLCkKp": {
+            "spacer_KMDitW": {
               "type": "spacer",
               "settings": {
                 "size": "pixel",
@@ -379,10 +480,10 @@
               },
               "blocks": {}
             },
-            "text_Ecfj3e": {
+            "text_eQUjzR": {
               "type": "text",
               "settings": {
-                "text": "<h3>New arrivals</h3>",
+                "text": "<h3>Inspiration</h3>",
                 "width": "fit-content",
                 "max_width": "normal",
                 "content_width_percent": 0,
@@ -405,7 +506,7 @@
               },
               "blocks": {}
             },
-            "button_xhMxjA": {
+            "button_3CCEeW": {
               "type": "button",
               "settings": {
                 "label": "Shop now",
@@ -421,15 +522,16 @@
             }
           },
           "block_order": [
-            "spacer_XLCkKp",
-            "text_Ecfj3e",
-            "button_xhMxjA"
+            "spacer_KMDitW",
+            "text_eQUjzR",
+            "button_3CCEeW"
           ]
         }
       },
       "block_order": [
+        "group_TUBaAK",
         "group_hj9Qpe",
-        "group_TUBaAK"
+        "group_qA4Ciq"
       ],
       "name": "t:names.split_showcase",
       "settings": {
