@@ -156,7 +156,7 @@
               "type": "text",
               "name": "t:names.text",
               "settings": {
-                "text": "<p>We make things that work better and last longer. Our products solve real problems with clean design and honest materials.</p>",
+                "text": "<p>Being tired is just another way of saying you're living your life to the fullest. Wear your fatigue with pride, and keep going anyway.</p>",
                 "width": "fit-content",
                 "max_width": "none",
                 "content_width_percent": 0,
@@ -847,7 +847,7 @@
             "icon_HhBKXj": {
               "type": "icon",
               "settings": {
-                "icon": "ruler",
+                "icon": "shirt",
                 "width": 32,
                 "link": "",
                 "open_in_new_tab": false
@@ -896,7 +896,7 @@
                 "text_DdANtd": {
                   "type": "text",
                   "settings": {
-                    "text": "<h2>CRAFTED FOR PRECISION</h2>",
+                    "text": "<p>PERFECT DAILY LOOK</p>",
                     "width": "100%",
                     "max_width": "normal",
                     "content_width_percent": 0,
@@ -922,7 +922,7 @@
                 "text_TamjcY": {
                   "type": "text",
                   "settings": {
-                    "text": "<p>Engineered for every cut</p>",
+                    "text": "<p>Versatile essentials for your everyday routine</p>",
                     "width": "100%",
                     "max_width": "normal",
                     "content_width_percent": 0,
@@ -999,7 +999,7 @@
             "icon_aXqLFi": {
               "type": "icon",
               "settings": {
-                "icon": "silhouette",
+                "icon": "star",
                 "width": 32,
                 "link": "",
                 "open_in_new_tab": false
@@ -1048,7 +1048,7 @@
                 "text_DGBKQr": {
                   "type": "text",
                   "settings": {
-                    "text": "<h2>GENTLEMAN’S STANDARD</h2>",
+                    "text": "<p>THOUGHTFUL GIFTS</p>",
                     "width": "100%",
                     "max_width": "normal",
                     "content_width_percent": 0,
@@ -1074,7 +1074,7 @@
                 "text_R4Bi69": {
                   "type": "text",
                   "settings": {
-                    "text": "<p>Trusted by professionals</p>",
+                    "text": "<p>Perfect for sharing with friends and family</p>",
                     "width": "100%",
                     "max_width": "normal",
                     "content_width_percent": 0,
@@ -1312,18 +1312,17 @@
               },
               "blocks": {}
             },
-            "group_a7QNDi": {
+            "group_fwQ6YM": {
               "type": "group",
-              "name": "t:names.group",
               "settings": {
                 "content_direction": "column",
                 "vertical_on_mobile": true,
                 "horizontal_alignment": "flex-start",
                 "vertical_alignment": "center",
                 "align_baseline": false,
-                "horizontal_alignment_flex_direction_column": "center",
+                "horizontal_alignment_flex_direction_column": "flex-start",
                 "vertical_alignment_flex_direction_column": "center",
-                "gap": 12,
+                "gap": 4,
                 "width": "fill",
                 "custom_width": 100,
                 "width_mobile": "fill",
@@ -1352,16 +1351,15 @@
                 "padding-inline-end": 0
               },
               "blocks": {
-                "text_7FjWLL": {
+                "text_kaeEkk": {
                   "type": "text",
-                  "name": "t:names.text",
                   "settings": {
-                    "text": "",
-                    "width": "fit-content",
+                    "text": "<p>EXCLUSIVE GOODS</p>",
+                    "width": "100%",
                     "max_width": "normal",
                     "content_width_percent": 0,
-                    "alignment": "left",
-                    "type_preset": "rte",
+                    "alignment": "center",
+                    "type_preset": "h3",
                     "font": "var(--font-body--family)",
                     "font_size": "1rem",
                     "line_height": "normal",
@@ -1379,15 +1377,14 @@
                   },
                   "blocks": {}
                 },
-                "text_rggRWX": {
+                "text_PaMYN7": {
                   "type": "text",
-                  "name": "t:names.text",
                   "settings": {
-                    "text": "",
-                    "width": "fit-content",
+                    "text": "<p> Unique lifestyle items only at NANUGI</p>",
+                    "width": "100%",
                     "max_width": "normal",
                     "content_width_percent": 0,
-                    "alignment": "left",
+                    "alignment": "center",
                     "type_preset": "rte",
                     "font": "var(--font-body--family)",
                     "font_size": "1rem",
@@ -1408,14 +1405,14 @@
                 }
               },
               "block_order": [
-                "text_7FjWLL",
-                "text_rggRWX"
+                "text_kaeEkk",
+                "text_PaMYN7"
               ]
             }
           },
           "block_order": [
             "icon_KLWiNm",
-            "group_a7QNDi"
+            "group_fwQ6YM"
           ]
         }
       },
