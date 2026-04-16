@@ -26,7 +26,7 @@
             "thumbnail_position": "bottom",
             "thumbnail_width": 44,
             "thumbnail_radius": 0,
-            "aspect_ratio": "1",
+            "aspect_ratio": "1/1.25",
             "constrain_to_viewport": true,
             "media_fit": "cover",
             "media_radius": 20,
@@ -73,6 +73,7 @@
               "name": "Breadcrumb",
               "settings": {
                 "home_label": "Home",
+                "font_size": "0.75rem",
                 "padding-block-start": 16,
                 "padding-block-end": 16
               },
