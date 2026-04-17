@@ -15,7 +15,7 @@
         "text_mFk33t": {
           "type": "text",
           "settings": {
-            "text": "<h1>New arrivals</h1>",
+            "text": "<p> Get in touch</p>",
             "width": "fit-content",
             "max_width": "narrow",
             "content_width_percent": 0,
@@ -41,11 +41,11 @@
         "text_jFqMin": {
           "type": "text",
           "settings": {
-            "text": "<p>Made with care and unconditionally loved by our customers.</p>",
-            "width": "fit-content",
-            "max_width": "narrow",
+            "text": "<p>Send us a message and we’ll get back to you shortly.</p>",
+            "width": "100%",
+            "max_width": "wide",
             "content_width_percent": 0,
-            "alignment": "left",
+            "alignment": "center",
             "type_preset": "rte",
             "font": "var(--font-body--family)",
             "font_size": "1rem",
@@ -292,8 +292,8 @@
         "overlay_color": "#00000026",
         "overlay_style": "solid",
         "gradient_direction": "to top",
-        "padding-block-start": 48,
-        "padding-block-end": 48,
+        "padding-block-start": 75,
+        "padding-block-end": 75,
         "padding-inline-start": 0,
         "padding-inline-end": 0
       }
