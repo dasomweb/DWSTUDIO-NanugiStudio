@@ -46,7 +46,7 @@
             "text": "{{ closest.page.content }}",
             "width": "100%",
             "max_width": "normal",
-            "content_width_percent": 100,
+            "content_width_percent": 85,
             "alignment": "left",
             "type_preset": "custom",
             "font": "var(--font-body--family)",
