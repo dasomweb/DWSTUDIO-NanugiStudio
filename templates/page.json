@@ -44,7 +44,7 @@
           "name": "t:names.text",
           "settings": {
             "text": "{{ closest.page.content }}",
-            "width": "fit-content",
+            "width": "100%",
             "max_width": "normal",
             "content_width_percent": 100,
             "alignment": "left",
