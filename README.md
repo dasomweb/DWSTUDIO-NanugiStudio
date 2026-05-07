@@ -4,14 +4,14 @@
 저장소 이름: **DWSTUDIO-NanugiStudio** (GitHub에서 변경 시: Settings → General → Repository name). **GitHub Actions**로 배포하고, 로컬에서는 CLI로 개발합니다.
 
 - **스토어**: nanugi.myshopify.com  
-- **에디터**: [테마 에디터](https://admin.shopify.com/store/nanugi/themes/159722471641/editor)  
+- **에디터**: [테마 에디터](https://admin.shopify.com/store/nanugi/themes/159722602713/editor)  
 - **배포·설정 상세**: [테마 배포 가이드 (Wiki)](docs/THEME-DEPLOY-WIKI.md)
 
 ---
 
 ## 배포 (GitHub Actions)
 
-`main` 브랜치에 푸시하면 자동으로 테마(159722471641)에 배포됩니다.
+`main` 브랜치에 푸시하면 자동으로 테마(159722602713)에 배포됩니다.
 
 1. **GitHub Environment 설정**  
    저장소 → Settings → Environments → **shopify-nanugi** 생성 (없으면).
@@ -24,7 +24,7 @@
    | `SHOPIFY_FLAG_STORE` | 스토어 주소. 예: `nanugi.myshopify.com` |
    | `SHOPIFY_CLIENT_ID` | Dev Dashboard 앱의 Client ID |
    | `SHOPIFY_CLIENT_SECRET` | Dev Dashboard 앱의 Client secret |
-   | `SHOPIFY_THEME_ID` | 배포할 테마 ID. 예: `159722471641` |
+   | `SHOPIFY_THEME_ID` | 배포할 테마 ID. 예: `159722602713` |
 
    **토큰 발급 (Dev Dashboard만 사용)**  
    - **레거시 커스텀 앱**은 2026년 1월 1일부터 새로 만들 수 없음.  
@@ -100,7 +100,7 @@ Client secret은 한 번만 보여줄 수 있으니 안전한 곳에 보관하�
   | `SHOPIFY_FLAG_STORE` | `nanugi.myshopify.com` |
 | `SHOPIFY_CLIENT_ID` | 6단계에서 복사한 Client ID |
 | `SHOPIFY_CLIENT_SECRET` | 6단계에서 복사한 Client secret |
-  | `SHOPIFY_THEME_ID` | `159722471641` |
+  | `SHOPIFY_THEME_ID` | `159722602713` |
 
 이후 `main`에 push하면 이 앱 권한으로 액세스 토큰을 받아 테마가 배포됩니다.
 
