@@ -39,6 +39,21 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Bump theme_version (tag push only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "Bumping theme_version to $VERSION"
+          # settings_schema.json의 theme_version 업데이트 (배포에만 사용, 커밋 안 함)
+          node -e "
+            const fs = require('fs');
+            const path = 'config/settings_schema.json';
+            const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+            data[0].theme_version = '$VERSION';
+            fs.writeFileSync(path, JSON.stringify(data, null, 2) + '\n');
+            console.log('Updated theme_version to', data[0].theme_version);
+          "
+
       - name: Install Shopify CLI
         run: npm install -g @shopify/cli @shopify/theme
 
