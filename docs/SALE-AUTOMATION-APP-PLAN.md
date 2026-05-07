@@ -1,7 +1,8 @@
 # Sale Automation App — 개발 계획서
 
-DWSTUDIO 자체 클라이언트용 Shopify Sale 자동화 앱.
-스케줄 기반 할인, 컬렉션/태그 일괄 적용, sale 배지 자동 표시를 제공합니다.
+Shopify Sale 자동화 앱 — 스케줄 기반 할인, 컬렉션/태그 일괄 적용, sale 배지 자동 표시.
+
+**전략**: 자체 클라이언트(DWSTUDIO)용으로 먼저 개발·운영하며 안정화 → **Shopify App Store 공개 판매**로 확장.
 
 ---
 
@@ -9,13 +10,15 @@ DWSTUDIO 자체 클라이언트용 Shopify Sale 자동화 앱.
 
 | 항목 | 내용 |
 |------|------|
-| **앱 이름** | DWSTUDIO Sale Manager (가칭) |
-| **배포 방식** | Custom Distribution (DWSTUDIO 클라이언트 스토어들에만 설치) |
+| **앱 이름** | (작업명) Sale Manager — 정식명은 App Store 등록 시 결정 |
+| **배포 1단계** | Custom Distribution (DWSTUDIO 클라이언트 스토어) |
+| **배포 2단계** | **Public on Shopify App Store** (안정화 후) |
 | **첫 타겟 스토어** | nanugi.myshopify.com |
 | **Tech Stack** | Remix + Node.js + Prisma |
 | **DB** | PostgreSQL (Railway) |
-| **호스팅** | Railway |
+| **호스팅** | Railway (초기) → 트래픽 증가 시 Fly.io 또는 AWS 검토 |
 | **저장소** | 새 GitHub repo (예: `dasomweb/sale-automation-app`) — 이 테마 repo와 분리 |
+| **수익 모델** | Freemium 예상 (Free tier + $9.99/$19.99/$49.99 plans) |
 
 ---
 
@@ -223,51 +226,118 @@ enum TargetType {
 
 ## 7. 개발 단계 (Phase)
 
-### Phase 1: 기반 구축 (1주)
-- [ ] Shopify Partner 계정 생성, 새 앱 등록
+### **STAGE 1 — 자체 운영 (MVP, ~6주)**
+
+#### Phase 1: 기반 구축 (1주)
+- [ ] Shopify Partner 계정 생성, 새 앱 등록 (**Custom + 향후 Public 전환 가능하도록 설정**)
 - [ ] Remix 프로젝트 초기화 (`npm init @shopify/app@latest`)
 - [ ] Railway 프로젝트 생성, PostgreSQL 추가
 - [ ] OAuth 인증 플로우 동작 확인
 - [ ] DB 마이그레이션 (Prisma)
 - [ ] 기본 임베드 UI (Polaris) 띄우기
+- [ ] **GDPR webhook endpoint 3개** (customers/data_request, customers/redact, shop/redact) — App Store 필수
+- [ ] **에러 추적** (Sentry 무료 plan)
 
-### Phase 2: Sale CRUD (1주)
+#### Phase 2: Sale CRUD (1주)
 - [ ] Sale 생성 폼 (이름, 기간, 할인, 대상)
 - [ ] Sale 목록/상세 페이지
 - [ ] 대상 상품 목록 미리보기 (Admin API GraphQL)
 - [ ] Sale 수정/취소
 
-### Phase 3: 실행 엔진 (1.5주)
+#### Phase 3: 실행 엔진 (1.5주)
 - [ ] Scheduler (cron 5min)
 - [ ] Sale Executor: 시작 처리 (snapshot + 가격 변경 + 메타필드)
 - [ ] Sale Executor: 종료 처리 (가격 복구 + 메타필드 삭제)
 - [ ] 에러 처리, 재시도, 로깅
 - [ ] 멱등성 검증
 
-### Phase 4: 안정화 + 테마 통합 (0.5주)
-- [ ] Webhook 수신 (app/uninstalled — 세일 정리)
+#### Phase 4: 안정화 + 테마 통합 (1주)
+- [ ] Webhook 수신 (app/uninstalled — 세일 정리, 데이터 보관 정책)
 - [ ] NANUGI 테마에 sale badge 표시 코드 추가
 - [ ] 통합 테스트 (실제 nanugi 스토어로)
+- [ ] **사용 분석 로깅** (PostHog 무료 plan)
 
-### Phase 5: 폴리싱 (0.5주)
-- [ ] 에러 알림 (실패 시 이메일/slack)
-- [ ] 분석 (적용 상품 수, 실행 시간)
-- [ ] 문서
+#### Phase 5: 자체 운영 (1.5주)
+- [ ] DWSTUDIO 클라이언트 1~3개 스토어에 Custom 배포
+- [ ] 실 사용자 피드백 수집
+- [ ] 버그 수정, UX 개선
+- [ ] 운영 메트릭 모니터링 (성공률, 응답 시간, Shopify API rate)
 
-**총 예상: 4.5주 (1인 풀타임 기준)**
+**STAGE 1 결과물**: 자체 클라이언트가 안정적으로 사용 중인 검증된 앱.
+
+---
+
+### **STAGE 2 — App Store 공개 (~3주)**
+
+자체 운영 **최소 3~6개월** 후 시작. 안정성 데이터 충분히 확보된 시점.
+
+#### Phase 6: App Store 준비 (1.5주)
+- [ ] **Subscription/Billing 통합** (Shopify Billing API)
+  - Free / Basic ($9.99) / Pro ($19.99) / Advanced ($49.99) tier
+  - Free trial (7~14일) 설정
+- [ ] **다국어 지원** (영어 필수, 한국어 + 1~2개 언어)
+- [ ] **App listing 자료**:
+  - 앱 아이콘 (1024x1024)
+  - 스크린샷 (5~7장, 1600x900)
+  - 데모 비디오 (선택)
+  - 영문 카피 (제목, 설명, features, pricing)
+- [ ] **Privacy Policy / Terms of Service** 페이지 (DWSTUDIO 도메인 또는 별도)
+- [ ] **Support 채널** (이메일 또는 Intercom/Crisp)
+
+#### Phase 7: Built for Shopify 인증 준비 (0.5주, 선택)
+- [ ] **Performance 요구사항** 충족
+  - Time to Interactive (TTI) < 3s
+  - Lighthouse score 검증
+- [ ] **Built for Shopify** 배지 받으면 검색 노출 + 신뢰도 ↑
+- [ ] (선택사항이지만 강력 권장)
+
+#### Phase 8: 심사 제출 + 대응 (1주)
+- [ ] App Store 심사 제출 (Shopify Partner Dashboard)
+- [ ] 심사관 리뷰 통상 5~10 영업일 소요
+- [ ] **거절 사유 대응** (대부분 처음엔 한두 번 거절됨)
+- [ ] Soft launch — 천천히 트래픽 받기
+
+**STAGE 2 결과물**: Shopify App Store에 공개된 유료 앱. 매월 인스톨/MRR 트래킹.
+
+---
+
+**총 예상**:
+- STAGE 1 (MVP + 자체 운영): **6주**
+- 자체 운영 안정화: **3~6개월** (실 사용 데이터 축적)
+- STAGE 2 (App Store 공개): **3주**
+
+**전체 타임라인: ~5~7개월** (MVP 출시부터 App Store 등재까지)
 
 ---
 
 ## 8. 비용
 
+### STAGE 1 (자체 운영)
 | 항목 | 비용 |
 |------|------|
 | Shopify Partner 계정 | 무료 |
 | Railway (Hobby) | $5/월 (앱) + $5/월 (PostgreSQL) = **$10/월** |
+| Sentry (Free tier) | 무료 (5k events/월) |
+| PostHog (Free tier) | 무료 (1M events/월) |
 | 도메인 (선택, 예: salemanager.dwstudio.cc) | $12/년 |
-| **합계** | **약 $10~15/월** |
+| **합계** | **~$10~15/월** |
 
-스토어 늘어나도 Railway 한 인스턴스에서 처리 가능 (수십 스토어까지). 트래픽 늘면 Railway 플랜 업그레이드 ($20/월~).
+### STAGE 2 (App Store 공개) — 100~500 인스톨 기준
+| 항목 | 비용 |
+|------|------|
+| Railway (Pro) | $20/월 (앱) + $20/월 (PostgreSQL) = **$40/월** |
+| Sentry (Team) | $26/월 |
+| 트랜잭셔널 이메일 (Resend) | $20/월 |
+| Support 도구 (Crisp Free 또는 $25/월) | $0~25/월 |
+| **합계** | **~$85~110/월** |
+
+### 수익 예측 (참고)
+- 평균 ARPU: $15/월
+- 100 paid 인스톨 = $1,500 MRR (이익 ~$1,400)
+- 1,000 paid 인스톨 = $15,000 MRR (이익 ~$13,000)
+- **Shopify가 매출 15~20% 수수료 차감** (App Store 수수료 정책)
+
+스토어 늘어나도 Railway 한 인스턴스에서 처리 가능 (수십~수백 스토어까지). 트래픽 늘면 수평 확장.
 
 ---
 
