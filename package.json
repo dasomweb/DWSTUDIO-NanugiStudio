@@ -10,9 +10,8 @@
     "test:assets": "node --test tests/asset-references.test.js",
     "test:structure": "node --test tests/theme-structure.test.js",
     "test:sections": "node --test tests/section-schema.test.js",
-    "test:e2e": "npx playwright test",
-    "test:e2e:desktop": "npx playwright test --project=desktop",
-    "test:e2e:mobile": "npx playwright test --project=mobile"
+    "_comment_e2e": "E2E는 라이브 스토어를 두드리므로 GitHub Actions에서만 실행하세요. 로컬은 디버깅용.",
+    "test:e2e": "echo 'E2E는 GitHub Actions의 e2e.yml workflow_dispatch로 실행하세요' && exit 1"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1"

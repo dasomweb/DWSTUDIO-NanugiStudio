@@ -9,16 +9,17 @@ test.describe('네비게이션 및 페이지 접근성', () => {
 
   test('헤더에 로고 또는 스토어 이름 존재', async ({ page }) => {
     await page.goto('/');
-    const header = page.locator('header').first();
-    await expect(header).toBeVisible();
-    // 스토어 이름 링크 또는 로고 (visible한 홈 링크)
-    const logoOrName = header.getByRole('link', { name: /nanugi/i }).first();
-    await expect(logoOrName).toBeVisible();
+    // banner role (header 의미 역할) 사용 — <header> 요소가 hidden일 수 있음
+    const banner = page.getByRole('banner').first();
+    await expect(banner).toBeVisible();
+    // 홈 링크 (로고 이미지 또는 스토어 이름)
+    const homeLink = banner.locator('a[href="/"]').first();
+    await expect(homeLink).toBeVisible();
   });
 
   test('푸터 존재 및 링크 포함', async ({ page }) => {
     await page.goto('/');
-    const footer = page.locator('footer').first();
+    const footer = page.getByRole('contentinfo').first();
     await expect(footer).toBeVisible();
     const footerLinks = footer.locator('a');
     const count = await footerLinks.count();
@@ -45,7 +46,7 @@ test.describe('네비게이션 및 페이지 접근성', () => {
 
   test('로고 클릭 시 홈으로 이동', async ({ page }) => {
     await page.goto('/collections/all');
-    const homeLink = page.locator('header a[href="/"]').first();
+    const homeLink = page.getByRole('banner').locator('a[href="/"]').first();
 
     if (await homeLink.isVisible({ timeout: 3000 }).catch(() => false)) {
       await homeLink.click();

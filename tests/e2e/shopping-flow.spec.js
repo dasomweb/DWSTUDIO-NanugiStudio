@@ -11,10 +11,10 @@ test.describe('쇼핑 플로우: 홈 → 컬렉션 → 상품 → 카트', () =>
     await page.goto('/');
     await expect(page).not.toHaveTitle(/404/i);
     await expect(page.locator('body')).toBeVisible();
-    // 헤더 존재 확인
-    await expect(page.locator('header').first()).toBeVisible();
-    // 푸터 존재 확인
-    await expect(page.locator('footer').first()).toBeVisible();
+    // 헤더 (banner role) 존재 확인
+    await expect(page.getByRole('banner').first()).toBeVisible();
+    // 푸터 (contentinfo role) 존재 확인
+    await expect(page.getByRole('contentinfo').first()).toBeVisible();
   });
 
   test('컬렉션 목록 페이지 로딩', async ({ page }) => {

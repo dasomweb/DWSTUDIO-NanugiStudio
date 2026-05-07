@@ -7,11 +7,18 @@ const STORE_PASSWORD = process.env.STORE_PASSWORD || 'dwstudio';
 async function authenticateStore(page) {
   await page.goto('/');
 
+  // 봇 보호 (verification) 페이지 통과 대기 — JS 챌린지가 자동 통과될 때까지 최대 30초
+  const verificationHeading = page.locator('h1', { hasText: /verified/i });
+  if (await verificationHeading.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await verificationHeading.waitFor({ state: 'detached', timeout: 30_000 }).catch(() => {});
+    // 통과 후 안정화 대기
+    await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
+  }
+
   // 패스워드 페이지인지 확인
   const passwordInput = page.locator('input[type="password"]');
   if (await passwordInput.isVisible({ timeout: 3000 }).catch(() => false)) {
     await passwordInput.fill(STORE_PASSWORD);
-    // 폼 제출 (Enter 또는 Submit 버튼)
     const submitButton = page.locator('button[type="submit"], input[type="submit"]');
     if (await submitButton.isVisible({ timeout: 2000 }).catch(() => false)) {
       await submitButton.click();

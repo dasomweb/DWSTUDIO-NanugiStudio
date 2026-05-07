@@ -5,7 +5,8 @@ module.exports = defineConfig({
   timeout: 60_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
-  retries: 1,
+  workers: 1,
+  retries: 2,
   reporter: 'list',
   use: {
     baseURL: 'https://nanugi.myshopify.com',

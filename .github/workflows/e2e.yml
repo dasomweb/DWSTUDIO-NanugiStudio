@@ -1,0 +1,54 @@
+name: E2E Tests (Manual Only)
+
+# 라이브 스토어를 두드리는 테스트입니다. Shopify 봇 보호 정책 트리거를 피하기 위해
+# 자동 실행하지 않고, 필요할 때만 수동 트리거합니다.
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: '실행할 프로젝트 (desktop/mobile/all)'
+        required: true
+        default: 'desktop'
+        type: choice
+        options:
+          - desktop
+          - mobile
+          - all
+
+jobs:
+  e2e:
+    name: Playwright E2E 테스트
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        env:
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+        run: |
+          if [ "${{ inputs.project }}" = "all" ]; then
+            npx playwright test
+          else
+            npx playwright test --project=${{ inputs.project }}
+          fi
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
