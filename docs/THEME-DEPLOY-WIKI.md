@@ -28,7 +28,7 @@
                  ③ Shopify CLI 설치 후 theme push 실행
                  ④ (태그 푸시인 경우) GitHub Release 자동 생성
          ↓
-[Shopify] 지정한 테마(158825414873)에 파일 반영
+[Shopify] 지정한 테마(159722471641)에 파일 반영
 ```
 
 - **토큰:** Theme Access/레거시 앱의 장기 토큰을 쓰지 않고, **매 배포마다** Client credentials로 새 액세스 토큰을 받아 사용합니다.
@@ -123,7 +123,7 @@ Client secret은 최초 1회만 노출될 수 있으므로 반드시 안전한 �
 | `SHOPIFY_FLAG_STORE` | `nanugi.myshopify.com` | 배포 대상 스토어 |
 | `SHOPIFY_CLIENT_ID` | (4.6에서 복사한 Client ID) | Dev Dashboard 앱 식별자 |
 | `SHOPIFY_CLIENT_SECRET` | (4.6에서 복사한 Client secret) | 토큰 발급용 비밀값 |
-| `SHOPIFY_THEME_ID` | `158825414873` | 배포할 테마 ID (에디터 URL에 포함) |
+| `SHOPIFY_THEME_ID` | `159722471641` | 배포할 테마 ID (에디터 URL에 포함) |
 
 워크플로는 이 Environment를 사용하므로, **다른 브랜치나 저장소에는 이 Secrets가 노출되지 않습니다.**
 
@@ -146,8 +146,8 @@ Client secret은 최초 1회만 노출될 수 있으므로 반드시 안전한 �
   ```
 - **수동 실행:** GitHub 저장소 → **Actions** → **Deploy Shopify Theme** → **Run workflow** → **Run workflow** 버튼 클릭
 
-배포가 성공하면 지정한 테마(158825414873)에 변경 사항이 반영됩니다.  
-테마 에디터: [Nanugi Studio 테마 에디터](https://admin.shopify.com/store/nanugi/themes/158825414873/editor)
+배포가 성공하면 지정한 테마(159722471641)에 변경 사항이 반영됩니다.  
+테마 에디터: [Nanugi Studio 테마 에디터](https://admin.shopify.com/store/nanugi/themes/159722471641/editor)
 
 ---
 

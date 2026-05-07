@@ -8,8 +8,8 @@ Claude Code가 이 프로젝트에서 작업할 때 항상 참조하는 문서�
 
 - **테마**: DWSTUDIO v1.0 (Tinker/Dawn 기반 커스텀 Shopify 테마)
 - **스토어**: nanugi.myshopify.com
-- **테마 ID**: 158825414873
-- **테마 에디터**: https://admin.shopify.com/store/nanugi/themes/158825414873/editor
+- **테마 ID**: 159722471641
+- **테마 에디터**: https://admin.shopify.com/store/nanugi/themes/159722471641/editor
 
 ---
 
