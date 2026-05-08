@@ -2819,6 +2819,13 @@ product-price.text-block:is(.h1, .h2, .h3, .h4, .h5, .h6) > *:not(.tax-note) {
     justify-content: var(--vertical-alignment-mobile);
   }
 
+  /* Section의 min-height가 vertical_on_mobile 컬럼 스택을 압축하지 않도록 해제.
+     desktop에서 row 레이아웃일 때 설정한 section_height(small/medium/large)는
+     mobile에서 column으로 전환되면 자식들을 짓누르므로, 모바일에선 자연 높이 사용. */
+  .section-content-wrapper.section-content-wrapper.mobile-column {
+    min-height: auto;
+  }
+
   .layout-panel-flex--row:not(.mobile-column) {
     flex-wrap: var(--flex-wrap-mobile);
 
