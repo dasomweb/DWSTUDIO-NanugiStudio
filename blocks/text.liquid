@@ -222,8 +222,8 @@
           "label": "184px"
         }
       ],
-      "default": "1rem",
-      "visible_if": "{{ block.settings.type_preset == 'custom' }}"
+      "default": "",
+      "visible_if": "{{ block.settings.type_preset != 'rte' }}"
     },
     {
       "type": "select",
@@ -244,7 +244,7 @@
         }
       ],
       "default": "normal",
-      "visible_if": "{{ block.settings.type_preset == 'custom' }}"
+      "visible_if": "{{ block.settings.type_preset != 'rte' }}"
     },
     {
       "type": "select",
@@ -265,7 +265,7 @@
         }
       ],
       "default": "normal",
-      "visible_if": "{{ block.settings.type_preset == 'custom' }}"
+      "visible_if": "{{ block.settings.type_preset != 'rte' }}"
     },
     {
       "type": "select",
@@ -282,7 +282,7 @@
         }
       ],
       "default": "none",
-      "visible_if": "{{ block.settings.type_preset == 'custom' }}"
+      "visible_if": "{{ block.settings.type_preset != 'rte' }}"
     },
     {
       "type": "select",

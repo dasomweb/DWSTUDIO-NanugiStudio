@@ -39,6 +39,23 @@
       if block_settings.color != ''
         echo ' custom-color '
       endif
+    else
+      # Non-custom preset (h1, h2, paragraph 등)에서도 size/style override 클래스 부여
+      if block_settings.font_size != '' and block_settings.type_preset != 'rte'
+        echo ' has-font-size-override '
+      endif
+      if block_settings.line_height != '' and block_settings.line_height != 'normal' and block_settings.type_preset != 'rte'
+        echo ' has-line-height-override '
+      endif
+      if block_settings.letter_spacing != '' and block_settings.letter_spacing != 'normal' and block_settings.type_preset != 'rte'
+        echo ' has-letter-spacing-override '
+      endif
+      if block_settings.case != '' and block_settings.case != 'none' and block_settings.type_preset != 'rte'
+        echo ' has-case-override '
+      endif
+      if block_settings.color != '' and block_settings.type_preset != 'rte'
+        echo ' custom-color '
+      endif
     endif
     if block_settings.background
       echo ' text-block--background '
@@ -221,5 +238,28 @@
   .custom-color,
   .custom-color > :is(h1, h2, h3, h4, h5, h6, p, *) {
     color: var(--color);
+  }
+
+  /* Style overrides for non-custom presets (h1, h2, paragraph 등)
+     .text-block 한정자로 specificity (0,2,0) 확보하여 preset 클래스 (.text-block.h1 > *) 보다
+     CSS 순서상 나중에 정의되어 우선 적용. */
+  .text-block.has-font-size-override,
+  .text-block.has-font-size-override > :is(h1, h2, h3, h4, h5, h6, p, *) {
+    font-size: var(--font-size);
+  }
+
+  .text-block.has-line-height-override,
+  .text-block.has-line-height-override > :is(h1, h2, h3, h4, h5, h6, p, *) {
+    line-height: var(--line-height-override);
+  }
+
+  .text-block.has-letter-spacing-override,
+  .text-block.has-letter-spacing-override > :is(h1, h2, h3, h4, h5, h6, p, *) {
+    letter-spacing: var(--letter-spacing-override);
+  }
+
+  .text-block.has-case-override,
+  .text-block.has-case-override > :is(h1, h2, h3, h4, h5, h6, p, *) {
+    text-transform: var(--text-transform-override);
   }
 {% endstylesheet %}
