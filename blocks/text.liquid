@@ -320,10 +320,21 @@
         {
           "value": "var(--color-primary)",
           "label": "t:options.link"
+        },
+        {
+          "value": "custom",
+          "label": "Custom"
         }
       ],
       "default": "var(--color-foreground)",
       "visible_if": "{{ block.settings.type_preset != 'rte' }}"
+    },
+    {
+      "type": "color",
+      "id": "custom_color_value",
+      "label": "Custom color",
+      "default": "#000000",
+      "visible_if": "{{ block.settings.color == 'custom' and block.settings.type_preset != 'rte' }}"
     },
     {
       "type": "header",
