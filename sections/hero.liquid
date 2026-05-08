@@ -627,6 +627,15 @@
     z-index: var(--layer-base);
   }
 
+  /* 모바일에서 landscape 비디오/이미지가 cover로 잘릴 때, 가운데(허리/하체) 대신
+     상단(얼굴/상체)이 보이도록 object-position을 위로 이동.
+     모델 사진의 경우 얼굴 보존이 핵심. */
+  @media screen and (max-width: 749px) {
+    .hero__media {
+      object-position: center 25%;
+    }
+  }
+
   /* Mobile/Desktop media visibility */
 
   .hero__media-wrapper--mobile {

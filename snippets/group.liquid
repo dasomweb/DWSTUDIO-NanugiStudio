@@ -20,12 +20,14 @@
     spacing-style
     size-style
     {% if settings.inherit_color_scheme == false %} color-{{ settings.color_scheme }}{% endif %}
+    {% if settings.mobile_aspect_ratio and settings.mobile_aspect_ratio != 'auto' %} group-block--mobile-aspect{% endif %}
     {{ class }}
   "
   style="
     {% render 'border-override', settings: settings %}
     {% render 'spacing-style', settings: settings %}
     {% render 'size-style', settings: settings %}
+    {% if settings.mobile_aspect_ratio and settings.mobile_aspect_ratio != 'auto' %}--group-mobile-aspect-ratio: {{ settings.mobile_aspect_ratio }};{% endif %}
     {{ style }}
   "
   {{ shopify_attributes }}
@@ -86,5 +88,15 @@
   /* Needs the .group-block__link ~ to be specific enough to take effect. */
   .group-block__link ~ .group-block-content--design-mode {
     pointer-events: auto;
+  }
+
+  /* Mobile aspect ratio override.
+     데스크톱에선 자유 레이아웃, 모바일에선 선택한 비율로 강제하여
+     배경 이미지 크롭이 어색하지 않도록. (예: split showcase 패널) */
+  @media screen and (max-width: 749px) {
+    .group-block--mobile-aspect {
+      aspect-ratio: var(--group-mobile-aspect-ratio);
+      height: auto !important;
+    }
   }
 {% endstylesheet %}
