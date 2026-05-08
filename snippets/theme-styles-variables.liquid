@@ -133,10 +133,11 @@
     --normal-page-width: 120rem;
     --wide-page-width: 150rem;
 
-    /* Section Heights */
-    --section-height-small: 15rem;
-    --section-height-medium: 25rem;
-    --section-height-large: 35rem;
+    /* Section Heights — 모바일에서는 svh 기반으로 화면 비율을 따라가도록.
+       기존 고정 rem값은 작은 화면에서 너무 크거나 작은 비율 문제가 있어 svh로 통일. */
+    --section-height-small: 35svh;
+    --section-height-medium: 50svh;
+    --section-height-large: 60svh;
 
     @media screen and (min-width: 40em) {
       --section-height-small: 40svh;

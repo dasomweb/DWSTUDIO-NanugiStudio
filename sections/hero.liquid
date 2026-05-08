@@ -655,6 +655,23 @@
       grid-template-columns: 1fr;
       grid-template-rows: repeat(var(--hero-media-count-mobile, 1), calc(100% / var(--hero-media-count-mobile, 1)));
     }
+
+    /* 모바일에서 Hero 안의 row 레이아웃 그룹이 column으로 전환될 때
+       내부 자식들이 부자연스러운 간격으로 떨어지지 않도록 보강.
+       Hero: Bottom aligned 등에서 group의 vertical_alignment(flex-end)가
+       모바일 column일 때 height: fit이라 자연스럽게 쌓이지만, 일부 환경에서
+       row→column 전환 시 align-items가 cross-axis로 적용되며 좌우 정렬이
+       어긋나는 경우 보호. */
+    .hero__content-wrapper .layout-panel-flex--row.mobile-column {
+      width: 100%;
+    }
+
+    /* Hero 자식 텍스트가 mobile에서 가로 overflow 되지 않도록 안전장치.
+       max_width: none 등으로 설정된 텍스트도 viewport는 넘지 않게. */
+    .hero__content-wrapper .text-block,
+    .hero__content-wrapper .group-block-content {
+      max-width: 100%;
+    }
   }
 
   .hero__link {
