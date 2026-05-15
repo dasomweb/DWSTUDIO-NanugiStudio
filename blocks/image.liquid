@@ -35,6 +35,7 @@
 {% capture image_border_style %}
   --ratio: {{ ratio }};
   {% render 'border-override', settings: block_settings %}
+  {%- if block_settings.enable_custom_style and block_settings.custom_border_color != blank -%}--border-color: {{ block_settings.custom_border_color }};{%- endif -%}
 {% endcapture %}
 
 {% liquid
@@ -288,6 +289,20 @@
       "step": 1,
       "unit": "px",
       "default": 0
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_custom_style",
+      "label": "t:settings.enable_custom_style",
+      "info": "t:info.enable_custom_style",
+      "default": false,
+      "visible_if": "{{ block.settings.border != 'none' }}"
+    },
+    {
+      "type": "color",
+      "id": "custom_border_color",
+      "label": "t:settings.custom_border_color",
+      "visible_if": "{{ block.settings.enable_custom_style and block.settings.border != 'none' }}"
     },
     {
       "type": "header",

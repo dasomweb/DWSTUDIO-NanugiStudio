@@ -833,6 +833,7 @@
     "cover_image_size": "Cover image size",
     "currency_code": "Currency code",
     "custom_background_color": "Custom background color",
+    "custom_border_color": "Custom border color",
     "custom_font_size": "Custom font size",
     "custom_height": "Custom height",
     "custom_minimum_height": "Custom minimum height",
