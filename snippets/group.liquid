@@ -21,6 +21,8 @@
     size-style
     {% if settings.inherit_color_scheme == false %} color-{{ settings.color_scheme }}{% endif %}
     {% if settings.mobile_aspect_ratio and settings.mobile_aspect_ratio != 'auto' %} group-block--mobile-aspect{% endif %}
+    {% if settings.enable_custom_style and settings.custom_background_color != blank %} group-block--custom-bg{% endif %}
+    {% if settings.enable_custom_style and settings.custom_text_color != blank %} group-block--custom-text{% endif %}
     {{ class }}
   "
   style="
@@ -28,6 +30,10 @@
     {% render 'spacing-style', settings: settings %}
     {% render 'size-style', settings: settings %}
     {% if settings.mobile_aspect_ratio and settings.mobile_aspect_ratio != 'auto' %}--group-mobile-aspect-ratio: {{ settings.mobile_aspect_ratio }};{% endif %}
+    {%- if settings.enable_custom_style -%}
+      {%- if settings.custom_background_color != blank -%}--group-custom-bg: {{ settings.custom_background_color }};{%- endif -%}
+      {%- if settings.custom_text_color != blank -%}--group-custom-text: {{ settings.custom_text_color }};{%- endif -%}
+    {%- endif -%}
     {{ style }}
   "
   {{ shopify_attributes }}
@@ -98,5 +104,16 @@
       aspect-ratio: var(--group-mobile-aspect-ratio);
       height: auto !important;
     }
+  }
+
+  /* Custom 배경/텍스트 색 — 컬러스킴 대신 단색을 직접 지정.
+     전용 변수로 스킴 변수(--color-background 등)를 건드리지 않아
+     자식 요소가 스킴에 의존하더라도 안전. */
+  .group-block--custom-bg {
+    background-color: var(--group-custom-bg);
+  }
+
+  .group-block--custom-text {
+    color: var(--group-custom-text);
   }
 {% endstylesheet %}

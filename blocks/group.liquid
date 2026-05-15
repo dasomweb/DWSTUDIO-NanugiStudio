@@ -273,6 +273,25 @@
       "visible_if": "{{ block.settings.inherit_color_scheme == false }}"
     },
     {
+      "type": "checkbox",
+      "id": "enable_custom_style",
+      "label": "t:settings.enable_custom_style",
+      "info": "t:info.enable_custom_style",
+      "default": false
+    },
+    {
+      "type": "color",
+      "id": "custom_background_color",
+      "label": "t:settings.custom_background_color",
+      "visible_if": "{{ block.settings.enable_custom_style }}"
+    },
+    {
+      "type": "color",
+      "id": "custom_text_color",
+      "label": "t:settings.custom_text_color",
+      "visible_if": "{{ block.settings.enable_custom_style }}"
+    },
+    {
       "type": "select",
       "id": "background_media",
       "label": "t:settings.background_media",
