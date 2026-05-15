@@ -1359,7 +1359,7 @@ button.shopify-payment-button__button--unbranded {
   font-family: var(--font-paragraph--family);
   font-style: var(--font-paragraph--style);
   font-weight: var(--font-paragraph--weight);
-  font-size: var(--font-paragraph--size);
+  font-size: var(--button-font-size, var(--font-paragraph--size));
   line-height: var(--font-paragraph--line-height);
   margin-block: 0;
   transition: color var(--animation-speed) var(--animation-easing),

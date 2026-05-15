@@ -45,6 +45,46 @@
     },
     {
       "type": "header",
+      "content": "t:content.appearance"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_custom_style",
+      "label": "t:settings.enable_custom_style",
+      "info": "t:info.enable_custom_style",
+      "default": false
+    },
+    {
+      "type": "color",
+      "id": "custom_text_color",
+      "label": "t:settings.custom_text_color",
+      "visible_if": "{{ block.settings.enable_custom_style }}"
+    },
+    {
+      "type": "color",
+      "id": "custom_background_color",
+      "label": "t:settings.custom_background_color",
+      "visible_if": "{{ block.settings.enable_custom_style and block.settings.style_class != 'link' }}"
+    },
+    {
+      "type": "select",
+      "id": "custom_font_size",
+      "label": "t:settings.custom_font_size",
+      "options": [
+        { "value": "", "label": "t:options.default" },
+        { "value": "0.75rem", "label": "12px" },
+        { "value": "0.875rem", "label": "14px" },
+        { "value": "1rem", "label": "16px" },
+        { "value": "1.125rem", "label": "18px" },
+        { "value": "1.25rem", "label": "20px" },
+        { "value": "1.5rem", "label": "24px" },
+        { "value": "2rem", "label": "32px" }
+      ],
+      "default": "",
+      "visible_if": "{{ block.settings.enable_custom_style }}"
+    },
+    {
+      "type": "header",
       "content": "t:content.size"
     },
     {

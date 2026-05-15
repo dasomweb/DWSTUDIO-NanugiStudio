@@ -22,7 +22,14 @@
     {{ block_settings.style_class }}
     {{ block_settings.style_class }}--{{ block.id }}
   "
-  style="{% render 'size-style', settings: block_settings %}"
+  style="
+    {% render 'size-style', settings: block_settings %}
+    {%- if block_settings.enable_custom_style -%}
+      {%- if block_settings.custom_text_color != blank -%}--button-color: {{ block_settings.custom_text_color }};{%- endif -%}
+      {%- if block_settings.custom_background_color != blank -%}--button-background-color: {{ block_settings.custom_background_color }};{%- endif -%}
+      {%- if block_settings.custom_font_size != blank and block_settings.custom_font_size != '' -%}--button-font-size: {{ block_settings.custom_font_size }};{%- endif -%}
+    {%- endif -%}
+  "
   {%- if block_settings.open_in_new_tab -%}
     target="_blank"
     rel="noopener noreferrer"

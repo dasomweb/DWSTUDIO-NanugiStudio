@@ -234,7 +234,8 @@
     "video_external": "Use a YouTube or Vimeo URL",
     "pills_usage": "Used for applied filters, discount codes, and search suggestions",
     "media_type_info": "Features are populated from your menu links",
-    "mobile_aspect_ratio": "Aspect ratio applied on mobile (≤749px). Prevents awkward image cropping when desktop row layouts stack into a column."
+    "mobile_aspect_ratio": "Aspect ratio applied on mobile (≤749px). Prevents awkward image cropping when desktop row layouts stack into a column.",
+    "enable_custom_style": "Override the theme's preset colors and size for this block only."
   },
   "names": {
     "column": "Column",
@@ -831,12 +832,15 @@
     "cover_image": "Cover image",
     "cover_image_size": "Cover image size",
     "currency_code": "Currency code",
+    "custom_background_color": "Custom background color",
+    "custom_font_size": "Custom font size",
     "custom_height": "Custom height",
     "custom_minimum_height": "Custom minimum height",
     // Checkbox to enable separate size settings for mobile devices
     "custom_mobile_size": "Custom mobile size",
     "custom_mobile_width": "Custom mobile width",
     "custom_width": "Custom width",
+    "custom_text_color": "Custom text color",
     "custom_liquid": "Liquid code",
     // Primary color scheme option, not specialized variants
     "default": "Default",
@@ -856,6 +860,7 @@
     // Collection setting for products shown before search input
     "empty_state_collection": "Empty state collection",
     "empty_state_collection_info": "Shown before a search is entered",
+    "enable_custom_style": "Use custom style",
     "enable_filtering": "Filters",
     "enable_grid_density": "Grid layout control",
     "enable_sorting": "Sorting",
