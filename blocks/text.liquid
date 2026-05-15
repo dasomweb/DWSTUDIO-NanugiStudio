@@ -124,6 +124,14 @@
       "info": "t:info.edit_presets_in_theme_settings"
     },
     {
+      "type": "checkbox",
+      "id": "enable_custom_style",
+      "label": "t:settings.enable_custom_style",
+      "info": "t:info.enable_custom_style",
+      "default": false,
+      "visible_if": "{{ block.settings.type_preset != 'rte' and block.settings.type_preset != 'custom' }}"
+    },
+    {
       "type": "select",
       "id": "font",
       "label": "t:settings.font",
@@ -223,7 +231,7 @@
         }
       ],
       "default": "",
-      "visible_if": "{{ block.settings.type_preset != 'rte' }}"
+      "visible_if": "{{ block.settings.type_preset == 'custom' or block.settings.enable_custom_style }}"
     },
     {
       "type": "select",
@@ -244,7 +252,7 @@
         }
       ],
       "default": "normal",
-      "visible_if": "{{ block.settings.type_preset != 'rte' }}"
+      "visible_if": "{{ block.settings.type_preset == 'custom' or block.settings.enable_custom_style }}"
     },
     {
       "type": "select",
@@ -265,7 +273,7 @@
         }
       ],
       "default": "normal",
-      "visible_if": "{{ block.settings.type_preset != 'rte' }}"
+      "visible_if": "{{ block.settings.type_preset == 'custom' or block.settings.enable_custom_style }}"
     },
     {
       "type": "select",
@@ -282,7 +290,7 @@
         }
       ],
       "default": "none",
-      "visible_if": "{{ block.settings.type_preset != 'rte' }}"
+      "visible_if": "{{ block.settings.type_preset == 'custom' or block.settings.enable_custom_style }}"
     },
     {
       "type": "select",
