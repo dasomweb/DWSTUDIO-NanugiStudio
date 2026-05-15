@@ -341,15 +341,15 @@
     {
       "type": "select",
       "id": "mobile_aspect_ratio",
-      "label": "Mobile aspect ratio",
-      "info": "Aspect ratio applied to the group on mobile (≤749px). Prevents image cropping when desktop layouts squeeze too narrow.",
+      "label": "t:settings.mobile_aspect_ratio",
+      "info": "t:info.mobile_aspect_ratio",
       "options": [
-        { "value": "auto", "label": "Auto (no override)" },
-        { "value": "1/1", "label": "1:1 (square)" },
-        { "value": "4/3", "label": "4:3 (landscape)" },
-        { "value": "3/4", "label": "3:4 (portrait)" },
-        { "value": "16/9", "label": "16:9 (wide)" },
-        { "value": "9/16", "label": "9:16 (tall)" }
+        { "value": "auto", "label": "t:options.auto" },
+        { "value": "1/1", "label": "1:1" },
+        { "value": "4/3", "label": "4:3" },
+        { "value": "3/4", "label": "3:4" },
+        { "value": "16/9", "label": "16:9" },
+        { "value": "9/16", "label": "9:16" }
       ],
       "default": "auto",
       "visible_if": "{{ block.settings.background_media != 'none' }}"

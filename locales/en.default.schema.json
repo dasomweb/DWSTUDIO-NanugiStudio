@@ -233,7 +233,8 @@
     "video_autoplay": "Videos will be muted by default",
     "video_external": "Use a YouTube or Vimeo URL",
     "pills_usage": "Used for applied filters, discount codes, and search suggestions",
-    "media_type_info": "Features are populated from your menu links"
+    "media_type_info": "Features are populated from your menu links",
+    "mobile_aspect_ratio": "Aspect ratio applied on mobile (≤749px). Prevents awkward image cropping when desktop row layouts stack into a column."
   },
   "names": {
     "column": "Column",
@@ -961,6 +962,7 @@
     "media_width": "Media width",
     "menu": "Menu",
     "minimum_height": "Minimum height",
+    "mobile_aspect_ratio": "Mobile aspect ratio",
     "mobile_card_size": "Mobile card size",
     "mobile_columns": "Mobile columns",
     "mobile_height": "Mobile height",
