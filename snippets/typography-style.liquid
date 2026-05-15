@@ -24,16 +24,28 @@
   {%- endif -%}
 
   {# Style overrides — preset과 무관하게 적용 (h1~h6, paragraph 등 모든 preset에서 동작).
-     아래 변수들은 .text-block.has-typography-* 클래스로 우선순위 확보. #}
+     아래 변수들은 .text-block.has-typography-* 클래스로 우선순위 확보.
+     line-height/letter-spacing은 preset에 맞는 type 스케일 사용
+     (h1=display, h2~h4=heading, h5/h6/paragraph=body) — custom-typography 규칙과 동일. #}
   {%- if preset != 'rte' and preset != 'custom' -%}
+    {%- liquid
+      case preset
+        when 'h1'
+          assign scale_type = 'display'
+        when 'h2', 'h3', 'h4'
+          assign scale_type = 'heading'
+        else
+          assign scale_type = 'body'
+      endcase
+    -%}
     {%- if settings.font_size != blank and settings.font_size != "" -%}
       --font-size: {{ settings.font_size }};
     {%- endif -%}
     {%- if settings.line_height != blank and settings.line_height != "normal" -%}
-      --line-height-override: var(--line-height--body-{{ settings.line_height }});
+      --line-height-override: var(--line-height--{{ scale_type }}-{{ settings.line_height }});
     {%- endif -%}
     {%- if settings.letter_spacing != blank and settings.letter_spacing != "normal" -%}
-      --letter-spacing-override: var(--letter-spacing--body-{{ settings.letter_spacing }});
+      --letter-spacing-override: var(--letter-spacing--{{ scale_type }}-{{ settings.letter_spacing }});
     {%- endif -%}
     {%- if settings.case != blank and settings.case != "none" -%}
       --text-transform-override: {{ settings.case }};
