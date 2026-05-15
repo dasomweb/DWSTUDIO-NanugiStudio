@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "WebFetch(domain:shopify.dev)",
+      "Bash(npm test *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(echo \"exit:$?\")",
+      "Bash(git stash *)"
     ]
   }
 }
