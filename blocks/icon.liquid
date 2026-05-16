@@ -13,16 +13,25 @@
   %}
 {% endcapture %}
 
+{%- liquid
+  assign icon_color_style = ''
+  if block_settings.enable_custom_style and block_settings.custom_icon_color != blank
+    assign icon_color_style = 'color: ' | append: block_settings.custom_icon_color | append: ';'
+  endif
+-%}
 {%- if block_settings.link != blank -%}
   <a
     href="{{ block_settings.link }}"
     class="text-inherit"
+    {% if icon_color_style != '' %}style="{{ icon_color_style }}"{% endif %}
     {% if block_settings.open_in_new_tab %}
       target="_blank" rel="noopener"
     {% endif %}
   >
     {{ icon }}
   </a>
+{%- elsif icon_color_style != '' -%}
+  <span style="display: contents; {{ icon_color_style }}">{{ icon }}</span>
 {%- else -%}
   {{ icon }}
 {%- endif -%}
@@ -301,6 +310,19 @@
       "step": 2,
       "unit": "px",
       "default": 24
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_custom_style",
+      "label": "t:settings.enable_custom_style",
+      "info": "t:info.enable_custom_style",
+      "default": false
+    },
+    {
+      "type": "color",
+      "id": "custom_icon_color",
+      "label": "t:settings.custom_icon_color",
+      "visible_if": "{{ block.settings.enable_custom_style }}"
     },
     {
       "type": "url",

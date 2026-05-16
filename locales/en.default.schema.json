@@ -836,6 +836,7 @@
     "custom_border_color": "Custom border color",
     "custom_font_size": "Custom font size",
     "custom_height": "Custom height",
+    "custom_icon_color": "Custom icon color",
     "custom_minimum_height": "Custom minimum height",
     // Checkbox to enable separate size settings for mobile devices
     "custom_mobile_size": "Custom mobile size",
