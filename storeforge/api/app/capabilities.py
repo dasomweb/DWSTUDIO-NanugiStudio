@@ -41,16 +41,20 @@ MODULES: tuple[Module, ...] = (
     Module(
         id="listpilot",
         name="ListPilot",
-        summary="상품·컬렉션 자동 구축 (축②)",
-        # write_products = 상품·변형·컬렉션·상품 메타필드. write_files = staged upload → fileCreate.
-        required_scopes=("write_products", "write_files"),
+        summary="상품·컬렉션 자동 구축 — AI 상품 생성 → Shopify 등록 (축②)",
+        # DW-ListPilot 의 shopify.app.toml 과 같은 집합이다.
+        required_scopes=("write_products", "write_inventory"),
+        optional_scopes=("read_products", "read_inventory"),
     ),
     Module(
         id="pricewave",
         name="Pricewave",
-        summary="스케줄 세일 — price/compare_at_price 자동 전환 + 세일 배지",
-        # 가격과 상품 메타필드(custom.sale_badge)를 쓴다. 둘 다 write_products 로 덮인다.
-        required_scopes=("write_products",),
+        summary="할인 코드 시각화 — 상품 페이지에 '쿠폰 적용가' 미리보기",
+        # 2026-05 피벗: 가격을 쓰지 않는다. Shopify Discount 를 읽어 샵 메타필드에 요약을 넣고,
+        # 테마 블록이 그걸 읽어 미리보기를 그린다. variant.price / compare_at_price 를 절대 건드리지 않는다.
+        # 샵 메타필드 쓰기는 스코프가 필요 없으므로 읽기 스코프만 있으면 된다.
+        required_scopes=("read_discounts",),
+        optional_scopes=("read_products",),
     ),
 )
 

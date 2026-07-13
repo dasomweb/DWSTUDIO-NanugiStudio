@@ -151,13 +151,16 @@ class ShopifyClient:
         scopes = data["currentAppInstallation"]["accessScopes"]
         return sorted(s["handle"] for s in scopes)
 
-    # --- 축① 주입 ---------------------------------------------------------------
-    async def set_brand_metafield(self, payload: dict) -> str:
-        """브랜드 페이로드를 shop.metafields.storeforge.brand 에 넣는다. 반환: metafield GID."""
-        shop_gid = (await self.graphql("{ shop { id } }"))["shop"]["id"]
+    # --- 샵 메타필드 (여러 모듈이 공유한다) --------------------------------------
+    #
+    # 소유자가 Shop 이므로 스코프가 필요 없다. 자세한 이유는 capabilities.py 주석 참고.
+    async def shop_gid(self) -> str:
+        return (await self.graphql("{ shop { id } }"))["shop"]["id"]
 
+    async def set_shop_metafield(self, namespace: str, key: str, payload: dict) -> str:
+        """샵 메타필드에 JSON 을 넣는다. 반환: metafield GID."""
         mutation = """
-        mutation SetBrand($metafields: [MetafieldsSetInput!]!) {
+        mutation SetShopMetafield($metafields: [MetafieldsSetInput!]!) {
           metafieldsSet(metafields: $metafields) {
             metafields { id key namespace }
             userErrors { field message code }
@@ -167,16 +170,15 @@ class ShopifyClient:
         variables = {
             "metafields": [
                 {
-                    "ownerId": shop_gid,
-                    "namespace": NAMESPACE,
-                    "key": KEY,
+                    "ownerId": await self.shop_gid(),
+                    "namespace": namespace,
+                    "key": key,
                     "type": "json",
                     "value": json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
                 }
             ]
         }
-        data = await self.graphql(mutation, variables)
-        result = data["metafieldsSet"]
+        result = (await self.graphql(mutation, variables))["metafieldsSet"]
 
         if result["userErrors"]:
             msgs = "; ".join(
@@ -186,13 +188,75 @@ class ShopifyClient:
 
         return result["metafields"][0]["id"]
 
-    async def get_brand_metafield(self) -> dict | None:
-        """현재 주입된 값을 읽는다. 온보딩 중복 실행을 막는 근거로 쓴다 (기획안 §1.4)."""
+    async def delete_shop_metafield(self, namespace: str, key: str) -> None:
+        """없으면 조용히 넘어간다 — '지워져 있어야 한다'가 목적이므로 없는 것도 성공이다."""
+        mutation = """
+        mutation ClearShopMetafield($metafields: [MetafieldIdentifierInput!]!) {
+          metafieldsDelete(metafields: $metafields) {
+            deletedMetafields { ownerId key }
+            userErrors { field message }
+          }
+        }
+        """
+        variables = {
+            "metafields": [
+                {"ownerId": await self.shop_gid(), "namespace": namespace, "key": key}
+            ]
+        }
+        await self.graphql(mutation, variables)
+
+    async def get_shop_metafield(self, namespace: str, key: str) -> dict | None:
         query = """
-        query { shop { metafield(namespace: "%s", key: "%s") { value updatedAt } } }
-        """ % (NAMESPACE, KEY)
-        data = await self.graphql(query)
+        query GetShopMetafield($namespace: String!, $key: String!) {
+          shop { metafield(namespace: $namespace, key: $key) { value updatedAt } }
+        }
+        """
+        data = await self.graphql(query, {"namespace": namespace, "key": key})
         mf = data["shop"]["metafield"]
         if not mf:
             return None
         return {"value": json.loads(mf["value"]), "updated_at": mf["updatedAt"]}
+
+    # --- 축① 주입 ---------------------------------------------------------------
+    async def set_brand_metafield(self, payload: dict) -> str:
+        """브랜드 페이로드를 shop.metafields.storeforge.brand 에 넣는다. 반환: metafield GID."""
+        return await self.set_shop_metafield(NAMESPACE, KEY, payload)
+
+    async def get_brand_metafield(self) -> dict | None:
+        """현재 주입된 값을 읽는다. 온보딩 중복 실행을 막는 근거로 쓴다 (기획안 §1.4)."""
+        return await self.get_shop_metafield(NAMESPACE, KEY)
+
+    # --- Pricewave: 할인 조회 -----------------------------------------------------
+    async def active_discounts(self) -> list[dict]:
+        """코드 할인 중 지금 살아 있는 것들 (원본 노드 그대로 — 해석은 engine.pricewave 가 한다).
+
+        codeDiscountNodes 는 deprecated 라 discountNodes 를 쓴다.
+        """
+        query = """
+        query ActiveDiscounts {
+          discountNodes(first: 50, query: "status:active") {
+            nodes {
+              id
+              discount {
+                __typename
+                ... on DiscountCodeBasic {
+                  title
+                  status
+                  startsAt
+                  endsAt
+                  codes(first: 1) { nodes { code } }
+                  customerGets {
+                    value {
+                      __typename
+                      ... on DiscountPercentage { percentage }
+                      ... on DiscountAmount { amount { amount currencyCode } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        """
+        data = await self.graphql(query)
+        return data["discountNodes"]["nodes"]

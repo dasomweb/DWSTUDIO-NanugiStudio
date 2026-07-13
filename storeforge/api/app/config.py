@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     # 축① 브랜드 해석. 비워두면 SDK 가 ANTHROPIC_API_KEY 등 표준 경로에서 찾는다.
     anthropic_api_key: str = ""
 
+    # Pricewave 할인 동기화 주기. 0 이면 백그라운드 루프를 돌리지 않는다.
+    # 머천트가 Shopify Admin 에서 할인을 켜고 끄는 것을 알 방법이 (웹훅 전까지) 없어서 폴링한다.
+    pricewave_sync_seconds: int = 300
+
     database_url: str = ""
     cors_origins: str = "http://localhost:3000"
 

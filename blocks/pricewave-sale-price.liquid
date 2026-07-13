@@ -1,0 +1,164 @@
+{%- comment -%}
+  Pricewave — 쿠폰 적용가 미리보기.
+
+  StoreForge 통합 앱의 Pricewave 모듈이 shop.metafields.pricewave.active_discount 에 넣어 둔
+  "지금 살아 있는 할인 코드" 요약을 읽어, 상품 가격에 수식을 적용해 미리보기를 그린다.
+
+  상품 가격 자체는 아무도 건드리지 않는다. 장바구니엔 원가가 담기고, 손님이 체크아웃에서
+  코드를 입력하면 그때 Shopify 가 할인을 적용한다.
+
+  할인이 없으면(= metafield 가 없으면) 아무것도 출력하지 않는다.
+{%- endcomment -%}
+
+{%- liquid
+  assign discount = shop.metafields.pricewave.active_discount.value
+  assign product_resource = closest.product
+  assign original_price = product_resource.price
+  assign sale_price = nil
+
+  if discount and discount.type and original_price
+    if discount.type == 'PERCENTAGE'
+      assign factor = discount.value | divided_by: 100.0
+      assign discount_amount = original_price | times: factor
+      assign sale_price = original_price | minus: discount_amount
+    elsif discount.type == 'FIXED_AMOUNT'
+      # metafield 의 value 는 통화 단위(5.00), product.price 는 cents 다.
+      assign discount_cents = discount.value | times: 100
+      assign sale_price = original_price | minus: discount_cents
+      if sale_price < 0
+        assign sale_price = 0
+      endif
+    endif
+  endif
+-%}
+
+{%- if sale_price and sale_price < original_price -%}
+  <div
+    class="pricewave spacing-style"
+    style="
+      {% render 'spacing-style', settings: block.settings %}
+      --pricewave-sale-color: {{ block.settings.sale_color }};
+    "
+    {{ block.shopify_attributes }}
+  >
+    <span class="pricewave__original">{{ original_price | money }}</span>
+    <span class="pricewave__sale{% if block.settings.italic %} pricewave__sale--italic{% endif %}">
+      {{- sale_price | money -}}
+      {%- if block.settings.label_text != blank %} ({{ block.settings.label_text }}){% endif -%}
+    </span>
+
+    {%- if block.settings.show_code and discount.code -%}
+      <div class="pricewave__code">
+        {{- block.settings.code_prefix }}
+        <code>{{ discount.code }}</code>
+      </div>
+    {%- endif -%}
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .pricewave {
+    display: block;
+  }
+
+  .pricewave__original {
+    text-decoration: line-through;
+    color: rgb(var(--color-foreground-rgb) / var(--opacity-subdued-text));
+  }
+
+  .pricewave__sale {
+    margin-inline-start: 0.5rem;
+    font-weight: 600;
+    color: var(--pricewave-sale-color, var(--color-primary));
+  }
+
+  .pricewave__sale--italic {
+    font-style: italic;
+  }
+
+  .pricewave__code {
+    margin-block-start: 0.25rem;
+    font-size: var(--font-size--xs);
+    color: rgb(var(--color-foreground-rgb) / var(--opacity-subdued-text));
+  }
+
+  .pricewave__code code {
+    padding: 0.1em 0.4em;
+    border-radius: 3px;
+    background: rgb(var(--color-foreground-rgb) / 0.06);
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Pricewave sale price",
+  "tag": null,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Shopify 할인 코드가 활성화되어 있을 때만 표시됩니다. 상품 가격은 변경되지 않습니다."
+    },
+    {
+      "type": "color",
+      "id": "sale_color",
+      "label": "t:settings.color",
+      "default": "#dc2626"
+    },
+    {
+      "type": "checkbox",
+      "id": "italic",
+      "label": "Italic",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "label_text",
+      "label": "Label",
+      "default": "Sale"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_code",
+      "label": "할인 코드 표시",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "code_prefix",
+      "label": "코드 앞에 붙일 문구",
+      "default": "코드:",
+      "visible_if": "{{ block.settings.show_code }}"
+    },
+    {
+      "type": "header",
+      "content": "t:content.padding"
+    },
+    {
+      "type": "range",
+      "id": "padding-block-start",
+      "label": "t:settings.top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 4
+    },
+    {
+      "type": "range",
+      "id": "padding-block-end",
+      "label": "t:settings.bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 4
+    }
+  ],
+  "presets": [
+    {
+      "name": "Pricewave sale price",
+      "category": "t:categories.product"
+    }
+  ]
+}
+{% endschema %}

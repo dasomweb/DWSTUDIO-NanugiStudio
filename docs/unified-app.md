@@ -13,9 +13,18 @@ DWSTUDIO 의 세 제품을 **Shopify 앱 하나**로 묶어 스토어에 연동�
 | 제품 | 통합 | 하는 일 | 필수 스코프 |
 |---|---|---|---|
 | **StoreForge** (축①) | ✅ | 브랜드 해석 → 컬러·폰트 metafield 주입 | **없음** |
-| **ListPilot** (축②) | ✅ | 상품·컬렉션 자동 구축 | `write_products`, `write_files` |
-| **Pricewave** | ✅ | 스케줄 세일 (price / compare_at_price / 세일 배지) | `write_products` |
+| **ListPilot** (축②) | ✅ | AI 상품 생성 → Shopify 등록 | `write_products`, `write_inventory` |
+| **Pricewave** | ✅ | 할인 코드 시각화 (쿠폰 적용가 미리보기) | `read_discounts` |
 | **ThemePush** | ❌ **제외** | GitHub Actions → 테마 배포 | `write_themes` (보호) |
+
+스코프는 각 원본 저장소의 `shopify.app.toml` 에서 가져왔다 (`dasomweb/DW-ListPilot`, `dasomweb/pricewave`).
+
+### Pricewave 가 `write_products` 를 쓰지 않는 이유
+
+2026-05 피벗으로 **가격 실행 스택을 통째로 버렸다.** 이제 `variant.price` / `compare_at_price` 를
+건드리지 않는다. Shopify 의 active 할인 코드를 **읽어서** 샵 메타필드에 요약을 넣고, 테마 블록이
+그걸 읽어 "원가 / 쿠폰 사용 시 가격"을 그린다. 결제는 손님이 체크아웃에서 코드를 입력하면
+Shopify 가 처리한다. 그래서 읽기 스코프(`read_discounts`) 하나면 된다.
 
 ### ThemePush 를 제외한 이유
 
@@ -74,11 +83,15 @@ DWSTUDIO 의 세 제품을 **Shopify 앱 하나**로 묶어 스토어에 연동�
 
 2. Versions → Create version → Configuration → Admin API integration
    Access scopes:
-     ✅ write_products    (ListPilot, Pricewave — 상품·변형·컬렉션·상품 메타필드)
-     ✅ write_files       (ListPilot — staged upload → fileCreate 이미지)
-     ✅ read_products     (연결 확인)
+     ✅ write_products    (ListPilot — 상품·변형·컬렉션 등록)
+     ✅ read_products
+     ✅ write_inventory   (ListPilot — 재고)
+     ✅ read_inventory
+     ✅ read_discounts    (Pricewave — 활성 할인 조회)
    ⚠️ write_metafields 는 없는 스코프다. 넣으면 거부당한다.
    ⚠️ write_themes 는 넣지 않는다 (보호 스코프. ThemePush 는 별도 앱).
+   ⚠️ StoreForge(축①)만 쓸 거라면 스코프 없이도 동작한다. 하지만 나중에 다른 모듈을 켤 때
+      재설치를 면하려면 처음부터 위 집합을 다 넣어 두는 편이 낫다.
 
 3. Release  ← 릴리즈해야 스코프가 실제로 적용된다
 
@@ -119,5 +132,32 @@ DWSTUDIO 의 세 제품을 **Shopify 앱 하나**로 묶어 스토어에 연동�
 | 스토어별 켠 모듈 | `Store.enabled_modules` (콤마 구분) |
 | 스코프 검사 | `Store.missing_scopes` — **켠 모듈의 필수 스코프에 대해서만** 검사한다 |
 | API | `GET /stores/modules` (카탈로그) · `PUT /stores/{id}/modules` (토글) |
+| 샵 메타필드 | `ShopifyClient.set/get/delete_shop_metafield` — 축①과 Pricewave 가 함께 쓴다 |
 
 새 제품을 붙일 때는 `capabilities.MODULES` 에 항목을 추가하면 스코프 검사·화면·문서 기준이 함께 따라온다.
+
+---
+
+## 5. 이식 현황 (원본 저장소 → 통합 앱)
+
+### Pricewave — 이식 완료
+
+| 원본 (`dasomweb/pricewave`, Remix/TS) | 통합 앱 |
+|---|---|
+| `app/discount-sync.server.ts` (할인 파싱·선택) | `api/app/engine/pricewave.py` (순수 로직) |
+| 〃 (GraphQL 왕복) | `ShopifyClient.active_discounts` / `set_shop_metafield` |
+| `app/scheduler.server.ts` (5분 주기) | `main.py` 의 `_pricewave_loop` (`STOREFORGE_PRICEWAVE_SYNC_SECONDS`, 기본 300) |
+| `extensions/pricewave-sale-price/` (Theme App Extension) | **`blocks/pricewave-sale-price.liquid`** (테마 블록) |
+| Remix 임베드 UI · Prisma · OAuth 세션 | **버림** — 통합 앱의 스토어별 자격증명·관리자 페이지를 쓴다 |
+
+**Theme App Extension 을 테마 블록으로 바꾼 이유**: 우리가 테마를 소유하고 있다.
+확장을 쓰면 앱에 extension 을 붙이고 배포 파이프라인을 따로 둬야 하는데, 테마 블록으로 넣으면
+기존 GitHub Actions 테마 배포에 그대로 얹힌다. 머천트는 테마 에디터에서 드래그해 쓴다.
+
+메타필드 형식(`shop.metafields.pricewave.active_discount`)은 원본과 **똑같이 유지**했다 —
+`type` / `value` / `code` / `startsAt` / `endsAt`. 블록과 서버가 이 형식으로 맞물린다.
+
+### ListPilot — 미이식
+
+`dasomweb/DW-ListPilot` (FastAPI 3.1k 줄 + Next.js 프론트). 스택은 같지만 DB 계층(async
+SQLAlchemy + Alembic)과 자체 Store/OAuth 모델이 통합 앱과 겹친다. 별도 작업으로 진행한다.
