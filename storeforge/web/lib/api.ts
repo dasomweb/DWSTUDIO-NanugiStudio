@@ -166,6 +166,19 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
 
+  updateProfile: (body: { name?: string; email?: string }) =>
+    request<User>("/auth/me", { method: "PATCH", body: JSON.stringify(body) }),
+  changePassword: (current_password: string, new_password: string) =>
+    request<{ access_token: string; user: User }>("/auth/me/password", {
+      method: "POST",
+      body: JSON.stringify({ current_password, new_password }),
+    }),
+  resetUserPassword: (id: number, new_password: string) =>
+    request<void>(`/auth/users/${id}/password`, {
+      method: "PUT",
+      body: JSON.stringify({ new_password }),
+    }),
+
   listUsers: () => request<User[]>("/auth/users"),
   createUser: (body: {
     email: string;

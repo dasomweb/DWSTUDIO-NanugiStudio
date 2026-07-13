@@ -50,6 +50,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         {link("/stores", "스토어")}
         {/* 사용자 관리는 슈퍼어드민 전용 — API 도 403 으로 막지만 메뉴부터 숨긴다 */}
         {user.role === "superadmin" && link("/users", "사용자")}
+        {link("/account", "계정")}
 
         <div style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid var(--line)" }}>
           <div style={{ fontSize: 12, marginBottom: 2 }}>{user.email}</div>

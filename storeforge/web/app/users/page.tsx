@@ -20,6 +20,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState(false);
 
@@ -72,12 +73,32 @@ export default function UsersPage() {
     }
   }
 
+  async function resetPassword(u: User) {
+    const pw = window.prompt(
+      `${u.email} 의 새 비밀번호를 입력하세요 (8자 이상).\n입력한 값을 본인에게 직접 전달해야 합니다.`,
+    );
+    if (!pw) return;
+    setError(null);
+    setOkMsg(null);
+    try {
+      await api.resetUserPassword(u.id, pw);
+      setOkMsg(`${u.email} 의 비밀번호를 재설정했습니다.`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    }
+  }
+
   return (
     <Shell>
       <h1>사용자</h1>
       <p className="sub">슈퍼어드민 전용. 역할과 스토어 배정을 여기서 관리합니다.</p>
 
       {error && <div className="err">{error}</div>}
+      {okMsg && (
+        <div className="note" style={{ marginBottom: 16, color: "var(--ok)" }}>
+          {okMsg}
+        </div>
+      )}
 
       {!adding && (
         <button onClick={() => setAdding(true)} style={{ marginBottom: 16 }}>
@@ -206,11 +227,16 @@ export default function UsersPage() {
                   )}
                 </td>
                 <td style={{ textAlign: "right" }}>
-                  {u.is_active && u.role !== "superadmin" && (
-                    <button className="danger" onClick={() => deactivate(u.id)}>
-                      비활성화
+                  <div className="row" style={{ justifyContent: "flex-end" }}>
+                    <button className="ghost" onClick={() => resetPassword(u)}>
+                      비밀번호 재설정
                     </button>
-                  )}
+                    {u.is_active && u.role !== "superadmin" && (
+                      <button className="danger" onClick={() => deactivate(u.id)}>
+                        비활성화
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
