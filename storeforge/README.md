@@ -43,11 +43,16 @@ npm run dev      # http://localhost:3000
 
 ## 스토어 연동 (Phase 1)
 
-Shopify 관리자 → 설정 → 앱 및 판매 채널 → **앱 개발** → 앱 생성 →
-Admin API 스코프에서 **`write_metafields`** 활성화 → 액세스 토큰(`shpat_…`) 발급.
+레거시 커스텀 앱(관리자 → 앱 개발)은 **2026-01-01 부터 새로 만들 수 없다.**
+[Dev Dashboard](https://dev.shopify.com/dashboard/) 에서 앱 생성 → 버전에 스코프를 넣어 **Release** →
+**Custom distribution** 으로 스토어 지정 → 설치 → **Client ID / Client secret** 획득.
 
-관리자 페이지 `스토어 → + 스토어 연동` 에 도메인과 토큰을 넣으면 연결 테스트가 돌고,
-토큰은 Fernet 으로 암호화되어 저장된다(응답에 절대 실리지 않음).
+**필요한 Admin API 스코프는 없다.** 브랜드 주입은 샵(Shop) 소유 메타필드에 쓰는데 Shopify 에는
+Shop 객체용 스코프가 존재하지 않는다. `write_metafields` 는 폐지된 이름이라 넣으면 거부당한다.
+`read_products` 만 권장(연결 확인 + 축②).
+
+관리자 페이지 `스토어 → + 스토어 연동` 에 도메인과 Client ID/Secret 을 넣으면(`client_credentials` 방식)
+연결 테스트가 돌고, 비밀값은 Fernet 으로 암호화되어 저장된다(응답에 절대 실리지 않음).
 
 ## 권한
 

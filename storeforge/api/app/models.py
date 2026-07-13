@@ -47,9 +47,16 @@ class AuthType(StrEnum):
     token = "token"
 
 
-# 축① 이 동작하려면 반드시 있어야 하는 스코프.
-# 화면에서 부여 여부를 체크해 보여준다.
-REQUIRED_SCOPES: tuple[str, ...] = ("write_metafields",)
+# 축① 주입에 필요한 스코프는 없다.
+#
+# metafieldsSet 은 "소유 리소스를 수정할 권한과 동일한 권한"을 요구하는데, 축①이 쓰는 메타필드의
+# 소유자는 Shop 이고 Shopify 에는 Shop 객체용 스코프가 존재하지 않는다. (write_metafields 는 폐지됐고
+# 지금 스코프 목록에 없다 — Dev Dashboard 에 넣으면 "Contains invalid scopes" 로 거부된다.)
+# 따라서 샵 메타필드는 별도 스코프 없이 읽고 쓸 수 있다.
+#
+# 이 튜플이 비어 있으므로 missing_scopes 는 항상 [] 이고 주입은 스코프를 이유로 막히지 않는다.
+# 나중에 상품·컬렉션처럼 스코프가 실재하는 리소스를 건드리게 되면 그때 여기에 추가한다.
+REQUIRED_SCOPES: tuple[str, ...] = ()
 RECOMMENDED_SCOPES: tuple[str, ...] = ("read_products",)  # 연결 확인 + 축②(ListPilot)
 
 

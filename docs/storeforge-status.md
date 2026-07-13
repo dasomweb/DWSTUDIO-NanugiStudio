@@ -6,37 +6,51 @@
 
 ---
 
+## ⚠️ 이전 판(2026-07-13 오전)의 오류 — 같은 함정에 빠지지 말 것
+
+이 문서는 원래 "`write_metafields` 스코프가 없어 주입이 막혀 있으니, 관리자 → 앱 개발에서
+커스텀 앱을 만들고 `shpat_…` 토큰을 발급받으라"고 적혀 있었다. **두 군데가 틀렸다.**
+
+1. **레거시 커스텀 앱은 2026-01-01 부터 신규 생성이 불가능하다.** (`THEME-DEPLOY-WIKI.md` §1 에 이미
+   적혀 있던 사실인데 놓쳤다.) 지금은 Dev Dashboard 에서 앱을 만들고 **버전에 스코프를 넣어 Release** 한다.
+2. **`write_metafields` 스코프는 존재하지 않는다.** 폐지돼서 스코프 목록에 없고, 입력하면
+   "Contains invalid scopes" 로 거부당한다.
+
+**진짜 사실**: `metafieldsSet` 은 "소유 리소스를 수정할 권한과 동일한 권한"을 요구하는데, 축①이 쓰는
+메타필드의 소유자는 **Shop** 이고 Shopify 에는 **Shop 객체용 스코프가 아예 없다.**
+→ **샵 메타필드는 별도 스코프 없이 쓸 수 있다.** 주입을 막고 있던 것은 Shopify 가 아니라
+`models.REQUIRED_SCOPES = ("write_metafields",)` 라는 **우리 코드의 가드**였다. 지금은 제거됐다.
+
+`write_products` 를 넣어 우회하려 하지 말 것 — 필요 없는 상품 쓰기 권한을 앱에 주는 셈이다.
+
+---
+
 ## 🔴 다음 세션에서 바로 할 것
 
-### 1. StoreForge 전용 Shopify 앱 만들기 (사용자 액션)
+### 1. 브랜드 주입 실행 + 검증
 
-나누기 스토어에 연동은 됐지만 **`write_metafields` 스코프가 없어 브랜드 주입이 막혀 있다.**
+가드가 제거됐으므로 **기존 자격증명 그대로 주입 버튼이 열려 있다.** 나누기 브랜드를 AI 로 해석 →
+주입 → `shop.metafields.storeforge.brand` 값 확인 → 테마에서 색이 바뀌는지 눈으로 확인.
 
-기존 앱(`Nanugi Theme Push`)은 **dev dashboard 로 관리되는 앱**이라 스코프를 체크박스로 못 바꾼다 —
-`shopify.app.toml` + `shopify app deploy` 로 새 앱 버전을 배포해야 한다.
-그런데 이 앱은 **GitHub Actions 테마 배포의 생명줄**이라 건드리면 배포가 깨질 수 있다.
+여기서 403 이 나면 그때는 정말로 Shopify 가 뭔가를 요구한다는 뜻이니 방향을 다시 잡는다.
 
-**→ 그래서 StoreForge 전용 커스텀 앱을 따로 만든다. (테마 앱은 그대로 둔다)**
+### 2. (선택) StoreForge 전용 앱으로 자격증명 교체
+
+주입 자체는 기존 테마 앱 자격증명으로도 되지만, **최소권한 분리**를 위해 전용 앱을 쓰는 게 낫다.
+테마 배포용 `Nanugi Theme Push` 앱은 **GitHub Actions 배포의 생명줄이므로 건드리지 않는다.**
+
+파트너 계정에 `StoreForge` 앱(App ID 397096878081)을 이미 만들어 뒀고,
+**Custom distribution → nanugi.myshopify.com 설치까지 완료**된 상태다.
 
 ```
-1. https://admin.shopify.com/store/nanugi/settings/apps/development
-   ⚠️ dev.shopify.com 이 아니라 admin.shopify.com 이다 (다른 화면)
-2. 앱 만들기 → 이름 "StoreForge"
-3. Admin API 통합 구성 → 스코프:
-     ✅ write_metafields   (필수 — 브랜드 주입)
-     ✅ read_products      (권장 — 연결 확인 + 축②)
-4. 저장 → 앱 설치
-5. Admin API 액세스 토큰 공개 → shpat_… 복사 (한 번만 보인다)
+Dev Dashboard(dev.shopify.com) 또는 Partners → StoreForge
+  → 버전 Configuration → Admin API 스코프: read_products 만 (권장. 필수 스코프는 없다)
+  → Release → Custom distribution → 설치 링크로 스토어에 설치
+  → Settings → Client ID / Client secret 복사
+관리자 페이지 → 나누기 스튜디오 → 자격증명 교체 → client_credentials 방식 → 입력
 ```
 
-**왜 앱을 분리하나**: 테마 배포용 앱과 브랜드 주입용 앱이 분리되면 하나가 망가져도 다른 하나가 안 죽고,
-각자 최소 스코프만 갖는다. 기획안 §6 의 "커스텀 앱 우선" 전략과도 맞는다.
-
-### 2. StoreForge 에서 자격증명 교체
-
-관리자 페이지 → 나누기 스튜디오 → **자격증명 교체** → **액세스 토큰** 방식 → `shpat_…` 붙여넣기 → 저장
-
-→ 연결 테스트가 자동으로 돌고, 스코프에 `✓ write_metafields` 가 뜨면 **주입 버튼이 활성화**된다.
+스코프를 바꾸면 **새 버전 Release + 앱 재설치**를 해야 실제로 반영된다.
 
 ### 3. 그 다음 (같은 세션에서 이어서)
 
@@ -73,10 +87,11 @@ railway up ./web --path-as-root --service web --ci
 
 | 스토어 | 연결 | 스코프 |
 |---|---|---|
-| 나누기 스튜디오 (`nanugi.myshopify.com`) | ✅ 연결됨 | `read_themes`, `write_themes` — **`write_metafields` 없음 → 주입 차단** |
+| 나누기 스튜디오 (`nanugi.myshopify.com`) | ✅ 연결됨 | `read_themes`, `write_themes` — **주입에 필요한 스코프는 없으므로 이대로 주입 가능** |
 
 인증은 `client_credentials` (기존 `Nanugi Theme Push` 앱의 Client ID/Secret 재사용).
-전용 앱을 만들면 `token` 방식으로 교체할 예정.
+전용 `StoreForge` 앱을 만들어 설치까지 해뒀으므로, 최소권한 분리를 위해 그쪽 Client ID/Secret 으로
+교체하는 것을 권한다 (방식은 그대로 `client_credentials` — `shpat_…` 토큰은 필요 없다).
 
 ---
 
@@ -143,7 +158,8 @@ railway up ./web --path-as-root --service web --ci
 
 ## 남은 과제
 
-- [ ] StoreForge 전용 앱 + `write_metafields` → **실제 브랜드 주입** (다음 세션 첫 번째)
+- [ ] **실제 브랜드 주입 + 검증** (다음 세션 첫 번째. 스코프 가드는 제거됨 — 바로 누르면 된다)
+- [ ] StoreForge 전용 앱 자격증명으로 교체 (최소권한 분리. 주입 성공 여부와 무관하게 해두면 좋다)
 - [ ] 홈 레이아웃 프리셋 5~8종 (기획안 §4.4)
 - [ ] 폰트 `.woff2` 파일을 테마 `assets/` 에 업로드 (Pretendard, Noto Sans KR, Gmarket Sans, Bebas Neue, Oswald, Roboto, Inter, Playfair Display)
 - [ ] 테마 브랜치 PR → 라이브 반영

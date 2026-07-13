@@ -98,9 +98,8 @@ export default function CredentialsFields({
 
       <div className="note" style={{ marginBottom: 14 }}>
         모든 비밀값은 <strong>Fernet 으로 암호화되어 저장</strong>되며, 이후 어떤 응답에도
-        실리지 않습니다. 필요한 스코프:{" "}
-        <span className="mono">write_metafields</span> (필수),{" "}
-        <span className="mono">read_products</span> (권장)
+        실리지 않습니다. 브랜드 주입은 <strong>샵 메타필드</strong>에 쓰므로 별도 스코프가
+        필요하지 않습니다. <span className="mono">read_products</span> 는 권장(연결 확인 + 축②).
       </div>
     </>
   );

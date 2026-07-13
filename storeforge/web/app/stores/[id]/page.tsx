@@ -384,10 +384,9 @@ export default function StoreDetailPage() {
 
         {store.missing_scopes.length > 0 && (
           <div className="err" style={{ marginTop: 12, marginBottom: 0 }}>
-            <strong>{store.missing_scopes.join(", ")}</strong> 스코프가 없어 브랜드 주입이
-            불가능합니다. Shopify 관리자 →{" "}
-            <span className="mono">설정 → 앱 및 판매 채널 → 앱 개발</span> 에서 해당 앱의 Admin
-            API 스코프에 추가하고, <strong>앱을 재설치</strong>한 뒤 연결 테스트를 다시 하세요.
+            <strong>{store.missing_scopes.join(", ")}</strong> 스코프가 없습니다. Dev Dashboard 에서
+            해당 앱의 Admin API 스코프에 추가해 <strong>새 버전을 Release</strong> 하고,{" "}
+            <strong>앱을 재설치</strong>한 뒤 연결 테스트를 다시 하세요.
           </div>
         )}
 

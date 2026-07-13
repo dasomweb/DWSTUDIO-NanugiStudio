@@ -111,7 +111,8 @@ class ShopifyClient:
             raise ShopifyError("인증 실패 — Admin API 토큰이 잘못됐거나 만료됐습니다.")
         if resp.status_code == 403:
             raise ShopifyError(
-                "권한 부족 — 커스텀 앱에 write_metafields / read_products 스코프가 있는지 확인하세요."
+                "권한 부족 — 샵 메타필드 주입에는 스코프가 필요 없으므로, 이 오류가 났다면 "
+                "앱이 이 스토어에 설치되어 있는지부터 확인하세요."
             )
         if resp.status_code == 404:
             raise ShopifyError(
@@ -139,9 +140,10 @@ class ShopifyClient:
         )
 
     async def access_scopes(self) -> list[str]:
-        """이 앱에 실제로 부여된 스코프. write_metafields 가 없으면 주입이 실패한다.
+        """이 앱에 실제로 부여된 스코프. 화면에 표시해 연동 상태를 눈으로 확인하는 용도다.
 
-        주입을 시도해서 403 을 받고 나서야 아는 것보다, 연결 테스트 시점에 알려주는 게 낫다.
+        축① 주입 자체는 스코프를 요구하지 않는다 (models.REQUIRED_SCOPES 주석 참고).
+        스코프가 실재하는 리소스를 건드리는 축② 부터 이 값이 판단 근거가 된다.
         """
         data = await self.graphql(
             "{ currentAppInstallation { accessScopes { handle } } }"
