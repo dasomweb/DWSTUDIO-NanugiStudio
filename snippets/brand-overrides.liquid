@@ -1,0 +1,81 @@
+{%- comment -%}
+  StoreForge — 브랜드 오버라이드
+
+  shop.metafields.storeforge.brand (json) 를 읽어 테마의 CSS 커스텀 프로퍼티를 덮어쓴다.
+  'color-schemes' 스니펫 직후에 렌더되어야 캐스케이드상 우선한다 (layout/theme.liquid).
+
+  metafield 가 없으면 아무것도 출력하지 않는다 → 테마는 settings_data.json 기본값으로 동작.
+  즉 이 스니펫은 순수 가산(additive)이며, 미설치 스토어에 영향이 없다.
+
+  설계 원칙: Liquid 는 색 연산을 하지 않는다.
+  StoreForge 파생 엔진이 계산을 끝낸 CSS 변수 맵을 그대로 출력만 한다.
+  → 변수를 추가·변경해도 이 스니펫은 수정할 필요가 없다.
+
+  기대 구조:
+    {
+      "v": 1,
+      "root": { "--font-body--family": "Pretendard, sans-serif", ... },
+      "schemes": [
+        { "id": "scheme-1", "css": { "--color-background": "#faf8f5", ... } },
+        ...
+      ],
+      "font_faces": [
+        { "family": "Pretendard", "weight": 400, "style": "normal", "asset": "pretendard-400.woff2" },
+        ...
+      ]
+    }
+{%- endcomment -%}
+
+{%- assign brand = shop.metafields.storeforge.brand.value -%}
+
+{%- if brand != blank and brand.v != blank -%}
+  {%- style -%}
+    {%- comment -%} 번들 폰트: assets/ 에 업로드된 woff2 를 @font-face 로 등록 {%- endcomment -%}
+    {%- for face in brand.font_faces -%}
+      {%- assign face_asset = face.asset | strip -%}
+      {%- if face_asset != blank -%}
+        @font-face {
+          font-family: "{{ face.family | strip | replace: '"', '' | replace: ';', '' | replace: '}', '' }}";
+          font-weight: {{ face.weight | default: 400 | plus: 0 }};
+          font-style: {% if face.style == 'italic' %}italic{% else %}normal{% endif %};
+          font-display: swap;
+          src: url({{ face_asset | asset_url }}) format("woff2");
+        }
+      {%- endif -%}
+    {%- endfor -%}
+
+    {%- comment -%} 전역 변수: 폰트 패밀리/웨이트, 레이아웃 값 등 {%- endcomment -%}
+    {%- if brand.root != blank -%}
+      :root {
+        {%- for pair in brand.root -%}
+          {%- assign prop = pair[0] | strip -%}
+          {%- assign val = pair[1] | strip | replace: '}', '' | replace: '{', '' | replace: ';', '' -%}
+          {%- if prop contains '--' and val != blank -%}
+            {{ prop }}: {{ val }};
+          {%- endif -%}
+        {%- endfor -%}
+      }
+    {%- endif -%}
+
+    {%- comment -%}
+      컬러 스킴: 테마의 .color-scheme-N 클래스를 그대로 덮어쓴다.
+      color-schemes.liquid 가 먼저 선언한 값을 동일 특이도로 나중에 재선언 → 오버라이드 성립.
+      첫 스킴은 :root 에도 적용 (테마 원본과 동일한 규칙).
+    {%- endcomment -%}
+    {%- for scheme in brand.schemes -%}
+      {%- assign scheme_id = scheme.id | strip -%}
+      {%- if scheme_id != blank and scheme.css != blank -%}
+        {% if forloop.first %}:root,{% endif %}
+        .color-{{ scheme_id }} {
+          {%- for pair in scheme.css -%}
+            {%- assign prop = pair[0] | strip -%}
+            {%- assign val = pair[1] | strip | replace: '}', '' | replace: '{', '' | replace: ';', '' -%}
+            {%- if prop contains '--' and val != blank -%}
+              {{ prop }}: {{ val }};
+            {%- endif -%}
+          {%- endfor -%}
+        }
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endstyle -%}
+{%- endif -%}

@@ -35,6 +35,8 @@
     {%- render 'scripts' -%}
     {%- render 'theme-styles-variables' -%}
     {%- render 'color-schemes' -%}
+    {%- comment -%} StoreForge: 반드시 color-schemes 뒤여야 오버라이드가 성립한다 {%- endcomment -%}
+    {%- render 'brand-overrides' -%}
 
     {% if request.design_mode %}
       {%- render 'theme-editor' -%}
@@ -43,7 +45,10 @@
     {{ content_for_header }}
   </head>
 
-  <body class="page-width-{{ settings.page_width }} card-hover-effect-{{ settings.card_hover_effect }}">
+  {%- comment -%} StoreForge: 페이지 폭은 CSS 변수가 아닌 body 클래스라 metafield 로 덮을 수 없다. 여기서 우선순위를 준다. {%- endcomment -%}
+  {%- assign sf_brand = shop.metafields.storeforge.brand.value -%}
+  {%- assign sf_page_width = sf_brand.layout.page_width | default: settings.page_width -%}
+  <body class="page-width-{{ sf_page_width }} card-hover-effect-{{ settings.card_hover_effect }}">
     {% render 'skip-to-content-link', href: '#MainContent', text: 'accessibility.skip_to_text' %}
     <div id="header-group">
       {% sections 'header-group' %}
