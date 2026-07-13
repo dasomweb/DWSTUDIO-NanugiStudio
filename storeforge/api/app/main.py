@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from .bootstrap import bootstrap_superadmin
 from .config import get_settings
 from .db import init_db
 from .routers import auth, onboarding, stores
@@ -18,6 +19,7 @@ from .routers import auth, onboarding, stores
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    bootstrap_superadmin()  # 사용자가 없을 때만 슈퍼어드민 1명 생성
     yield
 
 
