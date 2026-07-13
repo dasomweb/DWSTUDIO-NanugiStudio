@@ -33,6 +33,26 @@ class RunStatus(StrEnum):
     failed = "failed"
 
 
+class AuthType(StrEnum):
+    """스토어 자격증명 방식.
+
+    client_credentials — 앱의 client_id/secret 으로 요청 시점마다 짧은 수명의 토큰을 발급받는다.
+                         나누기 스토어의 기존 테마 배포 워크플로가 쓰는 방식이며, 영구 토큰을
+                         DB 에 들고 있지 않으므로 유출 리스크가 낮다. 권장.
+    token              — 커스텀 앱 설치 시 나오는 영구 Admin API 토큰(shpat_…)을 그대로 저장.
+                         client_credentials 를 못 쓰는 앱을 위한 대안.
+    """
+
+    client_credentials = "client_credentials"
+    token = "token"
+
+
+# 축① 이 동작하려면 반드시 있어야 하는 스코프.
+# 화면에서 부여 여부를 체크해 보여준다.
+REQUIRED_SCOPES: tuple[str, ...] = ("write_metafields",)
+RECOMMENDED_SCOPES: tuple[str, ...] = ("read_products",)  # 연결 확인 + 축②(ListPilot)
+
+
 class User(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     email: str = Field(unique=True, index=True)
@@ -44,17 +64,24 @@ class User(SQLModel, table=True):
 
 
 class Store(SQLModel, table=True):
-    """연동된 Shopify 스토어 하나.
+    """연동된 Shopify 스토어 하나 = 프로젝트 하나.
 
-    access_token 은 Fernet 으로 암호화해 저장한다 (app/security.py).
-    Phase 1 은 커스텀 앱이므로 OAuth 없이 Admin API 토큰(shpat_…)을 직접 받는다.
-    Phase 3 퍼블릭 전환 시 이 필드를 OAuth 토큰으로 교체하면 나머지는 그대로 쓸 수 있다.
+    여러 스토어를 동시에 관리하므로 자격증명은 스토어마다 따로 갖는다.
+    모든 비밀값은 Fernet 으로 암호화해 저장하며, 어떤 API 응답에도 실리지 않는다.
     """
 
     id: int | None = Field(default=None, primary_key=True)
     name: str
     shop_domain: str = Field(unique=True, index=True)  # nanugi.myshopify.com
-    encrypted_token: str
+
+    auth_type: AuthType = AuthType.client_credentials
+
+    # client_credentials 방식
+    encrypted_client_id: str | None = None
+    encrypted_client_secret: str | None = None
+
+    # token 방식 (shpat_…)
+    encrypted_token: str | None = None
 
     # 연결 테스트로 채워지는 값 — 연동이 살아있는지 보여주는 근거
     connected: bool = False
@@ -62,9 +89,20 @@ class Store(SQLModel, table=True):
     last_error: str | None = None
     shop_name: str | None = None
     shop_plan: str | None = None
+    granted_scopes: str | None = None  # 콤마 구분. 화면에서 필수 스코프 충족 여부를 보여준다.
 
     created_by_id: int | None = Field(default=None, foreign_key="user.id")
     created_at: datetime = Field(default_factory=utcnow)
+
+    @property
+    def scope_list(self) -> list[str]:
+        return [s for s in (self.granted_scopes or "").split(",") if s]
+
+    @property
+    def missing_scopes(self) -> list[str]:
+        if not self.granted_scopes:
+            return []  # 아직 확인 전 — '누락'이라고 단정하지 않는다
+        return [s for s in REQUIRED_SCOPES if s not in self.scope_list]
 
 
 class StoreMember(SQLModel, table=True):

@@ -21,8 +21,8 @@ from ..engine import fonts
 from ..engine.brand import BrandInput, build_payload, build_report
 from ..llm import BrandInterpretationError, interpret
 from ..models import OnboardingRun, RunStatus, Store, User
-from ..security import decrypt_token
-from ..shopify import ShopifyClient, ShopifyError
+from ..routers.stores import client_for
+from ..shopify import ShopifyError
 
 router = APIRouter(tags=["onboarding"])
 
@@ -98,8 +98,8 @@ def preview(brand: BrandInput, _: User = Depends(current_user)) -> PreviewOut:
 @router.get("/stores/{store_id}/brand")
 async def current_brand(store: Store = Depends(get_store)) -> dict:
     """스토어에 실제로 들어가 있는 값을 읽는다."""
-    client = ShopifyClient(store.shop_domain, decrypt_token(store.encrypted_token))
     try:
+        client = await client_for(store)
         existing = await client.get_brand_metafield()
     except (ShopifyError, RuntimeError) as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
@@ -117,6 +117,15 @@ async def apply_brand(
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             "스토어 연결이 확인되지 않았습니다. 먼저 연결 테스트를 통과시키세요.",
+        )
+
+    # 스코프가 없으면 어차피 Shopify 가 403 을 준다. 그 전에 이유를 분명히 말해준다.
+    if store.missing_scopes:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Shopify 앱에 필수 스코프가 없습니다: "
+            + ", ".join(store.missing_scopes)
+            + " — Shopify 관리자에서 스코프를 추가하고 앱을 재설치한 뒤 연결 테스트를 다시 하세요.",
         )
 
     payload = build_payload(body.brand)
@@ -141,8 +150,9 @@ async def apply_brand(
     session.commit()
     session.refresh(run)
 
-    client = ShopifyClient(store.shop_domain, decrypt_token(store.encrypted_token))
     try:
+        client = await client_for(store)
+
         if not body.force:
             existing = await client.get_brand_metafield()
             if existing is not None:

@@ -18,15 +18,31 @@ export type User = {
   is_active: boolean;
 };
 
+export type AuthType = "client_credentials" | "token";
+
 export type Store = {
   id: number;
   name: string;
   shop_domain: string;
+  auth_type: AuthType;
   connected: boolean;
   shop_name: string | null;
   shop_plan: string | null;
   last_checked_at: string | null;
   last_error: string | null;
+  granted_scopes: string[];
+  missing_scopes: string[];
+  required_scopes: string[];
+  recommended_scopes: string[];
+  has_credentials: boolean;
+};
+
+/** 자격증명. auth_type 에 따라 필요한 필드가 다르다. 비밀값은 응답에 절대 실리지 않는다. */
+export type Credentials = {
+  auth_type: AuthType;
+  client_id?: string;
+  client_secret?: string;
+  access_token?: string;
 };
 
 export type Run = {
@@ -162,13 +178,13 @@ export const api = {
     request<void>(`/auth/users/${id}`, { method: "DELETE" }),
 
   listStores: () => request<Store[]>("/stores"),
-  createStore: (body: { name: string; shop_domain: string; access_token: string }) =>
+  createStore: (body: { name: string; shop_domain: string } & Credentials) =>
     request<Store>("/stores", { method: "POST", body: JSON.stringify(body) }),
   testStore: (id: number) => request<Store>(`/stores/${id}/test`, { method: "POST" }),
-  rotateToken: (id: number, access_token: string) =>
-    request<Store>(`/stores/${id}/token`, {
+  updateCredentials: (id: number, creds: Credentials) =>
+    request<Store>(`/stores/${id}/credentials`, {
       method: "PUT",
-      body: JSON.stringify({ access_token }),
+      body: JSON.stringify(creds),
     }),
   deleteStore: (id: number) => request<void>(`/stores/${id}`, { method: "DELETE" }),
   listMembers: (id: number) => request<User[]>(`/stores/${id}/members`),

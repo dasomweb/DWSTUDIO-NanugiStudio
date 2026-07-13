@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Shell from "@/components/Shell";
+import CredentialsFields from "@/components/CredentialsFields";
 import {
   api,
   ApiError,
   type BrandInput,
+  type Credentials,
   type Font,
   type Preview,
   type Run,
@@ -113,6 +115,10 @@ export default function StoreDetailPage() {
   const [rationale, setRationale] = useState<string | null>(null);
   const [thinking, setThinking] = useState(false);
 
+  // 자격증명 교체
+  const [editingCreds, setEditingCreds] = useState(false);
+  const [creds, setCreds] = useState<Credentials>({ auth_type: "client_credentials" });
+
   const load = useCallback(async () => {
     try {
       const [stores, f, r] = await Promise.all([
@@ -167,6 +173,33 @@ export default function StoreDetailPage() {
     });
     return m;
   }, [preview]);
+
+  async function testConnection() {
+    setError(null);
+    setOk(null);
+    try {
+      setStore(await api.testStore(storeId));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    }
+  }
+
+  async function saveCredentials(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await api.updateCredentials(storeId, creds);
+      setStore(updated);
+      setEditingCreds(false);
+      setCreds({ auth_type: "client_credentials" });
+      setOk("자격증명을 교체하고 연결 테스트를 실행했습니다.");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function runInterpret() {
     setThinking(true);
@@ -271,10 +304,107 @@ export default function StoreDetailPage() {
       )}
       {!store.connected && (
         <div className="err">
-          연결이 확인되지 않았습니다. 스토어 목록에서 연결 테스트를 통과시켜야 주입할 수 있습니다.
+          연결이 확인되지 않았습니다. 자격증명을 확인하고 연결 테스트를 통과시켜야 주입할 수
+          있습니다.
           {store.last_error ? ` — ${store.last_error}` : ""}
         </div>
       )}
+
+      <div className="card">
+        <div className="row" style={{ justifyContent: "space-between", marginBottom: 12 }}>
+          <h2 style={{ margin: 0 }}>연동 · 스코프</h2>
+          <div className="row">
+            <button className="ghost" onClick={testConnection}>
+              연결 테스트
+            </button>
+            {!editingCreds && (
+              <button className="ghost" onClick={() => setEditingCreds(true)}>
+                자격증명 교체
+              </button>
+            )}
+          </div>
+        </div>
+
+        <table style={{ marginBottom: editingCreds ? 16 : 0 }}>
+          <tbody>
+            <tr>
+              <th style={{ width: 160 }}>인증 방식</th>
+              <td>
+                {store.auth_type === "client_credentials"
+                  ? "Client ID / Secret (토큰 자동 발급)"
+                  : "영구 액세스 토큰"}
+              </td>
+            </tr>
+            <tr>
+              <th>스토어</th>
+              <td>
+                {store.shop_name ?? "—"}{" "}
+                {store.shop_plan && (
+                  <span style={{ color: "var(--muted)" }}>· {store.shop_plan}</span>
+                )}
+              </td>
+            </tr>
+            <tr>
+              <th>필수 스코프</th>
+              <td>
+                {store.required_scopes.map((s) => {
+                  const has = store.granted_scopes.includes(s);
+                  return (
+                    <span
+                      key={s}
+                      className={`pill ${store.granted_scopes.length === 0 ? "" : has ? "ok" : "bad"}`}
+                      style={{ marginRight: 6 }}
+                    >
+                      {store.granted_scopes.length === 0 ? "?" : has ? "✓" : "✗"}{" "}
+                      <span className="mono">{s}</span>
+                    </span>
+                  );
+                })}
+                {store.recommended_scopes.map((s) => {
+                  const has = store.granted_scopes.includes(s);
+                  return (
+                    <span key={s} className="pill" style={{ marginRight: 6, opacity: 0.75 }}>
+                      {store.granted_scopes.length === 0 ? "?" : has ? "✓" : "—"}{" "}
+                      <span className="mono">{s}</span> (권장)
+                    </span>
+                  );
+                })}
+              </td>
+            </tr>
+            <tr>
+              <th>부여된 스코프</th>
+              <td className="mono" style={{ color: "var(--muted)", fontSize: 12 }}>
+                {store.granted_scopes.length > 0
+                  ? store.granted_scopes.join(", ")
+                  : "아직 확인되지 않았습니다 (연결 테스트를 실행하세요)"}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {store.missing_scopes.length > 0 && (
+          <div className="err" style={{ marginTop: 12, marginBottom: 0 }}>
+            <strong>{store.missing_scopes.join(", ")}</strong> 스코프가 없어 브랜드 주입이
+            불가능합니다. Shopify 관리자 →{" "}
+            <span className="mono">설정 → 앱 및 판매 채널 → 앱 개발</span> 에서 해당 앱의 Admin
+            API 스코프에 추가하고, <strong>앱을 재설치</strong>한 뒤 연결 테스트를 다시 하세요.
+          </div>
+        )}
+
+        {editingCreds && (
+          <form onSubmit={saveCredentials} style={{ borderTop: "1px solid var(--line)", paddingTop: 16 }}>
+            <CredentialsFields value={creds} onChange={setCreds} idPrefix="edit" />
+            <div className="row">
+              <button type="submit" disabled={busy}>
+                {busy ? "확인 중…" : "저장하고 연결 테스트"}
+              </button>
+              <button type="button" className="ghost" onClick={() => setEditingCreds(false)}>
+                취소
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
 
       <div className="card">
         <h2>브랜드 설명 → AI 해석</h2>

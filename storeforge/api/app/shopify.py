@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from dataclasses import dataclass
 
 import httpx
@@ -40,6 +41,48 @@ class ShopInfo:
     name: str
     plan: str
     myshopify_domain: str
+
+
+# client_credentials 로 받은 토큰은 수명이 짧다. 요청마다 새로 받으면 낭비이므로
+# 만료 조금 전까지 재사용한다. (프로세스 메모리 캐시 — 재시작하면 비워진다)
+_token_cache: dict[str, tuple[str, float]] = {}
+_TOKEN_SAFETY_MARGIN = 60.0  # 초. 만료 직전 토큰을 쓰다 401 나는 것을 피한다.
+
+
+async def mint_token(shop_domain: str, client_id: str, client_secret: str) -> str:
+    """앱의 client_id/secret 으로 Admin API 액세스 토큰을 발급받는다.
+
+    기존 테마 배포 워크플로(.github/workflows/deploy-theme.yml)가 쓰는 것과 같은 방식이다.
+    영구 토큰을 DB 에 들고 있지 않아도 되므로 유출 리스크가 낮다.
+    """
+    cached = _token_cache.get(shop_domain)
+    if cached and cached[1] > time.monotonic() + _TOKEN_SAFETY_MARGIN:
+        return cached[0]
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.post(
+            f"https://{shop_domain}/admin/oauth/access_token",
+            data={
+                "grant_type": "client_credentials",
+                "client_id": client_id,
+                "client_secret": client_secret,
+            },
+        )
+
+    if resp.status_code >= 400:
+        raise ShopifyError(
+            "토큰 발급 실패 — Client ID/Secret 이 잘못됐거나 앱이 이 스토어에 설치되어 있지 않습니다. "
+            f"(HTTP {resp.status_code})"
+        )
+
+    body = resp.json()
+    token = body.get("access_token")
+    if not token:
+        raise ShopifyError(f"토큰 발급 응답에 access_token 이 없습니다: {str(body)[:200]}")
+
+    expires_in = float(body.get("expires_in", 3600))
+    _token_cache[shop_domain] = (token, time.monotonic() + expires_in)
+    return token
 
 
 class ShopifyClient:
@@ -94,6 +137,17 @@ class ShopifyClient:
             plan=shop["plan"]["displayName"],
             myshopify_domain=shop["myshopifyDomain"],
         )
+
+    async def access_scopes(self) -> list[str]:
+        """이 앱에 실제로 부여된 스코프. write_metafields 가 없으면 주입이 실패한다.
+
+        주입을 시도해서 403 을 받고 나서야 아는 것보다, 연결 테스트 시점에 알려주는 게 낫다.
+        """
+        data = await self.graphql(
+            "{ currentAppInstallation { accessScopes { handle } } }"
+        )
+        scopes = data["currentAppInstallation"]["accessScopes"]
+        return sorted(s["handle"] for s in scopes)
 
     # --- 축① 주입 ---------------------------------------------------------------
     async def set_brand_metafield(self, payload: dict) -> str:
