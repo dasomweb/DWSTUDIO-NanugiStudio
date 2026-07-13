@@ -15,9 +15,25 @@ DWSTUDIO 의 세 제품을 **Shopify 앱 하나**로 묶어 스토어에 연동�
 | **StoreForge** (축①) | ✅ | 브랜드 해석 → 컬러·폰트 metafield 주입 | **없음** |
 | **ListPilot** (축②) | ✅ | AI 상품 생성 → Shopify 등록 | `write_products`, `write_inventory` |
 | **Pricewave** | ✅ | 할인 코드 시각화 (쿠폰 적용가 미리보기) | `read_discounts` |
-| **ThemePush** | ❌ **제외** | GitHub Actions → 테마 배포 | `write_themes` (보호) |
+| **Theme Push** | ✅ | GitHub Actions → 테마 배포 | `write_themes` (**보호 스코프**) |
 
 스코프는 각 원본 저장소의 `shopify.app.toml` 에서 가져왔다 (`dasomweb/DW-ListPilot`, `dasomweb/pricewave`).
+
+### Theme Push 를 합친 이유 (2026-07-13 결정 — 초안에서 뒤집힘)
+
+처음에는 **제외**했다. `write_themes` 가 보호 스코프라, 앱스토어 공개(Phase 3) 시 exemption
+승인 관문이 되살아나기 때문이다 (기획안 §6.1 이 없애려던 바로 그것).
+
+그런데 **Custom distribution 은 승인 자체가 없다.** 그리고 어차피 스토어마다 앱을 따로 만들어야
+하므로(§2), 사이트별 전용 앱 하나가 테마 배포 + 브랜드 주입 + 상품 등록 + 할인 표시를 모두
+들고 있는 편이 낫다. 앱을 두 개 만들면 클라이언트마다 자격증명이 두 벌씩 생긴다.
+
+**조건**: 나중에 Public 앱으로 전환한다면 `themepush` 모듈을 떼야 한다. 안 그러면 보호 스코프가
+따라 들어가 승인 관문이 부활한다.
+
+StoreForge 서버는 테마 API 를 부르지 않는다 — 이 자격증명을 쓰는 것은 GitHub Actions 다.
+`capabilities.py` 에 모듈로 둔 이유는, 앱을 만들 때 **어떤 스코프를 골라야 하는가**를 이 레지스트리가
+결정하기 때문이다.
 
 ### Pricewave 가 `write_products` 를 쓰지 않는 이유
 
@@ -70,7 +86,28 @@ Shopify 가 처리한다. 그래서 읽기 스코프(`read_discounts`) 하나면
 
 ## 3. 클라이언트 스토어 온보딩 절차
 
-새 클라이언트 스토어를 붙일 때마다 반복한다. 5~10분이면 끝난다.
+새 클라이언트 스토어를 붙일 때마다 반복한다.
+
+### 3.0 앱 설치는 Cloud Cowork 에 요청한다 (권장 경로)
+
+절차를 사람이 외우지 않는다. **StoreForge 관리자 페이지가 요청문을 만들어 준다.**
+
+| 상황 | 어디서 |
+|---|---|
+| **신규 프로젝트** (아직 자격증명이 없다) | 관리자 페이지 → **신규 프로젝트** (`/install`) → 프로젝트명·도메인 입력 → **복사** |
+| 이미 등록된 스토어 (앱 재생성·스코프 변경) | 스토어 상세 → **Dev App 설치 요청문** 카드 → **복사** |
+
+복사한 텍스트를 그대로 Cloud Cowork 에 전달하면 된다. 스토어 도메인·앱 이름·스코프 목록과
+그 스코프가 왜 필요한지까지 채워져 있다.
+
+> **닭과 달걀**: 스토어를 StoreForge 에 등록하려면 Client ID/Secret 이 있어야 하고, 그걸 얻으려면
+> 앱을 먼저 만들어야 한다. 그래서 신규 프로젝트는 `/install` 에서 요청문부터 뽑고, 자격증명을
+> 받은 뒤에 스토어를 등록한다.
+
+요청문의 스코프 목록은 `capabilities.INSTALL_SCOPES`(전 모듈의 합집합)에서 나온다.
+모듈을 추가하면 요청문도 자동으로 따라온다.
+
+아래 3.1~3.2 는 그 요청문이 담고 있는 내용이다 — 직접 할 때 참고한다.
 
 ### 3.1 Dev Dashboard 에서 앱 만들기
 
@@ -83,13 +120,14 @@ Shopify 가 처리한다. 그래서 읽기 스코프(`read_discounts`) 하나면
 
 2. Versions → Create version → Configuration → Admin API integration
    Access scopes:
+     ✅ write_themes      (Theme Push — GitHub Actions 테마 배포)
+     ✅ read_themes
      ✅ write_products    (ListPilot — 상품·변형·컬렉션 등록)
      ✅ read_products
      ✅ write_inventory   (ListPilot — 재고)
      ✅ read_inventory
      ✅ read_discounts    (Pricewave — 활성 할인 조회)
-   ⚠️ write_metafields 는 없는 스코프다. 넣으면 거부당한다.
-   ⚠️ write_themes 는 넣지 않는다 (보호 스코프. ThemePush 는 별도 앱).
+   ⚠️ write_metafields 는 없는 스코프다. 넣으면 "Contains invalid scopes" 로 거부당한다.
    ⚠️ StoreForge(축①)만 쓸 거라면 스코프 없이도 동작한다. 하지만 나중에 다른 모듈을 켤 때
       재설치를 면하려면 처음부터 위 집합을 다 넣어 두는 편이 낫다.
 

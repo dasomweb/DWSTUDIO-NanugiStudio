@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import Shell from "@/components/Shell";
 import CredentialsFields from "@/components/CredentialsFields";
+import InstallRequest from "@/components/InstallRequest";
 import {
   api,
   ApiError,
@@ -457,6 +458,13 @@ export default function StoreDetailPage() {
           </form>
         )}
       </div>
+
+      <InstallRequest
+        projectName={store.name}
+        shopDomain={store.shop_domain}
+        scopes={store.install_scopes}
+        modules={modules}
+      />
 
       <div className="card">
         <h2>브랜드 설명 → AI 해석</h2>

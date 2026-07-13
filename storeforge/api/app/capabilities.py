@@ -39,6 +39,20 @@ MODULES: tuple[Module, ...] = (
         optional_scopes=("read_products",),  # 연결 확인용
     ),
     Module(
+        id="themepush",
+        name="Theme Push",
+        summary="GitHub Actions → 테마 자동 배포 (`shopify theme push`)",
+        # StoreForge 서버는 테마 API 를 부르지 않는다. 이 자격증명을 쓰는 것은 GitHub Actions 다.
+        # 여기 모듈로 둔 이유는 "이 스토어의 앱이 테마 배포 권한까지 들고 있는가"가
+        # 앱 생성 시 골라야 할 스코프를 결정하기 때문이다.
+        #
+        # write_themes 는 **보호 스코프**다. Custom distribution 은 승인이 없으므로 사이트별
+        # 전용 앱에 넣어도 문제가 없다. 다만 나중에 Public 앱(앱스토어)으로 전환한다면
+        # 이 모듈을 떼야 한다 — 안 그러면 exemption 승인 관문이 되살아난다 (기획안 §6.1).
+        required_scopes=("write_themes",),
+        optional_scopes=("read_themes",),
+    ),
+    Module(
         id="listpilot",
         name="ListPilot",
         summary="상품·컬렉션 자동 구축 — AI 상품 생성 → Shopify 등록 (축②)",

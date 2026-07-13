@@ -48,6 +48,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         <div className="brandsub">DASOMWEB · 나누기 테마</div>
 
         {link("/stores", "스토어")}
+        {/* 신규 프로젝트는 자격증명이 없어 스토어를 못 만든다 — 앱 설치 요청문부터 뽑는다 */}
+        {link("/install", "신규 프로젝트")}
         {/* 사용자 관리는 슈퍼어드민 전용 — API 도 403 으로 막지만 메뉴부터 숨긴다 */}
         {user.role === "superadmin" && link("/users", "사용자")}
         {link("/account", "계정")}
