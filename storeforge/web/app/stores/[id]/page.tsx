@@ -108,6 +108,11 @@ export default function StoreDetailPage() {
   const [ok, setOk] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // 축① LLM 단계 — 자연어 → 색 4개 + 폰트 4개
+  const [description, setDescription] = useState("");
+  const [rationale, setRationale] = useState<string | null>(null);
+  const [thinking, setThinking] = useState(false);
+
   const load = useCallback(async () => {
     try {
       const [stores, f, r] = await Promise.all([
@@ -162,6 +167,22 @@ export default function StoreDetailPage() {
     });
     return m;
   }, [preview]);
+
+  async function runInterpret() {
+    setThinking(true);
+    setError(null);
+    setRationale(null);
+    try {
+      const res = await api.interpret(description);
+      // LLM 은 색/폰트만 정한다. 나머지 441개 값은 파생 엔진이 만든다.
+      setBrand(res.brand);
+      setRationale(res.rationale);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setThinking(false);
+    }
+  }
 
   async function apply(force: boolean) {
     setBusy(true);
@@ -254,6 +275,42 @@ export default function StoreDetailPage() {
           {store.last_error ? ` — ${store.last_error}` : ""}
         </div>
       )}
+
+      <div className="card">
+        <h2>브랜드 설명 → AI 해석</h2>
+        <p className="sub" style={{ fontSize: 12, marginBottom: 12 }}>
+          브랜드를 한국어로 설명하면 AI가 색 4개와 폰트 4개를 고릅니다. 고른 값은 아래에서
+          그대로 수정할 수 있습니다.
+        </p>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="예) 20대 여성 타겟 미니멀 패션 브랜드. 크림톤 배경에 절제된 느낌. 한국어 상세페이지 위주."
+          rows={3}
+          style={{
+            width: "100%",
+            background: "var(--bg)",
+            border: "1px solid var(--line)",
+            color: "var(--text)",
+            borderRadius: 8,
+            padding: "9px 10px",
+            font: "inherit",
+            resize: "vertical",
+            marginBottom: 12,
+          }}
+        />
+        <div className="row">
+          <button onClick={runInterpret} disabled={thinking || !description.trim()}>
+            {thinking ? "AI가 브랜드를 해석하는 중…" : "AI로 브랜드 생성"}
+          </button>
+        </div>
+        {rationale && (
+          <div className="note" style={{ marginTop: 12 }}>
+            <strong style={{ color: "var(--text)" }}>AI 근거</strong>
+            <div style={{ marginTop: 4 }}>{rationale}</div>
+          </div>
+        )}
+      </div>
 
       <div className="card">
         <h2>브랜드</h2>

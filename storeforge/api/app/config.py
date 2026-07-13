@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     # Shopify
     shopify_api_version: str = "2025-01"  # 기획안 §8: 버전 고정 + 분기별 changelog 점검
 
+    # 축① 브랜드 해석. 비워두면 SDK 가 ANTHROPIC_API_KEY 등 표준 경로에서 찾는다.
+    anthropic_api_key: str = ""
+
     database_url: str = "sqlite:///./storeforge.db"
     cors_origins: str = "http://localhost:3000"
 

@@ -176,6 +176,11 @@ export const api = {
     request<void>(`/stores/${storeId}/members/${userId}`, { method: "POST" }),
 
   listFonts: () => request<Font[]>("/fonts"),
+  interpret: (description: string) =>
+    request<{ brand: BrandInput; rationale: string; report: Preview["report"] }>(
+      "/interpret",
+      { method: "POST", body: JSON.stringify({ description }) },
+    ),
   preview: (brand: BrandInput) =>
     request<Preview>("/preview", { method: "POST", body: JSON.stringify(brand) }),
   currentBrand: (storeId: number) =>

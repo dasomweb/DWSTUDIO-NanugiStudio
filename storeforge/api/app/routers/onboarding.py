@@ -14,10 +14,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
+from ..config import get_settings
 from ..db import get_session
 from ..deps import current_user, get_store
 from ..engine import fonts
 from ..engine.brand import BrandInput, build_payload, build_report
+from ..llm import BrandInterpretationError, interpret
 from ..models import OnboardingRun, RunStatus, Store, User
 from ..security import decrypt_token
 from ..shopify import ShopifyClient, ShopifyError
@@ -27,6 +29,16 @@ router = APIRouter(tags=["onboarding"])
 
 class PreviewOut(BaseModel):
     payload: dict
+    report: dict
+
+
+class InterpretIn(BaseModel):
+    description: str
+
+
+class InterpretOut(BaseModel):
+    brand: BrandInput
+    rationale: str
     report: dict
 
 
@@ -57,6 +69,24 @@ def list_fonts(_: User = Depends(current_user)) -> list[dict]:
         }
         for f in fonts.REGISTRY.values()
     ]
+
+
+@router.post("/interpret", response_model=InterpretOut)
+def interpret_brand(body: InterpretIn, _: User = Depends(current_user)) -> InterpretOut:
+    """자연어 브랜드 설명 → 색 4개 + 폰트 4개 (축① LLM 단계).
+
+    LLM 은 여기까지만 한다. 315개 CSS 값은 파생 엔진이 만들고 WCAG 도 코드가 보정한다.
+    """
+    if not body.description.strip():
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "브랜드 설명이 비어 있습니다.")
+
+    key = get_settings().anthropic_api_key or None
+    try:
+        brand, rationale = interpret(body.description, api_key=key)
+    except BrandInterpretationError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
+
+    return InterpretOut(brand=brand, rationale=rationale, report=build_report(brand))
 
 
 @router.post("/preview", response_model=PreviewOut)
