@@ -13,6 +13,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from enum import StrEnum
 
+from sqlalchemy import Column, LargeBinary
 from sqlmodel import Field, SQLModel
 
 from .capabilities import DEFAULT_MODULES, missing_scopes_for, normalize, required_scopes_for
@@ -162,3 +163,66 @@ class OnboardingRun(SQLModel, table=True):
 
     started_at: datetime = Field(default_factory=utcnow)
     finished_at: datetime | None = None
+
+
+# --- ListPilot (축②) --------------------------------------------------------------
+#
+# 원본(DW-ListPilot)은 UUID PK + 자체 Store 모델을 썼다. 여기서는 통합 앱의 Store(int PK)에
+# 붙인다. 자격증명이 스토어마다 하나이므로 상품 초안도 스토어에 매인다.
+#
+# 상품은 Shopify 에 올리기 전까지 **여기서만 산다.** AI 추출 결과를 사람이 고친 뒤 등록하는 것이
+# 이 제품의 핵심이라, 초안 상태를 우리 DB 가 들고 있어야 한다.
+
+
+class ListingStatus(StrEnum):
+    draft = "draft"  # 추출됨. 사람이 검수 중
+    pushed = "pushed"  # Shopify 에 등록됨
+    failed = "failed"  # 등록 시도했으나 실패
+
+
+class Listing(SQLModel, table=True):
+    """Shopify 에 올릴 상품 초안 하나."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    store_id: int = Field(foreign_key="store.id", index=True)
+    created_by_id: int | None = Field(default=None, foreign_key="user.id")
+
+    title: str
+    body_html: str = ""
+    vendor: str | None = None
+    product_type: str | None = None
+    tags: str = ""  # 콤마 구분 (Shopify 도 같은 형식으로 받는다)
+
+    # 추출 신뢰도. 낮은 것부터 검수하라고 화면에서 정렬 기준으로 쓴다.
+    confidence: float | None = None
+
+    status: ListingStatus = ListingStatus.draft
+    shopify_product_gid: str | None = None
+    error: str | None = None
+
+    # 변형은 개수가 들쭉날쭉하고 등록 시점에 통째로 넘긴다. 표로 쪼개도 조인만 늘어난다.
+    variants_json: str = "[]"  # [{option_name, option_value, price, sku, barcode, quantity, weight_kg}]
+
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
+    pushed_at: datetime | None = None
+
+
+class ListingImage(SQLModel, table=True):
+    """초안 이미지. 바이트를 그대로 들고 있다가 등록 시점에 Shopify staged upload 로 올린다.
+
+    원본은 Cloudflare R2 에 올리고 URL 만 들고 있었다. 여기서 R2 를 쓰지 않는 이유는
+    이미지의 종착지가 어차피 Shopify 이기 때문이다 — 중간에 우리 버킷을 두면 공개 URL·수명주기·
+    삭제 정합성을 우리가 떠안는다. 초안은 며칠 안에 등록되거나 버려지므로 DB 에 들고 있어도 된다.
+    (초안이 수천 건씩 쌓이기 시작하면 그때 객체 저장소로 옮긴다.)
+    """
+
+    id: int | None = Field(default=None, primary_key=True)
+    listing_id: int = Field(foreign_key="listing.id", index=True)
+
+    position: int = 1
+    alt: str = ""
+    content_type: str = "image/webp"
+    data: bytes = Field(sa_column=Column(LargeBinary))  # WebP 로 변환·리사이즈된 바이트
+
+    created_at: datetime = Field(default_factory=utcnow)

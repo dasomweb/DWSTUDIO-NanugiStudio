@@ -157,7 +157,32 @@ Shopify 가 처리한다. 그래서 읽기 스코프(`read_discounts`) 하나면
 메타필드 형식(`shop.metafields.pricewave.active_discount`)은 원본과 **똑같이 유지**했다 —
 `type` / `value` / `code` / `startsAt` / `endsAt`. 블록과 서버가 이 형식으로 맞물린다.
 
-### ListPilot — 미이식
+### ListPilot — 이식 완료
 
-`dasomweb/DW-ListPilot` (FastAPI 3.1k 줄 + Next.js 프론트). 스택은 같지만 DB 계층(async
-SQLAlchemy + Alembic)과 자체 Store/OAuth 모델이 통합 앱과 겹친다. 별도 작업으로 진행한다.
+| 원본 (`dasomweb/DW-ListPilot`, FastAPI) | 통합 앱 |
+|---|---|
+| `services/gemini.py` (상품 추출·설명) | `engine/listpilot/gemini.py` — **프롬프트 그대로** |
+| `services/tag_engine.py` | `engine/listpilot/tags.py` (순수 로직) |
+| `services/product_type.py` 의 프리셋 | `engine/listpilot/presets.py` |
+| `services/excel_parser.py` · `pdf_parser.py` · `image_pipeline.process_image` | `engine/listpilot/parsers.py` |
+| `services/shopify_client.push_to_shopify` (REST) | **`ShopifyClient.product_set`** (GraphQL) |
+| `services/r2_client.py` (Cloudflare R2) | **`ShopifyClient.stage_upload`** (staged upload) |
+| 자체 Store · `shopify_oauth.py` · `encryption.py` | **버림** — 통합 앱 것을 쓴다 |
+| Next.js 프론트 | `web/app/stores/[id]/listpilot/` (업로드 → 검수 → 등록) |
+
+**세 가지를 의도적으로 바꿨다.**
+
+1. **REST → GraphQL `productSet`.** 원본은 `/admin/api/../products.json` 으로 상품을 올렸는데,
+   상품 REST API 는 폐기 경로다 (공개앱 2025-02 / 커스텀앱 2025-04 마감, 100변형 초과 시 즉시 불가).
+   기획안 §축② 도 `productSet` 을 지시하고 있었다 — **그대로 옮겼다면 죽은 코드를 이식하는 셈이었다.**
+2. **R2 → Shopify staged upload.** 이미지의 종착지는 어차피 Shopify 다. 중간에 우리 버킷을 두면
+   공개 URL·수명주기·삭제 정합성을 우리가 떠안는다. 인프라 의존이 하나 줄었다.
+3. **LLM 은 Gemini 유지.** 축①은 Claude 지만, 도매 인보이스에서 여러 상품을 뽑아내는 이 프롬프트는
+   실전 검증된 자산이라 모델을 갈아끼우면 회귀 위험이 크다. `STOREFORGE_GEMINI_API_KEY` 가 필요하며,
+   없으면 **ListPilot 추출만 503** 이고 다른 모듈은 정상 동작한다.
+
+**추출은 자동, 등록은 수동이다.** AI 가 뽑은 상품을 곧바로 스토어에 밀어 넣지 않는다. 등록도
+`DRAFT` 상태로 올라간다 — 잘못 뽑힌 상품이 라이브로 뜨는 것보다 사람이 한 번 보는 편이 낫다.
+
+가져오지 않은 것: 바코드 카메라 조회, Gemini 이미지 검색(grounding), 태그 사용 이력.
+쓰는 곳이 생기면 그때 붙인다.

@@ -50,6 +50,52 @@ export type Module = {
   optional_scopes: string[];
 };
 
+/** ListPilot — Shopify 에 올리기 전의 상품 초안. */
+export type ListingVariant = {
+  option_name: string;
+  option_value: string;
+  price: number | null;
+  sku: string | null;
+  barcode: string | null;
+  quantity: number;
+  weight_kg: number | null;
+};
+
+export type Listing = {
+  id: number;
+  store_id: number;
+  title: string;
+  body_html: string;
+  vendor: string | null;
+  product_type: string | null;
+  tags: string[];
+  confidence: number | null;
+  status: "draft" | "pushed" | "failed";
+  shopify_product_gid: string | null;
+  error: string | null;
+  variants: ListingVariant[];
+  image_count: number;
+  created_at: string;
+  pushed_at: string | null;
+};
+
+/** Pricewave — 지금 스토어에 걸린 할인. */
+export type PricewaveDiscount = {
+  id: string;
+  code: string;
+  type: "PERCENTAGE" | "FIXED_AMOUNT";
+  value: number;
+  title: string;
+  starts_at: string;
+  ends_at: string | null;
+};
+
+export type PricewaveSync = {
+  active: PricewaveDiscount[];
+  picked: PricewaveDiscount | null;
+  synced_at: string;
+};
+
 /** 자격증명. auth_type 에 따라 필요한 필드가 다르다. 비밀값은 응답에 절대 실리지 않는다. */
 export type Credentials = {
   auth_type: AuthType;
@@ -134,10 +180,15 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = getToken();
+
+  // 파일 업로드(FormData)에는 content-type 을 우리가 정하면 안 된다 —
+  // 브라우저가 multipart boundary 를 붙여야 서버가 파싱할 수 있다.
+  const isFormData = init.body instanceof FormData;
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
-      "content-type": "application/json",
+      ...(isFormData ? {} : { "content-type": "application/json" }),
       ...(token ? { authorization: `Bearer ${token}` } : {}),
       ...(init.headers ?? {}),
     },
@@ -215,6 +266,41 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ enabled_modules }),
     }),
+
+  // ListPilot (축②)
+  listListings: (storeId: number) =>
+    request<Listing[]>(`/listpilot/stores/${storeId}/listings`),
+  extractListings: (storeId: number, file: File, industry: string) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<Listing[]>(
+      `/listpilot/stores/${storeId}/extract?industry=${encodeURIComponent(industry)}`,
+      { method: "POST", body: form }
+    );
+  },
+  updateListing: (storeId: number, id: number, body: Partial<Listing>) =>
+    request<Listing>(`/listpilot/stores/${storeId}/listings/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  deleteListing: (storeId: number, id: number) =>
+    request<void>(`/listpilot/stores/${storeId}/listings/${id}`, { method: "DELETE" }),
+  describeListing: (storeId: number, id: number) =>
+    request<Listing>(`/listpilot/stores/${storeId}/listings/${id}/describe`, {
+      method: "POST",
+    }),
+  pushListing: (storeId: number, id: number) =>
+    request<Listing>(`/listpilot/stores/${storeId}/listings/${id}/push`, {
+      method: "POST",
+    }),
+  listIndustries: () =>
+    request<{ industries: string[]; default: string }>("/listpilot/industries"),
+
+  // Pricewave
+  syncPricewave: (storeId: number) =>
+    request<PricewaveSync>(`/pricewave/stores/${storeId}/sync`, { method: "POST" }),
+  currentPricewave: (storeId: number) =>
+    request<PricewaveSync | null>(`/pricewave/stores/${storeId}`),
   updateCredentials: (id: number, creds: Credentials) =>
     request<Store>(`/stores/${id}/credentials`, {
       method: "PUT",

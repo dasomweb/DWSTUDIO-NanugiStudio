@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import Shell from "@/components/Shell";
 import CredentialsFields from "@/components/CredentialsFields";
 import {
@@ -386,6 +387,14 @@ export default function StoreDetailPage() {
                         <span className="pill bad" style={{ marginLeft: 8 }}>
                           스코프 부족
                         </span>
+                      )}
+                      {on && m.id === "listpilot" && (
+                        <Link
+                          href={`/stores/${storeId}/listpilot`}
+                          style={{ marginLeft: 8 }}
+                        >
+                          열기 →
+                        </Link>
                       )}
                     </label>
                   );

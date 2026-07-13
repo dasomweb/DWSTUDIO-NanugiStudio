@@ -226,6 +226,88 @@ class ShopifyClient:
         """현재 주입된 값을 읽는다. 온보딩 중복 실행을 막는 근거로 쓴다 (기획안 §1.4)."""
         return await self.get_shop_metafield(NAMESPACE, KEY)
 
+    # --- ListPilot: 상품 등록 ------------------------------------------------------
+    #
+    # 원본(DW-ListPilot)은 REST /products.json 을 썼지만 상품 REST API 는 폐기 경로다
+    # (공개앱 2025-02 / 커스텀앱 2025-04 마감). 기획안 §축② 도 productSet 을 지시한다.
+    async def primary_location_gid(self) -> str | None:
+        """재고 수량을 넣으려면 로케이션이 필요하다. 없으면 재고 없이 등록한다."""
+        data = await self.graphql("{ locations(first: 1) { nodes { id } } }")
+        nodes = data["locations"]["nodes"]
+        return nodes[0]["id"] if nodes else None
+
+    async def stage_upload(self, filename: str, content_type: str, data: bytes) -> str:
+        """이미지 바이트를 Shopify 에 올리고 resourceUrl 을 받는다.
+
+        R2 같은 중간 저장소가 필요 없다 — Shopify 가 직접 받아준다.
+        """
+        mutation = """
+        mutation StageUpload($input: [StagedUploadInput!]!) {
+          stagedUploadsCreate(input: $input) {
+            stagedTargets {
+              url
+              resourceUrl
+              parameters { name value }
+            }
+            userErrors { field message }
+          }
+        }
+        """
+        variables = {
+            "input": [
+                {
+                    "filename": filename,
+                    "mimeType": content_type,
+                    "resource": "IMAGE",
+                    "httpMethod": "POST",
+                }
+            ]
+        }
+        result = (await self.graphql(mutation, variables))["stagedUploadsCreate"]
+        if result["userErrors"]:
+            raise ShopifyError(
+                "stagedUploadsCreate 실패 — "
+                + "; ".join(e["message"] for e in result["userErrors"])
+            )
+
+        target = result["stagedTargets"][0]
+        form = {p["name"]: p["value"] for p in target["parameters"]}
+
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.post(
+                target["url"],
+                data=form,
+                files={"file": (filename, data, content_type)},
+            )
+        if resp.status_code >= 400:
+            raise ShopifyError(f"이미지 업로드 실패 (HTTP {resp.status_code})")
+
+        return target["resourceUrl"]
+
+    async def product_set(self, product_input: dict) -> str:
+        """상품을 생성/갱신한다. 반환: product GID.
+
+        productSet 은 옵션·변형을 한 번에 넘길 수 있다 (2024-04 이후 productCreate 로는
+        변형을 직접 만들 수 없다).
+        """
+        mutation = """
+        mutation ProductSet($input: ProductSetInput!) {
+          productSet(synchronous: true, input: $input) {
+            product { id handle }
+            userErrors { field message code }
+          }
+        }
+        """
+        result = (await self.graphql(mutation, {"input": product_input}))["productSet"]
+
+        if result["userErrors"]:
+            msgs = "; ".join(
+                f"{'.'.join(e.get('field') or [])}: {e['message']}" for e in result["userErrors"]
+            )
+            raise ShopifyError(f"productSet 실패 — {msgs}")
+
+        return result["product"]["id"]
+
     # --- Pricewave: 할인 조회 -----------------------------------------------------
     async def active_discounts(self) -> list[dict]:
         """코드 할인 중 지금 살아 있는 것들 (원본 노드 그대로 — 해석은 engine.pricewave 가 한다).
