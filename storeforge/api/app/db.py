@@ -51,6 +51,9 @@ def _migrate() -> None:
         "ALTER TABLE store ADD COLUMN IF NOT EXISTS granted_scopes VARCHAR",
         # token 방식은 이제 선택이다 (client_credentials 를 쓰면 비어 있다)
         "ALTER TABLE store ALTER COLUMN encrypted_token DROP NOT NULL",
+        # 통합 앱 — 스토어마다 켠 모듈이 다르다 (capabilities.py)
+        "ALTER TABLE store ADD COLUMN IF NOT EXISTS enabled_modules VARCHAR DEFAULT 'storeforge'",
+        "UPDATE store SET enabled_modules = 'storeforge' WHERE enabled_modules IS NULL",
     ]
 
     with engine.begin() as conn:

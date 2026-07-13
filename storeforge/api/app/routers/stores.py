@@ -15,11 +15,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, model_validator
 from sqlmodel import Session, select
 
+from ..capabilities import INSTALL_SCOPES, MODULES, normalize
 from ..db import get_session
 from ..deps import current_user, get_store, require_roles, visible_stores
 from ..models import (
-    RECOMMENDED_SCOPES,
-    REQUIRED_SCOPES,
     AuthType,
     OnboardingRun,
     Role,
@@ -45,9 +44,12 @@ class StoreOut(BaseModel):
     last_error: str | None
 
     granted_scopes: list[str]
-    missing_scopes: list[str]  # 필수인데 없는 것 — 이게 비어야 주입이 가능하다
-    required_scopes: list[str]
-    recommended_scopes: list[str]
+    missing_scopes: list[str]  # 켠 모듈이 요구하는데 없는 것 — 이게 비어야 실행이 가능하다
+    required_scopes: list[str]  # 켠 모듈이 요구하는 것 (모듈에 따라 달라진다)
+    install_scopes: list[str]  # 앱을 만들 때 골라야 할 전체 집합
+
+    enabled_modules: list[str]
+    blocked_modules: list[str]  # 켰지만 스코프가 모자라 지금 못 쓰는 모듈
 
     # 비밀값 자체는 절대 내보내지 않는다. '설정되어 있는가'만 알려준다.
     has_credentials: bool
@@ -75,6 +77,19 @@ class StoreCredentialsIn(BaseModel):
 class StoreCreateIn(StoreCredentialsIn):
     name: str
     shop_domain: str
+    enabled_modules: list[str] | None = None
+
+
+class ModuleOut(BaseModel):
+    id: str
+    name: str
+    summary: str
+    required_scopes: list[str]
+    optional_scopes: list[str]
+
+
+class ModulesIn(BaseModel):
+    enabled_modules: list[str]
 
 
 def _out(store: Store) -> StoreOut:
@@ -90,8 +105,10 @@ def _out(store: Store) -> StoreOut:
         last_error=store.last_error,
         granted_scopes=store.scope_list,
         missing_scopes=store.missing_scopes,
-        required_scopes=list(REQUIRED_SCOPES),
-        recommended_scopes=list(RECOMMENDED_SCOPES),
+        required_scopes=store.required_scopes,
+        install_scopes=list(INSTALL_SCOPES),
+        enabled_modules=store.module_list,
+        blocked_modules=store.blocked_modules(),
         has_credentials=bool(
             store.encrypted_token or (store.encrypted_client_id and store.encrypted_client_secret)
         ),
@@ -166,6 +183,21 @@ def list_stores(
     return [_out(s) for s in visible_stores(session, user)]
 
 
+@router.get("/modules", response_model=list[ModuleOut])
+def list_modules(_: User = Depends(current_user)) -> list[ModuleOut]:
+    """통합 앱이 제공하는 모듈 카탈로그. 앱을 만들 때 골라야 할 스코프의 근거이기도 하다."""
+    return [
+        ModuleOut(
+            id=m.id,
+            name=m.name,
+            summary=m.summary,
+            required_scopes=list(m.required_scopes),
+            optional_scopes=list(m.optional_scopes),
+        )
+        for m in MODULES
+    ]
+
+
 @router.post("", response_model=StoreOut, status_code=201)
 async def create_store(
     body: StoreCreateIn,
@@ -180,7 +212,12 @@ async def create_store(
     if session.exec(select(Store).where(Store.shop_domain == domain)).first():
         raise HTTPException(status.HTTP_409_CONFLICT, f"{domain} 은 이미 연동되어 있습니다.")
 
-    store = Store(name=body.name, shop_domain=domain, created_by_id=user.id)
+    store = Store(
+        name=body.name,
+        shop_domain=domain,
+        created_by_id=user.id,
+        enabled_modules=",".join(normalize(body.enabled_modules)),
+    )
     _apply_credentials(store, body)
 
     session.add(store)
@@ -214,6 +251,25 @@ async def update_credentials(
     session.commit()
     session.refresh(store)
     return _out(await refresh_connection(store, session))
+
+
+@router.put("/{store_id}/modules", response_model=StoreOut)
+def update_modules(
+    body: ModulesIn,
+    store: Store = Depends(get_store),
+    _: User = Depends(require_roles(Role.superadmin, Role.admin)),
+    session: Session = Depends(get_session),
+) -> StoreOut:
+    """이 스토어에서 켤 모듈을 정한다.
+
+    스코프가 모자란 모듈도 켤 수 있게 둔다 — 막지 않고 '무엇이 모자란지'를 보여주는 편이,
+    켜지도 못한 채 이유를 짐작하게 만드는 것보다 낫다. 실제 실행 시점에 다시 검사한다.
+    """
+    store.enabled_modules = ",".join(normalize(body.enabled_modules))
+    session.add(store)
+    session.commit()
+    session.refresh(store)
+    return _out(store)
 
 
 @router.get("/{store_id}/members")

@@ -10,6 +10,7 @@ import {
   type BrandInput,
   type Credentials,
   type Font,
+  type Module,
   type Preview,
   type Run,
   type Store,
@@ -99,6 +100,7 @@ export default function StoreDetailPage() {
   const storeId = Number(params.id);
 
   const [store, setStore] = useState<Store | null>(null);
+  const [modules, setModules] = useState<Module[]>([]);
   const [fonts, setFonts] = useState<Font[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
   const [applied, setApplied] = useState<boolean | null>(null);
@@ -121,18 +123,35 @@ export default function StoreDetailPage() {
 
   const load = useCallback(async () => {
     try {
-      const [stores, f, r] = await Promise.all([
+      const [stores, f, r, m] = await Promise.all([
         api.listStores(),
         api.listFonts(),
         api.listRuns(storeId),
+        api.listModules(),
       ]);
       setStore(stores.find((s) => s.id === storeId) ?? null);
       setFonts(f);
       setRuns(r);
+      setModules(m);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     }
   }, [storeId]);
+
+  /** 모듈 토글. 통합 앱이므로 스토어마다 켜는 제품이 다르다. */
+  async function toggleModule(id: string, on: boolean) {
+    if (!store) return;
+    const next = on
+      ? [...store.enabled_modules, id]
+      : store.enabled_modules.filter((m) => m !== id);
+    setError(null);
+    setOk(null);
+    try {
+      setStore(await api.updateModules(storeId, next));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    }
+  }
 
   useEffect(() => {
     void load();
@@ -345,8 +364,42 @@ export default function StoreDetailPage() {
               </td>
             </tr>
             <tr>
+              <th>모듈</th>
+              <td>
+                {modules.map((m) => {
+                  const on = store.enabled_modules.includes(m.id);
+                  const blocked = store.blocked_modules.includes(m.id);
+                  return (
+                    <label
+                      key={m.id}
+                      style={{ display: "block", marginBottom: 6, cursor: "pointer" }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        onChange={(e) => void toggleModule(m.id, e.target.checked)}
+                        style={{ marginRight: 8 }}
+                      />
+                      <strong>{m.name}</strong>{" "}
+                      <span style={{ color: "var(--muted)" }}>· {m.summary}</span>
+                      {on && blocked && (
+                        <span className="pill bad" style={{ marginLeft: 8 }}>
+                          스코프 부족
+                        </span>
+                      )}
+                    </label>
+                  );
+                })}
+              </td>
+            </tr>
+            <tr>
               <th>필수 스코프</th>
               <td>
+                {store.required_scopes.length === 0 && (
+                  <span style={{ color: "var(--muted)" }}>
+                    없음 — 켠 모듈이 샵 메타필드만 씁니다
+                  </span>
+                )}
                 {store.required_scopes.map((s) => {
                   const has = store.granted_scopes.includes(s);
                   return (
@@ -357,15 +410,6 @@ export default function StoreDetailPage() {
                     >
                       {store.granted_scopes.length === 0 ? "?" : has ? "✓" : "✗"}{" "}
                       <span className="mono">{s}</span>
-                    </span>
-                  );
-                })}
-                {store.recommended_scopes.map((s) => {
-                  const has = store.granted_scopes.includes(s);
-                  return (
-                    <span key={s} className="pill" style={{ marginRight: 6, opacity: 0.75 }}>
-                      {store.granted_scopes.length === 0 ? "?" : has ? "✓" : "—"}{" "}
-                      <span className="mono">{s}</span> (권장)
                     </span>
                   );
                 })}

@@ -3,6 +3,8 @@
 **최종 갱신**: 2026-07-13
 **브랜치**: `feat/storeforge-phase0` (main 미머지)
 **기획안**: [storeforge-plan-v1.1.md](storeforge-plan-v1.1.md)
+**앱 연동 사양**: [unified-app.md](unified-app.md) — StoreForge·ListPilot·Pricewave 를 앱 하나로 통합.
+ThemePush 는 보호 스코프(`write_themes`) 때문에 **제외**. Custom distribution 이라 **스토어마다 앱을 하나씩** 만든다.
 
 ---
 

@@ -33,8 +33,21 @@ export type Store = {
   granted_scopes: string[];
   missing_scopes: string[];
   required_scopes: string[];
-  recommended_scopes: string[];
+  /** 앱을 만들 때 골라야 할 스코프 전체 집합 (전 모듈의 합집합) */
+  install_scopes: string[];
+  enabled_modules: string[];
+  /** 켰지만 스코프가 모자라 지금 못 쓰는 모듈 */
+  blocked_modules: string[];
   has_credentials: boolean;
+};
+
+/** 통합 앱이 제공하는 모듈. 스토어마다 켜고 끈다. */
+export type Module = {
+  id: string;
+  name: string;
+  summary: string;
+  required_scopes: string[];
+  optional_scopes: string[];
 };
 
 /** 자격증명. auth_type 에 따라 필요한 필드가 다르다. 비밀값은 응답에 절대 실리지 않는다. */
@@ -191,9 +204,17 @@ export const api = {
     request<void>(`/auth/users/${id}`, { method: "DELETE" }),
 
   listStores: () => request<Store[]>("/stores"),
-  createStore: (body: { name: string; shop_domain: string } & Credentials) =>
-    request<Store>("/stores", { method: "POST", body: JSON.stringify(body) }),
+  createStore: (
+    body: { name: string; shop_domain: string; enabled_modules?: string[] } & Credentials
+  ) => request<Store>("/stores", { method: "POST", body: JSON.stringify(body) }),
   testStore: (id: number) => request<Store>(`/stores/${id}/test`, { method: "POST" }),
+
+  listModules: () => request<Module[]>("/stores/modules"),
+  updateModules: (id: number, enabled_modules: string[]) =>
+    request<Store>(`/stores/${id}/modules`, {
+      method: "PUT",
+      body: JSON.stringify({ enabled_modules }),
+    }),
   updateCredentials: (id: number, creds: Credentials) =>
     request<Store>(`/stores/${id}/credentials`, {
       method: "PUT",

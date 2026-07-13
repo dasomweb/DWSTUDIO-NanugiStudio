@@ -15,6 +15,8 @@ from enum import StrEnum
 
 from sqlmodel import Field, SQLModel
 
+from .capabilities import DEFAULT_MODULES, missing_scopes_for, normalize, required_scopes_for
+
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
@@ -47,17 +49,16 @@ class AuthType(StrEnum):
     token = "token"
 
 
-# 축① 주입에 필요한 스코프는 없다.
+# 필요한 스코프는 스토어가 어떤 모듈을 켰느냐에 달렸다 → capabilities.py 의 레지스트리가 정한다.
 #
-# metafieldsSet 은 "소유 리소스를 수정할 권한과 동일한 권한"을 요구하는데, 축①이 쓰는 메타필드의
-# 소유자는 Shop 이고 Shopify 에는 Shop 객체용 스코프가 존재하지 않는다. (write_metafields 는 폐지됐고
-# 지금 스코프 목록에 없다 — Dev Dashboard 에 넣으면 "Contains invalid scopes" 로 거부된다.)
-# 따라서 샵 메타필드는 별도 스코프 없이 읽고 쓸 수 있다.
+# 축①(StoreForge) 주입에는 스코프가 필요 없다. metafieldsSet 은 "소유 리소스를 수정할 권한과
+# 동일한 권한"을 요구하는데, 축①이 쓰는 메타필드의 소유자는 Shop 이고 Shopify 에는 Shop 객체용
+# 스코프가 존재하지 않기 때문이다. (write_metafields 는 폐지된 이름이라 Dev Dashboard 에 넣으면
+# "Contains invalid scopes" 로 거부당한다. 이걸 필수 스코프로 걸어 뒀다가 주입이 영구히 409 로
+# 막힌 적이 있다 — 되풀이하지 말 것.)
 #
-# 이 튜플이 비어 있으므로 missing_scopes 는 항상 [] 이고 주입은 스코프를 이유로 막히지 않는다.
-# 나중에 상품·컬렉션처럼 스코프가 실재하는 리소스를 건드리게 되면 그때 여기에 추가한다.
-REQUIRED_SCOPES: tuple[str, ...] = ()
-RECOMMENDED_SCOPES: tuple[str, ...] = ("read_products",)  # 연결 확인 + 축②(ListPilot)
+# 반면 축②(ListPilot)와 Pricewave 는 상품을 건드리므로 write_products 가 실제로 필요하다.
+# 그래서 검사는 "켠 모듈의 필수 스코프"에 대해서만 한다.
 
 
 class User(SQLModel, table=True):
@@ -98,6 +99,9 @@ class Store(SQLModel, table=True):
     shop_plan: str | None = None
     granted_scopes: str | None = None  # 콤마 구분. 화면에서 필수 스코프 충족 여부를 보여준다.
 
+    # 이 스토어에서 켠 통합 앱 모듈. 콤마 구분 (capabilities.MODULES 의 id).
+    enabled_modules: str = ",".join(DEFAULT_MODULES)
+
     created_by_id: int | None = Field(default=None, foreign_key="user.id")
     created_at: datetime = Field(default_factory=utcnow)
 
@@ -106,10 +110,28 @@ class Store(SQLModel, table=True):
         return [s for s in (self.granted_scopes or "").split(",") if s]
 
     @property
+    def module_list(self) -> list[str]:
+        return normalize([m for m in (self.enabled_modules or "").split(",") if m])
+
+    @property
+    def required_scopes(self) -> list[str]:
+        return required_scopes_for(self.module_list)
+
+    @property
     def missing_scopes(self) -> list[str]:
         if not self.granted_scopes:
             return []  # 아직 확인 전 — '누락'이라고 단정하지 않는다
-        return [s for s in REQUIRED_SCOPES if s not in self.scope_list]
+        return missing_scopes_for(self.module_list, self.scope_list)
+
+    def blocked_modules(self) -> list[str]:
+        """스코프가 모자라 지금 쓸 수 없는 모듈. 화면에서 이유를 보여주는 데 쓴다."""
+        if not self.granted_scopes:
+            return []
+        return [
+            mid
+            for mid in self.module_list
+            if missing_scopes_for([mid], self.scope_list)
+        ]
 
 
 class StoreMember(SQLModel, table=True):

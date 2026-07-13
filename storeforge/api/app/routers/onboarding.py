@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
+from ..capabilities import missing_scopes_for
 from ..config import get_settings
 from ..db import get_session
 from ..deps import current_user, get_store
@@ -119,13 +120,23 @@ async def apply_brand(
             "스토어 연결이 확인되지 않았습니다. 먼저 연결 테스트를 통과시키세요.",
         )
 
-    # 스코프가 없으면 어차피 Shopify 가 403 을 준다. 그 전에 이유를 분명히 말해준다.
-    if store.missing_scopes:
+    # 축①(브랜드 주입)이 켜져 있어야 한다. 스코프는 요구하지 않지만, 이 스토어에서 무엇을 켰는지는
+    # 명시적으로 관리한다 (통합 앱이므로 스토어마다 쓰는 모듈이 다르다).
+    if "storeforge" not in store.module_list:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "이 스토어에서 StoreForge 모듈이 꺼져 있습니다. 스토어 설정에서 켠 뒤 다시 시도하세요.",
+        )
+
+    # 켠 모듈이 요구하는 스코프가 없으면 어차피 Shopify 가 403 을 준다. 그 전에 이유를 분명히 말해준다.
+    # (축① 자체는 샵 메타필드만 쓰므로 요구 스코프가 없다 — 여기서 막히는 일은 없어야 정상이다.)
+    if missing_scopes_for(["storeforge"], store.scope_list):
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             "Shopify 앱에 필수 스코프가 없습니다: "
-            + ", ".join(store.missing_scopes)
-            + " — Shopify 관리자에서 스코프를 추가하고 앱을 재설치한 뒤 연결 테스트를 다시 하세요.",
+            + ", ".join(missing_scopes_for(["storeforge"], store.scope_list))
+            + " — Dev Dashboard 에서 스코프를 추가해 새 버전을 Release 하고 앱을 재설치한 뒤 "
+            "연결 테스트를 다시 하세요.",
         )
 
     payload = build_payload(body.brand)
