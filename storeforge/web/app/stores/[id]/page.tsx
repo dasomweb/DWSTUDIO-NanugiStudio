@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Shell from "@/components/Shell";
@@ -11,8 +11,10 @@ import {
   api,
   ApiError,
   type BrandInput,
+  type Candidate,
   type Credentials,
   type Font,
+  type LayoutPreset,
   type Module,
   type Preview,
   type Run,
@@ -120,22 +122,33 @@ export default function StoreDetailPage() {
   const [rationale, setRationale] = useState<string | null>(null);
   const [thinking, setThinking] = useState(false);
 
+  // AI 제안 (참고 이미지 · 참조 사이트 → 후보 3안) + 홈 레이아웃
+  const [refUrl, setRefUrl] = useState("");
+  const refImagesRef = useRef<HTMLInputElement>(null);
+  const [proposals, setProposals] = useState<Candidate[] | null>(null);
+  const [proposing, setProposing] = useState(false);
+  const [layoutPresets, setLayoutPresets] = useState<LayoutPreset[]>([]);
+  const [layoutId, setLayoutId] = useState("");
+  const [applyingLayout, setApplyingLayout] = useState(false);
+
   // 자격증명 교체
   const [editingCreds, setEditingCreds] = useState(false);
   const [creds, setCreds] = useState<Credentials>({ auth_type: "client_credentials" });
 
   const load = useCallback(async () => {
     try {
-      const [stores, f, r, m] = await Promise.all([
+      const [stores, f, r, m, lp] = await Promise.all([
         api.listStores(),
         api.listFonts(),
         api.listRuns(storeId),
         api.listModules(),
+        api.listLayouts(),
       ]);
       setStore(stores.find((s) => s.id === storeId) ?? null);
       setFonts(f);
       setRuns(r);
       setModules(m);
+      setLayoutPresets(lp);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     }
@@ -236,6 +249,46 @@ export default function StoreDetailPage() {
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {
       setThinking(false);
+    }
+  }
+
+  async function runPropose() {
+    setProposing(true);
+    setError(null);
+    setProposals(null);
+    try {
+      const form = new FormData();
+      form.append("description", description);
+      if (refUrl.trim()) form.append("reference_url", refUrl.trim());
+      for (const f of Array.from(refImagesRef.current?.files ?? [])) {
+        form.append("images", f);
+      }
+      setProposals(await api.propose(form));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setProposing(false);
+    }
+  }
+
+  function pickCandidate(c: Candidate) {
+    // 선택은 폼을 채울 뿐이다 — 사람이 검토·수정한 뒤에 주입/레이아웃 적용을 누른다.
+    setBrand(c.brand);
+    setRationale(`[${c.name}] ${c.rationale}`);
+    setLayoutId(c.layout_id);
+  }
+
+  async function runApplyLayout() {
+    setApplyingLayout(true);
+    setError(null);
+    setOk(null);
+    try {
+      const r = await api.applyLayout(storeId, layoutId);
+      setOk(`홈 레이아웃 '${r.applied}' 적용 — 섹션 ${r.sections.length}개.`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setApplyingLayout(false);
     }
   }
 
@@ -492,17 +545,105 @@ export default function StoreDetailPage() {
             marginBottom: 12,
           }}
         />
-        <div className="row">
-          <button onClick={runInterpret} disabled={thinking || !description.trim()}>
-            {thinking ? "AI가 브랜드를 해석하는 중…" : "AI로 브랜드 생성"}
+        <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <input
+            ref={refImagesRef}
+            type="file"
+            accept="image/*"
+            multiple
+            title="참고 이미지 (무드보드·경쟁사 스크린샷, 최대 5장)"
+          />
+          <input
+            value={refUrl}
+            onChange={(e) => setRefUrl(e.target.value)}
+            placeholder="참조 사이트 URL (https://…)"
+            style={{ flex: 1, minWidth: 220 }}
+          />
+        </div>
+
+        <div className="row" style={{ marginTop: 10 }}>
+          <button onClick={() => void runPropose()} disabled={proposing}>
+            {proposing ? "AI가 후보를 만드는 중…" : "후보 3안 제안 받기"}
+          </button>
+          <button className="ghost" onClick={runInterpret} disabled={thinking || !description.trim()}>
+            {thinking ? "해석 중…" : "단일안 바로 생성"}
           </button>
         </div>
+
+        {proposals && (
+          <div className="grid three" style={{ marginTop: 14 }}>
+            {proposals.map((c) => (
+              <div
+                key={c.name}
+                className="card"
+                style={{ cursor: "pointer", borderColor: layoutId === c.layout_id ? "var(--text)" : undefined }}
+                onClick={() => pickCandidate(c)}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <strong style={{ flex: 1 }}>{c.name}</strong>
+                  <span className={c.report.wcag_pass ? "pill ok" : "pill"}>WCAG</span>
+                </div>
+                <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+                  {(["primary", "background", "foreground", "accent"] as const).map((k) => (
+                    <span
+                      key={k}
+                      title={`${k}: ${c.brand[k]}`}
+                      style={{
+                        width: 28, height: 28, borderRadius: 6,
+                        background: c.brand[k] as string,
+                        border: "1px solid var(--line)",
+                      }}
+                    />
+                  ))}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>
+                  {fonts.find((f) => f.handle === c.brand.heading_font)?.family} /{" "}
+                  {fonts.find((f) => f.handle === c.brand.body_font)?.family}
+                  {" · "}
+                  {layoutPresets.find((l) => l.id === c.layout_id)?.name ?? c.layout_id}
+                </div>
+                <div style={{ fontSize: 12 }}>{c.rationale}</div>
+                <button style={{ marginTop: 10, width: "100%" }}>이 안 선택</button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {rationale && (
           <div className="note" style={{ marginTop: 12 }}>
             <strong style={{ color: "var(--text)" }}>AI 근거</strong>
             <div style={{ marginTop: 4 }}>{rationale}</div>
           </div>
         )}
+      </div>
+
+      <div className="card">
+        <h2>홈 레이아웃</h2>
+        <p className="sub" style={{ fontSize: 12, marginBottom: 12 }}>
+          선택한 레이아웃을 라이브 테마의 <span className="mono">templates/index.json</span> 에
+          반영합니다. 색·폰트는 건드리지 않습니다 — 그건 아래 주입의 몫입니다.
+        </p>
+        <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <select value={layoutId} onChange={(e) => setLayoutId(e.target.value)} style={{ minWidth: 220 }}>
+            <option value="">레이아웃 선택…</option>
+            {layoutPresets.map((l) => (
+              <option key={l.id} value={l.id} title={l.description}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => void runApplyLayout()}
+            disabled={!layoutId || applyingLayout || !store.connected}
+          >
+            {applyingLayout ? "반영 중…" : "레이아웃 적용"}
+          </button>
+          {layoutId && (
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>
+              {layoutPresets.find((l) => l.id === layoutId)?.description}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="card">

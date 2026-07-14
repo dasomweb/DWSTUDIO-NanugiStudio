@@ -7,10 +7,16 @@
 
 from __future__ import annotations
 
+import base64
+import ipaddress
 import json
+import re
+import socket
+from collections import Counter
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
@@ -18,9 +24,9 @@ from ..capabilities import missing_scopes_for
 from ..config import get_settings
 from ..db import get_session
 from ..deps import current_user, get_store
-from ..engine import fonts
+from ..engine import fonts, layouts
 from ..engine.brand import BrandInput, build_payload, build_report
-from ..llm import BrandInterpretationError, interpret
+from ..llm import BrandInterpretationError, interpret, propose
 from ..models import OnboardingRun, RunStatus, Store, User
 from ..routers.stores import client_for
 from ..shopify import ShopifyError
@@ -88,6 +94,167 @@ def interpret_brand(body: InterpretIn, _: User = Depends(current_user)) -> Inter
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
 
     return InterpretOut(brand=brand, rationale=rationale, report=build_report(brand))
+
+
+class Candidate(BaseModel):
+    name: str
+    brand: BrandInput
+    layout_id: str
+    rationale: str
+    report: dict
+
+
+IMAGE_TYPES = {"image/png", "image/jpeg", "image/webp", "image/gif"}
+MAX_IMAGES = 5
+MAX_IMAGE_SIDE = 1568  # Claude 비전 권장 상한 — 더 크면 토큰만 늘고 이득이 없다
+
+
+def _prepare_image(raw: bytes) -> tuple[str, str]:
+    """업로드 이미지 → (media_type, base64). 큰 이미지는 줄여서 보낸다."""
+    import io
+
+    from PIL import Image
+
+    img = Image.open(io.BytesIO(raw)).convert("RGB")
+    if max(img.size) > MAX_IMAGE_SIDE:
+        img.thumbnail((MAX_IMAGE_SIDE, MAX_IMAGE_SIDE), Image.LANCZOS)
+    out = io.BytesIO()
+    img.save(out, format="JPEG", quality=85)
+    return "image/jpeg", base64.b64encode(out.getvalue()).decode()
+
+
+def _site_hints(url: str) -> str | None:
+    """참조 사이트에서 색·폰트 힌트를 추출한다.
+
+    사용자가 준 URL 을 서버가 가져가는 것이므로 SSRF 를 막는다: https 만, 호스트의
+    모든 해석 주소가 공인 IP 여야 하고, 리다이렉트는 따라가지 않는다.
+    실패는 조용히 None — 힌트가 없어도 제안은 돌아간다.
+    """
+    import httpx
+
+    try:
+        parsed = urlparse(url.strip())
+        if parsed.scheme != "https" or not parsed.hostname:
+            return None
+        for info in socket.getaddrinfo(parsed.hostname, 443, proto=socket.IPPROTO_TCP):
+            ip = ipaddress.ip_address(info[4][0])
+            if not ip.is_global:
+                return None
+
+        resp = httpx.get(url, timeout=15, follow_redirects=False,
+                         headers={"User-Agent": "StoreForge/1.0 (+brand-hints)"})
+        if resp.status_code >= 300:
+            return None
+        html = resp.text[:500_000]
+
+        colors = Counter(c.lower() for c in re.findall(r"#[0-9a-fA-F]{6}\b", html))
+        families = Counter(
+            f.strip().strip("'\"")
+            for decl in re.findall(r"font-family\s*:\s*([^;}]+)", html)
+            for f in decl.split(",")[:1]
+        )
+        title = re.search(r"<title[^>]*>(.*?)</title>", html, re.S | re.I)
+
+        parts = []
+        if title:
+            parts.append(f"제목: {title.group(1).strip()[:120]}")
+        if colors:
+            parts.append("자주 쓰인 색: " + ", ".join(c for c, _ in colors.most_common(8)))
+        if families:
+            parts.append("폰트: " + ", ".join(f for f, _ in families.most_common(5) if f))
+        return "\n".join(parts) or None
+    except Exception:  # noqa: BLE001 — 힌트는 보조 입력일 뿐, 여기서 죽지 않는다
+        return None
+
+
+@router.get("/layouts")
+def list_layouts(_: User = Depends(current_user)) -> list[dict]:
+    """홈 레이아웃 프리셋 카탈로그. LLM 제안과 화면 선택지가 같은 목록을 쓴다."""
+    return [{"id": l.id, "name": l.name, "description": l.description} for l in layouts.LAYOUTS]
+
+
+@router.post("/propose", response_model=list[Candidate])
+async def propose_brand(
+    description: str = Form(""),
+    reference_url: str | None = Form(None),
+    images: list[UploadFile] = File(default=[]),
+    _: User = Depends(current_user),
+) -> list[Candidate]:
+    """설명 + 참고 이미지 + 참조 사이트 → 서로 다른 후보 3안.
+
+    선택은 사람이 한다 — 고른 안이 아래 브랜드 폼에 채워지고, 수정 후 주입한다.
+    """
+    if not description.strip() and not images and not (reference_url or "").strip():
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "설명·이미지·참조 URL 중 하나는 필요합니다.")
+    if len(images) > MAX_IMAGES:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"이미지는 최대 {MAX_IMAGES}장입니다.")
+
+    prepared: list[tuple[str, str]] = []
+    for up in images:
+        if (up.content_type or "").lower() not in IMAGE_TYPES:
+            raise HTTPException(
+                status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, f"지원하지 않는 이미지 형식: {up.content_type}"
+            )
+        raw = await up.read()
+        if raw:
+            prepared.append(_prepare_image(raw))
+
+    hints = _site_hints(reference_url) if reference_url else None
+
+    key = get_settings().anthropic_api_key or None
+    try:
+        cands = propose(description, images=prepared, site_hints=hints, api_key=key)
+    except BrandInterpretationError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
+
+    return [
+        Candidate(
+            name=c["name"],
+            brand=c["brand"],
+            layout_id=c["layout_id"],
+            rationale=c["rationale"],
+            report=build_report(c["brand"]),
+        )
+        for c in cands
+    ]
+
+
+class LayoutIn(BaseModel):
+    layout_id: str
+
+
+@router.post("/stores/{store_id}/layout")
+async def apply_layout(body: LayoutIn, store: Store = Depends(get_store)) -> dict:
+    """선택한 홈 레이아웃을 스토어의 라이브 테마에 반영한다 (templates/index.json 업서트).
+
+    색·폰트는 건드리지 않는다 — 그건 metafield 주입의 몫이다.
+    """
+    if body.layout_id not in layouts.LAYOUTS_BY_ID:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"모르는 레이아웃: {body.layout_id}")
+    if store.granted_scopes and "write_themes" not in store.scope_list:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "write_themes 스코프가 없어 레이아웃을 반영할 수 없습니다."
+        )
+
+    version = store.installed_theme_version
+    if version in (None, "unknown"):
+        version = None  # latest 기준으로 만든다
+
+    try:
+        home = layouts.build_home(body.layout_id, version)
+    except Exception as exc:  # noqa: BLE001 — zip 다운로드 실패 등
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"레이아웃 빌드 실패: {exc}") from exc
+
+    try:
+        client = await client_for(store)
+        theme_gid = await client.main_theme_gid()
+        await client.theme_files_upsert(
+            theme_gid, "templates/index.json", json.dumps(home, ensure_ascii=False, indent=2)
+        )
+    except ShopifyError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
+
+    return {"applied": body.layout_id, "sections": home["order"]}
 
 
 @router.post("/preview", response_model=PreviewOut)

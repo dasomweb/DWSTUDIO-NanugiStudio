@@ -352,6 +352,42 @@ class ShopifyClient:
             waited += 3
         raise ShopifyError(f"테마 zip 처리가 {int(timeout_seconds)}초 안에 끝나지 않았습니다.")
 
+    async def main_theme_gid(self) -> str:
+        data = await self.graphql("{ themes(first: 1, roles: [MAIN]) { nodes { id } } }")
+        nodes = data["themes"]["nodes"]
+        if not nodes:
+            raise ShopifyError("발행된(MAIN) 테마가 없습니다 — 먼저 테마를 설치·발행하세요.")
+        return nodes[0]["id"]
+
+    async def theme_files_upsert(self, theme_gid: str, filename: str, value: str) -> None:
+        """테마 파일 하나를 업서트한다.
+
+        기획안 §4.5 주의: 테마 파일 쓰기는 색·폰트에는 쓰지 않는다(그건 metafield 경로).
+        여기서 허용되는 용도는 **레이아웃 프리셋(templates/*.json)** 뿐이다 — Custom
+        distribution 단계라 write_themes 가 있고, Phase 3(퍼블릭) 전환 시 재검토한다.
+        """
+        mutation = """
+        mutation UpsertFile($themeId: ID!, $files: [OnlineStoreThemeFilesUpsertFileInput!]!) {
+          themeFilesUpsert(themeId: $themeId, files: $files) {
+            upsertedThemeFiles { filename }
+            userErrors { field message code }
+          }
+        }
+        """
+        result = (
+            await self.graphql(
+                mutation,
+                {
+                    "themeId": theme_gid,
+                    "files": [{"filename": filename, "body": {"type": "TEXT", "value": value}}],
+                },
+            )
+        )["themeFilesUpsert"]
+        if result["userErrors"]:
+            raise ShopifyError(
+                "themeFilesUpsert 실패 — " + "; ".join(e["message"] for e in result["userErrors"])
+            )
+
     async def theme_publish(self, theme_gid: str) -> None:
         mutation = """
         mutation ThemePublish($id: ID!) {

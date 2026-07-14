@@ -99,6 +99,21 @@ export type PricewaveSync = {
   synced_at: string;
 };
 
+/** AI 제안 후보 하나 — 색·폰트 + 홈 레이아웃 + 근거. */
+export type Candidate = {
+  name: string;
+  brand: BrandInput;
+  layout_id: string;
+  rationale: string;
+  report: Preview["report"];
+};
+
+export type LayoutPreset = {
+  id: string;
+  name: string;
+  description: string;
+};
+
 /** 테마 설치 결과. */
 export type ThemeInstall = {
   theme_gid: string;
@@ -353,4 +368,14 @@ export const api = {
       body: JSON.stringify({ brand, force }),
     }),
   listRuns: (storeId: number) => request<Run[]>(`/stores/${storeId}/runs`),
+
+  // AI 제안 (참고 이미지 · 참조 사이트 → 후보 3안) + 홈 레이아웃
+  propose: (form: FormData) =>
+    request<Candidate[]>("/propose", { method: "POST", body: form }),
+  listLayouts: () => request<LayoutPreset[]>("/layouts"),
+  applyLayout: (storeId: number, layoutId: string) =>
+    request<{ applied: string; sections: string[] }>(`/stores/${storeId}/layout`, {
+      method: "POST",
+      body: JSON.stringify({ layout_id: layoutId }),
+    }),
 };

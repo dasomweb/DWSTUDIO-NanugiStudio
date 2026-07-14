@@ -21,6 +21,7 @@ from pydantic import ValidationError
 
 from .engine import fonts
 from .engine.brand import PAGE_WIDTHS, BrandInput
+from .engine.layouts import LAYOUTS
 
 logger = logging.getLogger(__name__)
 
@@ -168,4 +169,154 @@ def interpret(description: str, api_key: str | None = None) -> tuple[BrandInput,
 
     raise BrandInterpretationError(
         f"{MAX_ATTEMPTS}회 시도했지만 유효한 브랜드를 생성하지 못했습니다: {last_error}"
+    )
+
+
+# --- 제안 3안 (참고 이미지 · 참조 사이트 기반) -------------------------------------
+
+PROPOSE_SYSTEM = """\
+당신은 Shopify 스토어의 브랜드 디자인을 제안하는 아트 디렉터입니다.
+
+셀러의 브랜드 설명과, 첨부된 **참고 이미지**(무드보드·경쟁사 스크린샷 등)와
+**참조 사이트에서 추출한 힌트**(색·폰트)를 읽고, 서로 성격이 다른 **후보 3안**을 만듭니다.
+
+각 안은 색 4개 + 폰트 4개 + 페이지 폭 + 홈 레이아웃 하나로 구성됩니다.
+파생 값(버튼 hover, 입력창 테두리 등 441개)은 결정론적 엔진이 계산하고 WCAG 대비도
+코드가 보정하므로, 대비 미세조정에 애쓰지 말고 **브랜드 성격이 다르게 드러나는 세 방향**을
+제시하세요. 예: ① 참조에 가장 충실한 안 ② 더 절제된 안 ③ 더 대담한 안.
+
+이미지에서 색을 읽을 때는 지배적인 색뿐 아니라 포인트로 쓰인 색도 보세요.
+한국어 콘텐츠 중심 브랜드면 body 는 한글 지원 폰트여야 합니다.
+
+각 안의 name 은 셀러가 한눈에 구별할 짧은 한국어 이름(예: "크림 미니멀"),
+rationale 은 왜 이 조합인지 두세 문장입니다.\
+"""
+
+
+def _propose_schema() -> dict:
+    handles = sorted(fonts.REGISTRY)
+    color = {"type": "string", "description": "#rrggbb 6자리 hex"}
+    font = {"type": "string", "enum": handles}
+    candidate = {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string", "description": "짧은 한국어 이름"},
+            "primary": color,
+            "background": color,
+            "foreground": color,
+            "accent": color,
+            "body_font": font,
+            "heading_font": font,
+            "subheading_font": font,
+            "accent_font": font,
+            "page_width": {"type": "string", "enum": list(PAGE_WIDTHS)},
+            "layout_id": {"type": "string", "enum": [l.id for l in LAYOUTS]},
+            "rationale": {"type": "string"},
+        },
+        "required": [
+            "name", "primary", "background", "foreground", "accent",
+            "body_font", "heading_font", "subheading_font", "accent_font",
+            "page_width", "layout_id", "rationale",
+        ],
+        "additionalProperties": False,
+    }
+    return {
+        "type": "object",
+        "properties": {
+            "candidates": {"type": "array", "items": candidate, "minItems": 3, "maxItems": 3}
+        },
+        "required": ["candidates"],
+        "additionalProperties": False,
+    }
+
+
+def _layout_catalog() -> str:
+    return "\n".join(f"- {l.id}: {l.name} — {l.description}" for l in LAYOUTS)
+
+
+def propose(
+    description: str,
+    images: list[tuple[str, str]] | None = None,  # (media_type, base64 데이터)
+    site_hints: str | None = None,
+    api_key: str | None = None,
+) -> list[dict]:
+    """설명 + 참고 자료 → 후보 3안. 각 안의 색·폰트는 BrandInput 으로 검증된다.
+
+    반환: [{name, brand: BrandInput 필드들, layout_id, rationale}, ...]
+    """
+    client = anthropic.Anthropic(api_key=api_key) if api_key else anthropic.Anthropic()
+
+    content: list[dict] = []
+    for media_type, data in images or []:
+        content.append(
+            {
+                "type": "image",
+                "source": {"type": "base64", "media_type": media_type, "data": data},
+            }
+        )
+
+    text = (
+        f"사용 가능한 폰트 목록:\n{_font_catalog()}\n\n"
+        f"홈 레이아웃 목록:\n{_layout_catalog()}\n\n"
+        f"브랜드 설명:\n{description.strip() or '(설명 없음 — 첨부 자료에서 방향을 읽으세요)'}"
+    )
+    if site_hints:
+        text += f"\n\n참조 사이트에서 추출한 힌트:\n{site_hints}"
+    content.append({"type": "text", "text": text})
+
+    messages: list[dict] = [{"role": "user", "content": content}]
+    last_error: str | None = None
+
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        response = client.messages.create(
+            model=MODEL,
+            max_tokens=8192,
+            system=PROPOSE_SYSTEM,
+            thinking={"type": "adaptive"},
+            output_config={
+                "effort": "medium",
+                "format": {"type": "json_schema", "schema": _propose_schema()},
+            },
+            messages=messages,
+        )
+
+        if response.stop_reason == "refusal":
+            raise BrandInterpretationError("모델이 요청을 거부했습니다. 자료를 바꿔서 다시 시도하세요.")
+
+        raw_text = "".join(b.text for b in response.content if b.type == "text")
+
+        try:
+            raw = json.loads(raw_text)
+            out = []
+            for cand in raw["candidates"]:
+                fields = {k: v for k, v in cand.items() if k not in ("name", "layout_id", "rationale")}
+                brand = BrandInput(**fields)  # hex 등 최종 검증 — 실패 시 재생성 루프로
+                out.append(
+                    {
+                        "name": cand["name"],
+                        "brand": brand,
+                        "layout_id": cand["layout_id"],
+                        "rationale": cand["rationale"],
+                    }
+                )
+            return out
+
+        except (json.JSONDecodeError, ValidationError, KeyError, TypeError) as exc:
+            last_error = str(exc)
+            logger.warning("제안 %d차 시도 실패: %s", attempt, last_error)
+            if attempt == MAX_ATTEMPTS:
+                break
+            messages.append({"role": "assistant", "content": raw_text})
+            messages.append(
+                {
+                    "role": "user",
+                    "content": (
+                        f"방금 출력이 검증에 실패했습니다:\n{last_error}\n\n"
+                        "형식을 고쳐서 다시 출력하세요. 색은 반드시 #rrggbb 6자리여야 합니다."
+                    ),
+                }
+            )
+
+    raise BrandInterpretationError(
+        f"{MAX_ATTEMPTS}회 시도했지만 유효한 제안을 생성하지 못했습니다: {last_error}"
     )
