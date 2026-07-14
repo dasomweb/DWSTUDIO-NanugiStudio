@@ -54,6 +54,9 @@ def _migrate() -> None:
         # 통합 앱 — 스토어마다 켠 모듈이 다르다 (capabilities.py)
         "ALTER TABLE store ADD COLUMN IF NOT EXISTS enabled_modules VARCHAR DEFAULT 'storeforge'",
         "UPDATE store SET enabled_modules = 'storeforge' WHERE enabled_modules IS NULL",
+        # 프로젝트별 테마 버전 격리 — 스토어마다 설치된 릴리즈 태그를 기록한다
+        "ALTER TABLE store ADD COLUMN IF NOT EXISTS installed_theme_version VARCHAR",
+        "ALTER TABLE store ADD COLUMN IF NOT EXISTS theme_installed_at TIMESTAMPTZ",
     ]
 
     with engine.begin() as conn:

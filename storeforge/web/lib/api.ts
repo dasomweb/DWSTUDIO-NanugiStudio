@@ -38,6 +38,9 @@ export type Store = {
   enabled_modules: string[];
   /** 켰지만 스코프가 모자라 지금 못 쓰는 모듈 */
   blocked_modules: string[];
+  /** 이 스토어에 설치된 소스 테마 릴리즈 (프로젝트별 버전 격리) */
+  installed_theme_version: string | null;
+  theme_installed_at: string | null;
   has_credentials: boolean;
 };
 
@@ -101,8 +104,14 @@ export type ThemeInstall = {
   theme_gid: string;
   theme_name: string;
   published: boolean;
-  zip_url: string;
+  version: string;
   installed_at: string;
+};
+
+export type ThemeSource = {
+  zip_url: string;
+  upstream: string;
+  latest_version: string | null;
 };
 
 /** 자격증명. auth_type 에 따라 필요한 필드가 다르다. 비밀값은 응답에 절대 실리지 않는다. */
@@ -311,12 +320,12 @@ export const api = {
   currentPricewave: (storeId: number) =>
     request<PricewaveSync | null>(`/pricewave/stores/${storeId}`),
 
-  // 테마 설치 (소스 zip → 고객 스토어, GitHub 미연동)
-  themeSource: () => request<{ zip_url: string }>("/themes/source"),
-  installTheme: (storeId: number, publish: boolean) =>
+  // 테마 설치 (소스 릴리즈 → 스토어, GitHub 미연동. 버전은 스토어별로 격리)
+  themeSource: () => request<ThemeSource>("/themes/source"),
+  installTheme: (storeId: number, publish: boolean, version?: string) =>
     request<ThemeInstall>(`/themes/stores/${storeId}/install`, {
       method: "POST",
-      body: JSON.stringify({ publish }),
+      body: JSON.stringify({ publish, version: version || null }),
     }),
   updateCredentials: (id: number, creds: Credentials) =>
     request<Store>(`/stores/${id}/credentials`, {

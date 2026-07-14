@@ -38,11 +38,20 @@ class Settings(BaseSettings):
     # 머천트가 Shopify Admin 에서 할인을 켜고 끄는 것을 알 방법이 (웹훅 전까지) 없어서 폴링한다.
     pricewave_sync_seconds: int = 300
 
-    # 소스 테마 zip. 릴리즈 태그가 붙을 때마다 GitHub Actions 가 이 자산을 갱신한다 —
-    # "latest 릴리즈의 theme.zip" 이 항상 배포 가능한 최신 소스 테마라는 계약이다 (기획안 §6.3).
-    theme_zip_url: str = (
-        "https://github.com/dasomweb/DWSTUDIO-NanugiStudio/releases/latest/download/theme.zip"
-    )
+    # 소스 테마 릴리즈 저장소. v* 태그마다 release-theme.yml 이 theme.zip 을 붙인다.
+    # 프로젝트별 격리의 축 — 스토어는 원하는 버전을 골라 설치하고, 설치된 버전은
+    # Store.installed_theme_version 에 기록된다. 릴리즈가 갱신돼도 스토어는 저절로 바뀌지 않는다.
+    theme_release_repo: str = "dasomweb/DWSTUDIO-NanugiStudio"
+
+    @property
+    def theme_release_base(self) -> str:
+        return f"https://github.com/{self.theme_release_repo}/releases"
+
+    def theme_zip_upstream(self, version: str | None = None) -> str:
+        """버전(태그)의 zip 원본 URL. 비우면 latest."""
+        if version:
+            return f"{self.theme_release_base}/download/{version}/theme.zip"
+        return f"{self.theme_release_base}/latest/download/theme.zip"
 
     # ListPilot(축②) 상품 추출. 원본 DW-ListPilot 의 프롬프트 자산을 그대로 쓰므로 Gemini 다.
     # 없으면 ListPilot 의 추출 기능만 503 을 주고, 나머지 모듈은 정상 동작한다.

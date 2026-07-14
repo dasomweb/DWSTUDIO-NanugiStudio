@@ -51,6 +51,10 @@ class StoreOut(BaseModel):
     enabled_modules: list[str]
     blocked_modules: list[str]  # 켰지만 스코프가 모자라 지금 못 쓰는 모듈
 
+    # 프로젝트별 버전 격리 — 이 스토어에 설치된 소스 테마 릴리즈
+    installed_theme_version: str | None
+    theme_installed_at: datetime | None
+
     # 비밀값 자체는 절대 내보내지 않는다. '설정되어 있는가'만 알려준다.
     has_credentials: bool
 
@@ -109,6 +113,8 @@ def _out(store: Store) -> StoreOut:
         install_scopes=list(INSTALL_SCOPES),
         enabled_modules=store.module_list,
         blocked_modules=store.blocked_modules(),
+        installed_theme_version=store.installed_theme_version,
+        theme_installed_at=store.theme_installed_at,
         has_credentials=bool(
             store.encrypted_token or (store.encrypted_client_id and store.encrypted_client_secret)
         ),

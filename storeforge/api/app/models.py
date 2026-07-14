@@ -103,6 +103,11 @@ class Store(SQLModel, table=True):
     # 이 스토어에서 켠 통합 앱 모듈. 콤마 구분 (capabilities.MODULES 의 id).
     enabled_modules: str = ",".join(DEFAULT_MODULES)
 
+    # 이 스토어에 설치된 소스 테마의 릴리즈 태그. 프로젝트별 버전 격리의 기록부다 —
+    # 릴리즈가 새로 나와도 스토어는 저절로 바뀌지 않고, 여기 기록된 버전으로 남는다.
+    installed_theme_version: str | None = None
+    theme_installed_at: datetime | None = None
+
     created_by_id: int | None = Field(default=None, foreign_key="user.id")
     created_at: datetime = Field(default_factory=utcnow)
 

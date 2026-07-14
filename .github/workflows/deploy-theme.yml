@@ -1,10 +1,11 @@
+# 나누기 스토어 전용 배포. 소스 테마 릴리즈(태그 → zip)와는 분리되어 있다 —
+# 태그를 밀어도 나누기에는 아무 일도 일어나지 않는다 (release-theme.yml 참고).
+# 다른 프로젝트(고객 스토어)는 이 워크플로를 쓰지 않고 StoreForge 테마 설치로 버전을 채택한다.
 name: Deploy Shopify Theme
 
 on:
   push:
     branches: [main]
-    tags:
-      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -42,21 +43,6 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Bump theme_version (tag push only)
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          VERSION="${GITHUB_REF#refs/tags/v}"
-          echo "Bumping theme_version to $VERSION"
-          # settings_schema.json의 theme_version 업데이트 (배포에만 사용, 커밋 안 함)
-          node -e "
-            const fs = require('fs');
-            const path = 'config/settings_schema.json';
-            const data = JSON.parse(fs.readFileSync(path, 'utf8'));
-            data[0].theme_version = '$VERSION';
-            fs.writeFileSync(path, JSON.stringify(data, null, 2) + '\n');
-            console.log('Updated theme_version to', data[0].theme_version);
-          "
-
       - name: Install Shopify CLI
         run: npm install -g @shopify/cli @shopify/theme
 
@@ -72,17 +58,3 @@ jobs:
             shopify theme push --store "$SHOPIFY_FLAG_STORE" --password "$SHOPIFY_CLI_THEME_TOKEN" --allow-live
           fi
 
-      # StoreForge 가 releases/latest/download/theme.zip 을 themeCreate 로 가져간다 (docs/unified-app.md §6.3).
-      # 테마 폴더만 담는다 — storeforge/, docs/ 가 섞이면 Shopify 가 zip 을 거부한다.
-      - name: Build theme.zip (tag push only)
-        if: startsWith(github.ref, 'refs/tags/')
-        run: git archive -o theme.zip HEAD assets blocks config layout locales sections snippets templates
-
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
-          files: theme.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
