@@ -72,10 +72,17 @@ jobs:
             shopify theme push --store "$SHOPIFY_FLAG_STORE" --password "$SHOPIFY_CLI_THEME_TOKEN" --allow-live
           fi
 
+      # StoreForge 가 releases/latest/download/theme.zip 을 themeCreate 로 가져간다 (docs/unified-app.md §6.3).
+      # 테마 폴더만 담는다 — storeforge/, docs/ 가 섞이면 Shopify 가 zip 을 거부한다.
+      - name: Build theme.zip (tag push only)
+        if: startsWith(github.ref, 'refs/tags/')
+        run: git archive -o theme.zip HEAD assets blocks config layout locales sections snippets templates
+
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          files: theme.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

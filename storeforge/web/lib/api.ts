@@ -96,6 +96,15 @@ export type PricewaveSync = {
   synced_at: string;
 };
 
+/** 테마 설치 결과. */
+export type ThemeInstall = {
+  theme_gid: string;
+  theme_name: string;
+  published: boolean;
+  zip_url: string;
+  installed_at: string;
+};
+
 /** 자격증명. auth_type 에 따라 필요한 필드가 다르다. 비밀값은 응답에 절대 실리지 않는다. */
 export type Credentials = {
   auth_type: AuthType;
@@ -301,6 +310,14 @@ export const api = {
     request<PricewaveSync>(`/pricewave/stores/${storeId}/sync`, { method: "POST" }),
   currentPricewave: (storeId: number) =>
     request<PricewaveSync | null>(`/pricewave/stores/${storeId}`),
+
+  // 테마 설치 (소스 zip → 고객 스토어, GitHub 미연동)
+  themeSource: () => request<{ zip_url: string }>("/themes/source"),
+  installTheme: (storeId: number, publish: boolean) =>
+    request<ThemeInstall>(`/themes/stores/${storeId}/install`, {
+      method: "POST",
+      body: JSON.stringify({ publish }),
+    }),
   updateCredentials: (id: number, creds: Credentials) =>
     request<Store>(`/stores/${id}/credentials`, {
       method: "PUT",

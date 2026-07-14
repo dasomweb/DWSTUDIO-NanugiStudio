@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     # 머천트가 Shopify Admin 에서 할인을 켜고 끄는 것을 알 방법이 (웹훅 전까지) 없어서 폴링한다.
     pricewave_sync_seconds: int = 300
 
+    # 소스 테마 zip. 릴리즈 태그가 붙을 때마다 GitHub Actions 가 이 자산을 갱신한다 —
+    # "latest 릴리즈의 theme.zip" 이 항상 배포 가능한 최신 소스 테마라는 계약이다 (기획안 §6.3).
+    theme_zip_url: str = (
+        "https://github.com/dasomweb/DWSTUDIO-NanugiStudio/releases/latest/download/theme.zip"
+    )
+
     # ListPilot(축②) 상품 추출. 원본 DW-ListPilot 의 프롬프트 자산을 그대로 쓰므로 Gemini 다.
     # 없으면 ListPilot 의 추출 기능만 503 을 주고, 나머지 모듈은 정상 동작한다.
     gemini_api_key: str = ""

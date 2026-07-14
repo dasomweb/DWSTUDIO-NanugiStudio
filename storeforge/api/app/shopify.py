@@ -308,6 +308,65 @@ class ShopifyClient:
 
         return result["product"]["id"]
 
+    # --- 테마 설치 (기획안 §6.3) ---------------------------------------------------
+    #
+    # 고객 스토어의 테마는 GitHub Actions 로 배포하지 않는다. 소스 테마 zip 을
+    # themeCreate 로 넣어 **GitHub 미연동 테마**를 만든다 — 그래야 에디터 수정이
+    # 저장소로 역류하지 않고, 스토어별 설정이 서로 섞이지 않는다.
+    async def theme_create(self, zip_url: str, name: str) -> dict:
+        """zip URL 로 테마를 생성한다. 반환: {id, name, processing}.
+
+        Shopify 가 zip 을 비동기로 풀기 때문에 생성 직후엔 processing=True 다.
+        발행하려면 theme_wait_ready 로 끝나길 기다려야 한다.
+        """
+        mutation = """
+        mutation ThemeCreate($source: URL!, $name: String) {
+          themeCreate(source: $source, name: $name) {
+            theme { id name role processing }
+            userErrors { field message }
+          }
+        }
+        """
+        result = (await self.graphql(mutation, {"source": zip_url, "name": name}))["themeCreate"]
+        if result["userErrors"]:
+            raise ShopifyError(
+                "themeCreate 실패 — " + "; ".join(e["message"] for e in result["userErrors"])
+            )
+        return result["theme"]
+
+    async def theme_wait_ready(self, theme_gid: str, timeout_seconds: float = 120.0) -> None:
+        """zip 처리가 끝날 때까지 폴링한다. 처리 중에 발행하면 빈 테마가 발행된다."""
+        import asyncio
+
+        waited = 0.0
+        while waited < timeout_seconds:
+            data = await self.graphql(
+                "query($id: ID!) { theme(id: $id) { processing } }", {"id": theme_gid}
+            )
+            theme = data.get("theme")
+            if theme is None:
+                raise ShopifyError("생성한 테마를 찾을 수 없습니다 — 처리 중 삭제된 것 같습니다.")
+            if not theme["processing"]:
+                return
+            await asyncio.sleep(3)
+            waited += 3
+        raise ShopifyError(f"테마 zip 처리가 {int(timeout_seconds)}초 안에 끝나지 않았습니다.")
+
+    async def theme_publish(self, theme_gid: str) -> None:
+        mutation = """
+        mutation ThemePublish($id: ID!) {
+          themePublish(id: $id) {
+            theme { id role }
+            userErrors { field message }
+          }
+        }
+        """
+        result = (await self.graphql(mutation, {"id": theme_gid}))["themePublish"]
+        if result["userErrors"]:
+            raise ShopifyError(
+                "themePublish 실패 — " + "; ".join(e["message"] for e in result["userErrors"])
+            )
+
     # --- Pricewave: 할인 조회 -----------------------------------------------------
     async def active_discounts(self) -> list[dict]:
         """코드 할인 중 지금 살아 있는 것들 (원본 노드 그대로 — 해석은 engine.pricewave 가 한다).

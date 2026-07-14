@@ -6,6 +6,7 @@ import Link from "next/link";
 import Shell from "@/components/Shell";
 import CredentialsFields from "@/components/CredentialsFields";
 import InstallRequest from "@/components/InstallRequest";
+import ThemeInstallCard from "@/components/ThemeInstallCard";
 import {
   api,
   ApiError,
@@ -465,6 +466,8 @@ export default function StoreDetailPage() {
         scopes={store.install_scopes}
         modules={modules}
       />
+
+      <ThemeInstallCard store={store} />
 
       <div className="card">
         <h2>브랜드 설명 → AI 해석</h2>
