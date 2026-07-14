@@ -36,8 +36,18 @@ class Layout:
 # LLM 도 이 목록에서 enum 으로만 고른다 (llm.propose).
 LAYOUTS: tuple[Layout, ...] = (
     Layout(
+        id="showcase",
+        name="쇼핑몰 표준 (5섹션)",
+        description="히어로 배너 → 컬렉션 카테고리 → 상품 그리드 → 브랜드 스토리(미디어+텍스트) → 블로그. 일반적인 쇼핑몰 정석 구성.",
+    ),
+    Layout(
+        id="slide-commerce",
+        name="슬라이드 커머스 (4섹션)",
+        description="히어로 슬라이드쇼 → 컬렉션 카테고리 → 상품 그리드 → 브랜드 스토리. 첫 화면에서 여러 배너를 돌리는 프로모션형.",
+    ),
+    Layout(
         id="editorial",
-        name="에디토리얼 (기본)",
+        name="에디토리얼",
         description="히어로 배너 → 에디토리얼 → 상품 그리드 → 하단 에디토리얼. 브랜드 스토리가 강한 스토어.",
     ),
     Layout(
@@ -99,6 +109,33 @@ def _base_home(version: str | None) -> dict:
     return _sanitize(json.loads(_strip_comments(raw)))
 
 
+def _section_from_preset(version: str | None, section_type: str) -> dict | None:
+    """섹션의 {% schema %} preset[0] → 템플릿 섹션 엔트리.
+
+    테마 에디터가 "섹션 추가"를 누를 때 쓰는 바로 그 기본값이므로, 테마 작성자가 검증한
+    유효한 구성이 보장된다. 이 테마의 preset 은 이미 템플릿 형식(settings/blocks/block_order)
+    그대로라 변환이 필요 없다. preset 이 없는 섹션이면 None.
+    """
+    z = zipfile.ZipFile(io.BytesIO(_fetch_zip(version)))
+    try:
+        src = z.read(f"sections/{section_type}.liquid").decode("utf-8")
+    except KeyError:
+        return None
+    m = re.search(r"{%\s*schema\s*%}(.*?){%\s*endschema\s*%}", src, re.S)
+    if not m:
+        return None
+    schema = json.loads(_strip_comments(m.group(1)))
+    presets = schema.get("presets") or []
+    if not presets:
+        return None
+    preset = _sanitize(presets[0])
+    entry: dict = {"type": section_type}
+    for key in ("settings", "blocks", "block_order"):
+        if key in preset:
+            entry[key] = preset[key]
+    return entry
+
+
 def _classify(home: dict) -> dict[str, list[str]]:
     """섹션 id 를 역할별로 묶는다. 타입 기반이라 나누기 홈이 바뀌어도 따라간다."""
     roles: dict[str, list[str]] = {"hero": [], "products": [], "editorial": []}
@@ -114,26 +151,57 @@ def _classify(home: dict) -> dict[str, list[str]]:
 
 
 def build_home(layout_id: str, version: str | None = None) -> dict:
-    """레이아웃 프리셋 → 그 스토어에 업서트할 templates/index.json 내용."""
+    """레이아웃 프리셋 → 그 스토어에 업서트할 templates/index.json 내용.
+
+    두 가지 재료만 쓴다: ① 원본 홈의 검증된 섹션(재배열·부분집합) ② 섹션 schema 의
+    preset(테마 에디터의 '섹션 추가' 기본값). 섹션 JSON 을 손으로 지어내지 않는다.
+    """
     if layout_id not in LAYOUTS_BY_ID:
         raise KeyError(f"모르는 레이아웃: {layout_id!r}")
 
     home = _base_home(version)
     r = _classify(home)
 
-    order_by_layout = {
-        "editorial": r["hero"] + r["editorial"][:1] + r["products"] + r["editorial"][1:],
-        "product-first": r["hero"] + r["products"] + r["editorial"],
-        "minimal": r["hero"][:1] + r["products"][:1],
-        "catalog": r["products"] + r["editorial"],
-    }
-    order = [sid for sid in order_by_layout[layout_id] if sid]
+    sections: dict[str, dict] = {}
+    order: list[str] = []
+
+    def use(sid: str) -> None:
+        sections[sid] = home["sections"][sid]
+        order.append(sid)
+
+    def synth(section_type: str, sid: str) -> None:
+        entry = _section_from_preset(version, section_type)
+        if entry:  # preset 없는 섹션이면 조용히 건너뛴다 — 구성이 한 칸 줄어들 뿐이다
+            sections[sid] = entry
+            order.append(sid)
+
+    if layout_id == "showcase":
+        # 쇼핑몰 정석 5섹션: 히어로 → 카테고리 → 상품 → 브랜드 스토리 → 블로그
+        for sid in r["hero"][:1]:
+            use(sid)
+        synth("collection-list", "sf_collections")
+        for sid in r["products"][:1]:
+            use(sid)
+        synth("media-with-content", "sf_story")
+        synth("featured-blog-posts", "sf_blog")
+    elif layout_id == "slide-commerce":
+        synth("slideshow", "sf_slideshow")
+        synth("collection-list", "sf_collections")
+        for sid in r["products"][:1]:
+            use(sid)
+        synth("media-with-content", "sf_story")
+    else:
+        order_by_layout = {
+            "editorial": r["hero"] + r["editorial"][:1] + r["products"] + r["editorial"][1:],
+            "product-first": r["hero"] + r["products"] + r["editorial"],
+            "minimal": r["hero"][:1] + r["products"][:1],
+            "catalog": r["products"] + r["editorial"],
+        }
+        for sid in order_by_layout[layout_id]:
+            use(sid)
 
     if not order:
-        # 원본 홈에 섹션이 하나도 분류되지 않는 건 소스가 바뀌었다는 뜻 — 원본 그대로 둔다
+        # 아무것도 조립되지 않는 건 소스가 바뀌었다는 뜻 — 원본 그대로 둔다
         return home
 
-    return {
-        "sections": {sid: home["sections"][sid] for sid in order},
-        "order": order,
-    }
+    return {"sections": sections, "order": order}

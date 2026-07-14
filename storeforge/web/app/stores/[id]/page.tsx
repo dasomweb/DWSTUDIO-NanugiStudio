@@ -119,9 +119,6 @@ export default function StoreDetailPage() {
 
   // 축① LLM 단계 — 자연어 → 색 4개 + 폰트 4개
   const [description, setDescription] = useState("");
-  const [rationale, setRationale] = useState<string | null>(null);
-  const [thinking, setThinking] = useState(false);
-
   // AI 제안 (참고 이미지 · 참조 사이트 → 컬러셋·폰트셋·레이아웃 선택지)
   const [refUrl, setRefUrl] = useState("");
   const refImagesRef = useRef<HTMLInputElement>(null);
@@ -235,22 +232,6 @@ export default function StoreDetailPage() {
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {
       setBusy(false);
-    }
-  }
-
-  async function runInterpret() {
-    setThinking(true);
-    setError(null);
-    setRationale(null);
-    try {
-      const res = await api.interpret(description);
-      // LLM 은 색/폰트만 정한다. 나머지 441개 값은 파생 엔진이 만든다.
-      setBrand(res.brand);
-      setRationale(res.rationale);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err));
-    } finally {
-      setThinking(false);
     }
   }
 
@@ -413,19 +394,26 @@ export default function StoreDetailPage() {
         </div>
       )}
 
-      <div className="card">
-        <div className="row" style={{ justifyContent: "space-between", marginBottom: 12 }}>
-          <h2 style={{ margin: 0 }}>연동 · 스코프</h2>
-          <div className="row">
-            <button className="ghost" onClick={testConnection}>
-              연결 테스트
+      <details className="card" open={!store.connected}>
+        <summary style={{ cursor: "pointer" }}>
+          <strong>⚙️ 연동 · 스코프 · 모듈</strong>{" "}
+          <span style={{ color: "var(--muted)", fontSize: 13 }}>
+            — {store.connected ? "연결됨" : "연결 안 됨"}
+            {store.granted_scopes.length > 0 &&
+              (store.missing_scopes.length === 0 ? " · 스코프 충족" : " · 스코프 부족")}
+            {store.installed_theme_version && ` · 테마 ${store.installed_theme_version}`}
+          </span>
+        </summary>
+
+        <div className="row" style={{ margin: "12px 0" }}>
+          <button className="ghost" onClick={testConnection}>
+            연결 테스트
+          </button>
+          {!editingCreds && (
+            <button className="ghost" onClick={() => setEditingCreds(true)}>
+              자격증명 교체
             </button>
-            {!editingCreds && (
-              <button className="ghost" onClick={() => setEditingCreds(true)}>
-                자격증명 교체
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
         <table style={{ marginBottom: editingCreds ? 16 : 0 }}>
@@ -539,22 +527,45 @@ export default function StoreDetailPage() {
             </div>
           </form>
         )}
-      </div>
+      </details>
 
-      <InstallRequest
-        projectName={store.name}
-        shopDomain={store.shop_domain}
-        scopes={store.install_scopes}
-        modules={modules}
-      />
+      <details className="card">
+        <summary style={{ cursor: "pointer" }}>
+          <strong>📦 Dev App 설치 요청문</strong>{" "}
+          <span style={{ color: "var(--muted)", fontSize: 13 }}>
+            — 앱 재생성·스코프 변경 시 Cloud Cowork 에 전달 (평소엔 필요 없음)
+          </span>
+        </summary>
+        <div style={{ marginTop: 12 }}>
+          <InstallRequest
+            projectName={store.name}
+            shopDomain={store.shop_domain}
+            scopes={store.install_scopes}
+            modules={modules}
+          />
+        </div>
+      </details>
 
-      <ThemeInstallCard store={store} onInstalled={() => void load()} />
+      <details className="card" open={!store.installed_theme_version}>
+        <summary style={{ cursor: "pointer" }}>
+          <strong>🧩 테마 설치</strong>{" "}
+          <span style={{ color: "var(--muted)", fontSize: 13 }}>
+            — {store.installed_theme_version
+              ? `설치됨 (${store.installed_theme_version})`
+              : "미설치 · 디자인을 반영하려면 먼저 설치해야 합니다"}
+          </span>
+        </summary>
+        <div style={{ marginTop: 12 }}>
+          <ThemeInstallCard store={store} onInstalled={() => void load()} />
+        </div>
+      </details>
 
       <div className="card">
-        <h2>브랜드 설명 → AI 해석</h2>
+        <h2>1단계 — 브랜드를 알려주세요</h2>
         <p className="sub" style={{ fontSize: 12, marginBottom: 12 }}>
-          브랜드를 한국어로 설명하면 AI가 색 4개와 폰트 4개를 고릅니다. 고른 값은 아래에서
-          그대로 수정할 수 있습니다.
+          브랜드 설명을 쓰고, 참고할 이미지(무드보드·경쟁사 스크린샷)나 참조 사이트가 있으면
+          함께 넣으세요. AI가 <strong>컬러셋 4개 · 폰트셋 3개 · 홈 구성 추천</strong>을 만들어
+          줍니다 — 고르는 건 2단계에서 합니다.
         </p>
         <textarea
           value={description}
@@ -591,15 +602,17 @@ export default function StoreDetailPage() {
 
         <div className="row" style={{ marginTop: 10 }}>
           <button onClick={() => void runPropose()} disabled={proposing}>
-            {proposing ? "AI가 후보를 만드는 중…" : "후보 3안 제안 받기"}
-          </button>
-          <button className="ghost" onClick={runInterpret} disabled={thinking || !description.trim()}>
-            {thinking ? "해석 중…" : "단일안 바로 생성"}
+            {proposing ? "AI가 디자인을 만드는 중… (수십 초)" : "AI 디자인 제안 받기"}
           </button>
         </div>
 
         {proposal && (
           <div style={{ marginTop: 16 }}>
+            <h2 style={{ margin: "0 0 4px" }}>2단계 — 고르세요</h2>
+            <p className="sub" style={{ fontSize: 12, marginBottom: 12 }}>
+              컬러셋과 폰트셋은 <strong>따로따로</strong> 고릅니다 — 자유롭게 조합하세요.
+              클릭하면 ✓ 가 붙고 아래 미리보기가 즉시 바뀝니다.
+            </p>
             <h3 style={{ margin: "0 0 8px" }}>① 컬러셋 — 하나를 고르세요</h3>
             <div className="grid four">
               {proposal.palettes.map((p, i) => (
@@ -661,7 +674,7 @@ export default function StoreDetailPage() {
               })}
             </div>
 
-            <h3 style={{ margin: "16px 0 8px" }}>③ 레이아웃 추천</h3>
+            <h3 style={{ margin: "16px 0 8px" }}>③ 홈 화면 구성 — 하나를 고르세요</h3>
             <div style={{ fontSize: 13 }}>
               {proposal.layouts.map((rec, i) => (
                 <div key={rec.layout_id} style={{ marginBottom: 4 }}>
@@ -677,59 +690,39 @@ export default function StoreDetailPage() {
                       {i === 0 ? "★ " : ""}
                       {layoutPresets.find((l) => l.id === rec.layout_id)?.name ?? rec.layout_id}
                     </strong>{" "}
-                    <span style={{ color: "var(--muted)" }}>— {rec.rationale}</span>
+                    <span style={{ color: "var(--muted)" }}>
+                      — {layoutPresets.find((l) => l.id === rec.layout_id)?.description}{" "}
+                      ({rec.rationale})
+                    </span>
                   </label>
                 </div>
               ))}
+              <div style={{ marginTop: 6 }}>
+                <label style={{ cursor: "pointer", color: "var(--muted)" }}>
+                  다른 구성 보기:{" "}
+                  <select value={layoutId} onChange={(e) => setLayoutId(e.target.value)}>
+                    {layoutPresets.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
             </div>
-
-            <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 10, marginBottom: 0 }}>
-              고른 값은 아래 <strong>브랜드</strong> 폼에 채워집니다 — 개별 색·폰트를 거기서 더
-              바꿀 수 있고, 미리보기(9개 스킴)가 즉시 다시 계산됩니다.
-            </p>
           </div>
         )}
 
-        {rationale && (
-          <div className="note" style={{ marginTop: 12 }}>
-            <strong style={{ color: "var(--text)" }}>AI 근거</strong>
-            <div style={{ marginTop: 4 }}>{rationale}</div>
-          </div>
-        )}
       </div>
 
-      <div className="card">
-        <h2>홈 레이아웃</h2>
-        <p className="sub" style={{ fontSize: 12, marginBottom: 12 }}>
-          선택한 레이아웃을 라이브 테마의 <span className="mono">templates/index.json</span> 에
-          반영합니다. 색·폰트는 건드리지 않습니다 — 그건 아래 주입의 몫입니다.
-        </p>
-        <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <select value={layoutId} onChange={(e) => setLayoutId(e.target.value)} style={{ minWidth: 220 }}>
-            <option value="">레이아웃 선택…</option>
-            {layoutPresets.map((l) => (
-              <option key={l.id} value={l.id} title={l.description}>
-                {l.name}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={() => void runApplyLayout()}
-            disabled={!layoutId || applyingLayout || !store.connected}
-          >
-            {applyingLayout ? "반영 중…" : "레이아웃 적용"}
-          </button>
-          {layoutId && (
-            <span style={{ fontSize: 12, color: "var(--muted)" }}>
-              {layoutPresets.find((l) => l.id === layoutId)?.description}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="card">
-        <h2>브랜드</h2>
-        <p className="sub" style={{ fontSize: 12, marginBottom: 16 }}>
+      <details className="card">
+        <summary style={{ cursor: "pointer" }}>
+          <strong>3단계 — 세부 조정 (선택사항)</strong>{" "}
+          <span style={{ color: "var(--muted)", fontSize: 13 }}>
+            — 고른 컬러셋·폰트셋에서 색이나 폰트를 하나씩 바꾸고 싶을 때만 펼치세요
+          </span>
+        </summary>
+        <p className="sub" style={{ fontSize: 12, margin: "12px 0 16px" }}>
           여기 입력하는 <strong>색 3~4개</strong>가 전부입니다. 나머지{" "}
           <strong>{preview?.report.value_count ?? "—"}개</strong> CSS 값은 파생 엔진이
           결정론적으로 만들고 WCAG 대비까지 자동 보정합니다.
@@ -761,11 +754,11 @@ export default function StoreDetailPage() {
             <option value="wide">넓게</option>
           </select>
         </div>
-      </div>
+      </details>
 
       <div className="card">
         <div className="row" style={{ justifyContent: "space-between", marginBottom: 12 }}>
-          <h2 style={{ margin: 0 }}>미리보기 — 9개 컬러 스킴</h2>
+          <h2 style={{ margin: 0 }}>미리보기 — 지금 설정이 스토어에서 이렇게 보입니다</h2>
           {preview && (
             <span className={preview.report.wcag_pass ? "pill ok" : "pill bad"}>
               WCAG {preview.report.wcag_pass ? "전체 통과" : "미달 있음"}
@@ -796,26 +789,33 @@ export default function StoreDetailPage() {
       </div>
 
       <div className="card">
-        <h2>주입</h2>
+        <h2>4단계 — 스토어에 반영</h2>
         <div className="note" style={{ marginBottom: 14 }}>
-          온보딩은 <strong>1회성</strong>입니다. 이미 적용된 스토어를 다시 덮어쓰면 머천트가 테마
-          에디터에서 손댄 값이 사라질 수 있어, 재주입은 명시적으로 선택해야 합니다.
-          <span className="mono">
-            {" "}
-            shop.metafields.storeforge.brand
-          </span>{" "}
-          에만 씁니다 — 테마 파일은 건드리지 않습니다.
+          <strong>홈 구성</strong>은 라이브 테마의 홈 템플릿을 바꾸고, <strong>색·폰트</strong>는{" "}
+          <span className="mono">shop.metafields.storeforge.brand</span> 에만 씁니다. 온보딩은{" "}
+          <strong>1회성</strong>이라, 이미 적용된 스토어에 다시 쓰려면 덮어쓰기를 명시적으로
+          눌러야 합니다 — 머천트가 에디터에서 손댄 값이 사라질 수 있기 때문입니다.
         </div>
-        <div className="row">
+        <div className="row" style={{ alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+          <button
+            className="ghost"
+            onClick={() => void runApplyLayout()}
+            disabled={!layoutId || applyingLayout || !store.connected}
+            title={layoutPresets.find((l) => l.id === layoutId)?.description}
+          >
+            {applyingLayout
+              ? "홈 구성 반영 중…"
+              : `홈 구성 반영${layoutId ? ` (${layoutPresets.find((l) => l.id === layoutId)?.name ?? layoutId})` : ""}`}
+          </button>
           <button
             onClick={() => apply(false)}
             disabled={busy || !store.connected || !preview?.report.wcag_pass}
           >
-            {busy ? "주입 중…" : "스토어에 적용"}
+            {busy ? "주입 중…" : "색·폰트 주입"}
           </button>
           {applied && (
             <button className="danger" onClick={() => apply(true)} disabled={busy}>
-              덮어쓰기 (재주입)
+              색·폰트 덮어쓰기 (재주입)
             </button>
           )}
         </div>
