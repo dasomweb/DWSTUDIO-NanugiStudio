@@ -18,17 +18,20 @@ export default function InstallRequest({
   shopDomain,
   scopes,
   modules,
+  createDevStore = false,
 }: {
   projectName: string;
   shopDomain: string;
   scopes: string[];
   modules: Module[];
+  /** 개발용 스토어를 새로 만드는 요청까지 포함할지. 고객 스토어에는 켜지 않는다. */
+  createDevStore?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
 
   const text = useMemo(
-    () => buildRequest(projectName, shopDomain, scopes, modules),
-    [projectName, shopDomain, scopes, modules]
+    () => buildRequest(projectName, shopDomain, scopes, modules, createDevStore),
+    [projectName, shopDomain, scopes, modules, createDevStore]
   );
 
   async function copy() {
@@ -77,7 +80,8 @@ export function buildRequest(
   projectName: string,
   shopDomain: string,
   scopes: string[],
-  modules: Module[]
+  modules: Module[],
+  createDevStore = false
 ): string {
   const appName = `DWSTUDIO Suite — ${projectName}`;
 
@@ -97,7 +101,16 @@ export function buildRequest(
   배포 방식   : Custom distribution (이 스토어 전용 / 승인 불요)
 
 ■ ⚠️ 시작 전 반드시 확인 (여기서 막히면 뒤 단계가 전부 무의미합니다)
+${
+  createDevStore
+    ? `
+  이 요청은 **개발용 Dev store** 대상입니다. Dev store 는 고객 이전이 불가능한 타입이라
+  (= transfer-disabled) 커스텀 앱이 정상 설치됩니다.
 
+  ▸ 반드시 **Dev store** 로 만들어 주세요. **"Client transfer store" 로 만들면 안 됩니다** —
+    그 타입에는 커스텀 앱을 설치할 수 없습니다.
+`
+    : `
   Dev Dashboard → Stores 에서 ${shopDomain} 의 타입을 확인해 주세요.
 
   ▸ "Client transfer" 타입이거나 상태가 "In development" 이면 → **작업을 중단하고 알려주세요.**
@@ -106,13 +119,25 @@ export function buildRequest(
     "The installation link for this app is invalid" 가 반복됩니다. 링크나 로그인 세션 문제가
     아니라 구조적 제약입니다. → **고객에게 스토어를 Transfer 한 뒤에 이 요청을 진행합니다.**
 
+  ▸ 정식 스토어(유료 플랜) 또는 Dev store(transfer-disabled)이면 → 아래 순서대로 진행합니다.
+`
+}
   ▸ 절대 하지 말 것: \`shopify app dev\` 로 우회 설치.
-    개발 스토어에 커스텀/draft 앱을 설치하면 **transfer 가 영구 비활성화**되어 고객에게 스토어를
-    넘길 수 없게 됩니다. Shopify CLI 는 이 변환을 경고 없이 수행합니다.
-
-  ▸ 정식 스토어(유료 플랜) 또는 transfer-disabled 개발 스토어이면 → 아래 순서대로 진행합니다.
+    고객 이전용 스토어에 커스텀/draft 앱을 설치하면 **transfer 가 영구 비활성화**되어 고객에게
+    스토어를 넘길 수 없게 됩니다. Shopify CLI 는 이 변환을 경고 없이 수행합니다 (Shopify/cli#3946).
 
 ■ 작업 순서
+${
+  createDevStore
+    ? `
+0) 개발 스토어 생성 (이미 있으면 건너뜁니다)
+   Dev Dashboard → Stores → Create store
+   - 스토어 타입: **Dev store** (Client transfer store 아님)
+   - 스토어 도메인: ${shopDomain}
+   - 플랜: 아무거나 (개발 스토어는 실결제가 없습니다)
+`
+    : ""
+}
 
 1) 앱 생성
    https://dev.shopify.com/dashboard → Apps → Create app → Start from Dev Dashboard

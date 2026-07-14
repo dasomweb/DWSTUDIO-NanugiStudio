@@ -17,6 +17,7 @@ export default function InstallPage() {
   const [scopes, setScopes] = useState<string[]>([]);
   const [name, setName] = useState("");
   const [domain, setDomain] = useState("");
+  const [devStore, setDevStore] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -74,6 +75,21 @@ export default function InstallPage() {
             />
           </div>
         </div>
+        <label style={{ display: "block", marginTop: 12, cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={devStore}
+            onChange={(e) => setDevStore(e.target.checked)}
+            style={{ marginRight: 8 }}
+          />
+          개발용 <strong>Dev store</strong> 다 (신규 생성 단계 포함)
+        </label>
+        <p style={{ color: "var(--muted)", fontSize: 12, marginBottom: 0 }}>
+          Dev store 는 고객 이전이 불가능한 타입이라 커스텀 앱이 정상 설치됩니다. 반대로{" "}
+          <strong>Client transfer store 에는 커스텀 앱을 설치할 수 없습니다</strong> — 고객 스토어는
+          이전(Transfer)이 끝난 뒤에 이 요청을 보내세요.
+        </p>
+
         {domain && !ready && (
           <p style={{ color: "var(--muted)", fontSize: 12, marginBottom: 0 }}>
             프로젝트명과 <span className="mono">*.myshopify.com</span> 도메인이 모두 필요합니다.
@@ -87,6 +103,7 @@ export default function InstallPage() {
           shopDomain={shopDomain}
           scopes={scopes}
           modules={modules}
+          createDevStore={devStore}
         />
       ) : (
         <p style={{ color: "var(--muted)" }}>
