@@ -33,9 +33,16 @@
     {%- comment -%} 번들 폰트: assets/ 에 업로드된 woff2 를 @font-face 로 등록 {%- endcomment -%}
     {%- for face in brand.font_faces -%}
       {%- assign face_asset = face.asset | strip -%}
+      {%- comment -%}
+        문자열 정리는 반드시 assign({% %}) 안에서 한다. 출력 태그({{ }}) 안에 '}' 리터럴이
+        들어가면 Shopify 프로덕션 렉서가 닫힘 }} 를 잘못 찾아 파일 전체를 거부한다 —
+        CLI push 와 zip 임포트가 이 파일만 조용히 버렸던 원인. 로컬 theme-check 는 신형
+        파서라 이 오류를 잡지 못하므로, 여기서 규칙으로 지킨다.
+      {%- endcomment -%}
+      {%- assign face_family = face.family | strip | replace: '"', '' | replace: ';', '' | replace: '}', '' -%}
       {%- if face_asset != blank -%}
         @font-face {
-          font-family: "{{ face.family | strip | replace: '"', '' | replace: ';', '' | replace: '}', '' }}";
+          font-family: "{{ face_family }}";
           font-weight: {{ face.weight | default: 400 | plus: 0 }};
           font-style: {% if face.style == 'italic' %}italic{% else %}normal{% endif %};
           font-display: swap;
