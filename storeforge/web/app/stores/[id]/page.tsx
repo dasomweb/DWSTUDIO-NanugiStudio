@@ -11,12 +11,12 @@ import {
   api,
   ApiError,
   type BrandInput,
-  type Candidate,
   type Credentials,
   type Font,
   type LayoutPreset,
   type Module,
   type Preview,
+  type Proposal,
   type Run,
   type Store,
 } from "@/lib/api";
@@ -122,10 +122,12 @@ export default function StoreDetailPage() {
   const [rationale, setRationale] = useState<string | null>(null);
   const [thinking, setThinking] = useState(false);
 
-  // AI 제안 (참고 이미지 · 참조 사이트 → 후보 3안) + 홈 레이아웃
+  // AI 제안 (참고 이미지 · 참조 사이트 → 컬러셋·폰트셋·레이아웃 선택지)
   const [refUrl, setRefUrl] = useState("");
   const refImagesRef = useRef<HTMLInputElement>(null);
-  const [proposals, setProposals] = useState<Candidate[] | null>(null);
+  const [proposal, setProposal] = useState<Proposal | null>(null);
+  const [pickedPalette, setPickedPalette] = useState<number | null>(null);
+  const [pickedFontSet, setPickedFontSet] = useState<number | null>(null);
   const [proposing, setProposing] = useState(false);
   const [layoutPresets, setLayoutPresets] = useState<LayoutPreset[]>([]);
   const [layoutId, setLayoutId] = useState("");
@@ -255,7 +257,9 @@ export default function StoreDetailPage() {
   async function runPropose() {
     setProposing(true);
     setError(null);
-    setProposals(null);
+    setProposal(null);
+    setPickedPalette(null);
+    setPickedFontSet(null);
     try {
       const form = new FormData();
       form.append("description", description);
@@ -263,7 +267,11 @@ export default function StoreDetailPage() {
       for (const f of Array.from(refImagesRef.current?.files ?? [])) {
         form.append("images", f);
       }
-      setProposals(await api.propose(form));
+      const p = await api.propose(form);
+      setProposal(p);
+      // 레이아웃과 페이지 폭은 1순위 추천으로 미리 채운다 — 컬러/폰트는 사람이 고른다.
+      if (p.layouts.length > 0) setLayoutId(p.layouts[0].layout_id);
+      setBrand((b) => ({ ...b, page_width: p.page_width }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {
@@ -271,11 +279,31 @@ export default function StoreDetailPage() {
     }
   }
 
-  function pickCandidate(c: Candidate) {
-    // 선택은 폼을 채울 뿐이다 — 사람이 검토·수정한 뒤에 주입/레이아웃 적용을 누른다.
-    setBrand(c.brand);
-    setRationale(`[${c.name}] ${c.rationale}`);
-    setLayoutId(c.layout_id);
+  // 선택은 폼을 채울 뿐이다 — 사람이 검토·수정한 뒤에 주입/레이아웃 적용을 누른다.
+  function pickPalette(i: number) {
+    if (!proposal) return;
+    const p = proposal.palettes[i];
+    setPickedPalette(i);
+    setBrand((b) => ({
+      ...b,
+      primary: p.primary,
+      background: p.background,
+      foreground: p.foreground,
+      accent: p.accent,
+    }));
+  }
+
+  function pickFontSet(i: number) {
+    if (!proposal) return;
+    const f = proposal.font_sets[i];
+    setPickedFontSet(i);
+    setBrand((b) => ({
+      ...b,
+      body_font: f.body_font,
+      heading_font: f.heading_font,
+      subheading_font: f.subheading_font,
+      accent_font: f.accent_font,
+    }));
   }
 
   async function runApplyLayout() {
@@ -570,42 +598,95 @@ export default function StoreDetailPage() {
           </button>
         </div>
 
-        {proposals && (
-          <div className="grid three" style={{ marginTop: 14 }}>
-            {proposals.map((c) => (
-              <div
-                key={c.name}
-                className="card"
-                style={{ cursor: "pointer", borderColor: layoutId === c.layout_id ? "var(--text)" : undefined }}
-                onClick={() => pickCandidate(c)}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <strong style={{ flex: 1 }}>{c.name}</strong>
-                  <span className={c.report.wcag_pass ? "pill ok" : "pill"}>WCAG</span>
+        {proposal && (
+          <div style={{ marginTop: 16 }}>
+            <h3 style={{ margin: "0 0 8px" }}>① 컬러셋 — 하나를 고르세요</h3>
+            <div className="grid four">
+              {proposal.palettes.map((p, i) => (
+                <div
+                  key={p.name}
+                  className="card"
+                  onClick={() => pickPalette(i)}
+                  style={{
+                    cursor: "pointer",
+                    outline: pickedPalette === i ? "2px solid var(--text)" : undefined,
+                  }}
+                >
+                  <strong style={{ display: "block", marginBottom: 8 }}>
+                    {pickedPalette === i ? "✓ " : ""}{p.name}
+                  </strong>
+                  <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+                    {([p.primary, p.background, p.foreground, p.accent]).map((c, j) => (
+                      <span
+                        key={j}
+                        title={c}
+                        style={{
+                          width: 30, height: 30, borderRadius: 6, background: c,
+                          border: "1px solid var(--line)",
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--muted)" }}>{p.rationale}</div>
                 </div>
-                <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
-                  {(["primary", "background", "foreground", "accent"] as const).map((k) => (
-                    <span
-                      key={k}
-                      title={`${k}: ${c.brand[k]}`}
-                      style={{
-                        width: 28, height: 28, borderRadius: 6,
-                        background: c.brand[k] as string,
-                        border: "1px solid var(--line)",
-                      }}
+              ))}
+            </div>
+
+            <h3 style={{ margin: "16px 0 8px" }}>② 폰트셋 — 하나를 고르세요</h3>
+            <div className="grid three">
+              {proposal.font_sets.map((fs, i) => {
+                const fam = (h: string) => fonts.find((f) => f.handle === h)?.family ?? h;
+                return (
+                  <div
+                    key={fs.name}
+                    className="card"
+                    onClick={() => pickFontSet(i)}
+                    style={{
+                      cursor: "pointer",
+                      outline: pickedFontSet === i ? "2px solid var(--text)" : undefined,
+                    }}
+                  >
+                    <strong style={{ display: "block", marginBottom: 6 }}>
+                      {pickedFontSet === i ? "✓ " : ""}{fs.name}
+                    </strong>
+                    <div style={{ fontSize: 13, marginBottom: 4 }}>
+                      헤딩 <strong>{fam(fs.heading_font)}</strong> · 본문 <strong>{fam(fs.body_font)}</strong>
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4 }}>
+                      서브 {fam(fs.subheading_font)} · 액센트 {fam(fs.accent_font)}
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--muted)" }}>{fs.rationale}</div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <h3 style={{ margin: "16px 0 8px" }}>③ 레이아웃 추천</h3>
+            <div style={{ fontSize: 13 }}>
+              {proposal.layouts.map((rec, i) => (
+                <div key={rec.layout_id} style={{ marginBottom: 4 }}>
+                  <label style={{ cursor: "pointer" }}>
+                    <input
+                      type="radio"
+                      name="layout-rec"
+                      checked={layoutId === rec.layout_id}
+                      onChange={() => setLayoutId(rec.layout_id)}
+                      style={{ marginRight: 6 }}
                     />
-                  ))}
+                    <strong>
+                      {i === 0 ? "★ " : ""}
+                      {layoutPresets.find((l) => l.id === rec.layout_id)?.name ?? rec.layout_id}
+                    </strong>{" "}
+                    <span style={{ color: "var(--muted)" }}>— {rec.rationale}</span>
+                  </label>
                 </div>
-                <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>
-                  {fonts.find((f) => f.handle === c.brand.heading_font)?.family} /{" "}
-                  {fonts.find((f) => f.handle === c.brand.body_font)?.family}
-                  {" · "}
-                  {layoutPresets.find((l) => l.id === c.layout_id)?.name ?? c.layout_id}
-                </div>
-                <div style={{ fontSize: 12 }}>{c.rationale}</div>
-                <button style={{ marginTop: 10, width: "100%" }}>이 안 선택</button>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 10, marginBottom: 0 }}>
+              고른 값은 아래 <strong>브랜드</strong> 폼에 채워집니다 — 개별 색·폰트를 거기서 더
+              바꿀 수 있고, 미리보기(9개 스킴)가 즉시 다시 계산됩니다.
+            </p>
           </div>
         )}
 

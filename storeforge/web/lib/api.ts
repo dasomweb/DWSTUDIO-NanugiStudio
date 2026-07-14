@@ -99,13 +99,30 @@ export type PricewaveSync = {
   synced_at: string;
 };
 
-/** AI 제안 후보 하나 — 색·폰트 + 홈 레이아웃 + 근거. */
-export type Candidate = {
+/** AI 제안 — 컬러셋과 폰트셋은 독립적으로 골라 조합한다. */
+export type PaletteOption = {
   name: string;
-  brand: BrandInput;
-  layout_id: string;
+  primary: string;
+  background: string;
+  foreground: string;
+  accent: string;
   rationale: string;
-  report: Preview["report"];
+};
+
+export type FontSetOption = {
+  name: string;
+  body_font: string;
+  heading_font: string;
+  subheading_font: string;
+  accent_font: string;
+  rationale: string;
+};
+
+export type Proposal = {
+  palettes: PaletteOption[];
+  font_sets: FontSetOption[];
+  layouts: { layout_id: string; rationale: string }[];
+  page_width: BrandInput["page_width"];
 };
 
 export type LayoutPreset = {
@@ -369,9 +386,9 @@ export const api = {
     }),
   listRuns: (storeId: number) => request<Run[]>(`/stores/${storeId}/runs`),
 
-  // AI 제안 (참고 이미지 · 참조 사이트 → 후보 3안) + 홈 레이아웃
+  // AI 제안 (참고 이미지 · 참조 사이트 → 컬러셋·폰트셋·레이아웃 선택지)
   propose: (form: FormData) =>
-    request<Candidate[]>("/propose", { method: "POST", body: form }),
+    request<Proposal>("/propose", { method: "POST", body: form }),
   listLayouts: () => request<LayoutPreset[]>("/layouts"),
   applyLayout: (storeId: number, layoutId: string) =>
     request<{ applied: string; sections: string[] }>(`/stores/${storeId}/layout`, {

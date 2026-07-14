@@ -178,18 +178,20 @@ PROPOSE_SYSTEM = """\
 당신은 Shopify 스토어의 브랜드 디자인을 제안하는 아트 디렉터입니다.
 
 셀러의 브랜드 설명과, 첨부된 **참고 이미지**(무드보드·경쟁사 스크린샷 등)와
-**참조 사이트에서 추출한 힌트**(색·폰트)를 읽고, 서로 성격이 다른 **후보 3안**을 만듭니다.
+**참조 사이트에서 추출한 힌트**(색·폰트)를 읽고, 셀러가 **조합해서 고를 수 있는 선택지**를
+만듭니다. 통짜 패키지가 아닙니다 — 컬러셋과 폰트셋은 서로 독립적으로 선택되므로,
+어떤 컬러셋과 어떤 폰트셋을 조합해도 어울리게 만드세요.
 
-각 안은 색 4개 + 폰트 4개 + 페이지 폭 + 홈 레이아웃 하나로 구성됩니다.
-파생 값(버튼 hover, 입력창 테두리 등 441개)은 결정론적 엔진이 계산하고 WCAG 대비도
-코드가 보정하므로, 대비 미세조정에 애쓰지 말고 **브랜드 성격이 다르게 드러나는 세 방향**을
-제시하세요. 예: ① 참조에 가장 충실한 안 ② 더 절제된 안 ③ 더 대담한 안.
+- **컬러셋 4개**: 서로 성격이 다르게. 예: ① 참조에 가장 충실한 안 ② 더 절제된 안
+  ③ 더 대담한 안 ④ 반전(다크/라이트를 뒤집은) 안. 파생 값(버튼 hover 등 441개)은
+  결정론적 엔진이 계산하고 WCAG 도 코드가 보정하니, 대비 미세조정 대신 브랜드 성격에 집중하세요.
+- **폰트셋 3개**: 등록된 폰트 안에서 서로 다른 인상의 조합. 한국어 콘텐츠 중심 브랜드면
+  body 는 한글 지원 폰트여야 하고, 영어 중심이면 그 제약이 없습니다.
+- **레이아웃 추천**: 주어진 홈 레이아웃 중 이 브랜드에 맞는 순서로 2개 이상 추천.
 
 이미지에서 색을 읽을 때는 지배적인 색뿐 아니라 포인트로 쓰인 색도 보세요.
-한국어 콘텐츠 중심 브랜드면 body 는 한글 지원 폰트여야 합니다.
-
-각 안의 name 은 셀러가 한눈에 구별할 짧은 한국어 이름(예: "크림 미니멀"),
-rationale 은 왜 이 조합인지 두세 문장입니다.\
+각 선택지의 name 은 셀러가 한눈에 구별할 짧은 한국어 이름(예: "크림 미니멀"),
+rationale 은 한두 문장입니다.\
 """
 
 
@@ -197,7 +199,8 @@ def _propose_schema() -> dict:
     handles = sorted(fonts.REGISTRY)
     color = {"type": "string", "description": "#rrggbb 6자리 hex"}
     font = {"type": "string", "enum": handles}
-    candidate = {
+
+    palette = {
         "type": "object",
         "properties": {
             "name": {"type": "string", "description": "짧은 한국어 이름"},
@@ -205,27 +208,46 @@ def _propose_schema() -> dict:
             "background": color,
             "foreground": color,
             "accent": color,
+            "rationale": {"type": "string"},
+        },
+        "required": ["name", "primary", "background", "foreground", "accent", "rationale"],
+        "additionalProperties": False,
+    }
+    font_set = {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string", "description": "짧은 한국어 이름"},
             "body_font": font,
             "heading_font": font,
             "subheading_font": font,
             "accent_font": font,
-            "page_width": {"type": "string", "enum": list(PAGE_WIDTHS)},
-            "layout_id": {"type": "string", "enum": [l.id for l in LAYOUTS]},
             "rationale": {"type": "string"},
         },
         "required": [
-            "name", "primary", "background", "foreground", "accent",
-            "body_font", "heading_font", "subheading_font", "accent_font",
-            "page_width", "layout_id", "rationale",
+            "name", "body_font", "heading_font", "subheading_font", "accent_font", "rationale",
         ],
         "additionalProperties": False,
     }
+    layout_rec = {
+        "type": "object",
+        "properties": {
+            "layout_id": {"type": "string", "enum": [l.id for l in LAYOUTS]},
+            "rationale": {"type": "string"},
+        },
+        "required": ["layout_id", "rationale"],
+        "additionalProperties": False,
+    }
+    # 구조화 출력은 배열의 minItems(0/1 외)·maxItems 를 지원하지 않는다 (2026-07 실호출 확인).
+    # 개수는 프롬프트가 지시하고 _validate_proposal 이 검사한다 — 모자라면 재생성, 넘치면 자른다.
     return {
         "type": "object",
         "properties": {
-            "candidates": {"type": "array", "items": candidate, "minItems": 3, "maxItems": 3}
+            "palettes": {"type": "array", "items": palette},
+            "font_sets": {"type": "array", "items": font_set},
+            "layouts": {"type": "array", "items": layout_rec},
+            "page_width": {"type": "string", "enum": list(PAGE_WIDTHS)},
         },
-        "required": ["candidates"],
+        "required": ["palettes", "font_sets", "layouts", "page_width"],
         "additionalProperties": False,
     }
 
@@ -234,15 +256,41 @@ def _layout_catalog() -> str:
     return "\n".join(f"- {l.id}: {l.name} — {l.description}" for l in LAYOUTS)
 
 
+_HEX_RE = __import__("re").compile(r"^#[0-9a-fA-F]{6}$")
+
+
+def _validate_proposal(raw: dict) -> dict:
+    """스키마가 못 거르는 것(hex 형식·개수)을 여기서 거른다. 실패 문구는 재생성 루프로 간다."""
+    if len(raw["palettes"]) < 3:
+        raise ValueError(f"컬러셋이 {len(raw['palettes'])}개뿐입니다 — 4개를 만드세요.")
+    if len(raw["font_sets"]) < 2:
+        raise ValueError(f"폰트셋이 {len(raw['font_sets'])}개뿐입니다 — 3개를 만드세요.")
+    if len(raw["layouts"]) < 1:
+        raise ValueError("레이아웃 추천이 없습니다 — 2개 이상 추천하세요.")
+    raw["palettes"] = raw["palettes"][:4]
+    raw["font_sets"] = raw["font_sets"][:3]
+    for p in raw["palettes"]:
+        for key in ("primary", "background", "foreground", "accent"):
+            if not _HEX_RE.match(p[key]):
+                raise ValueError(f"팔레트 '{p['name']}' 의 {key} 가 #rrggbb 형식이 아닙니다: {p[key]!r}")
+    seen = set()
+    raw["layouts"] = [
+        rec for rec in raw["layouts"]
+        if rec["layout_id"] not in seen and not seen.add(rec["layout_id"])
+    ]
+    return raw
+
+
 def propose(
     description: str,
     images: list[tuple[str, str]] | None = None,  # (media_type, base64 데이터)
     site_hints: str | None = None,
     api_key: str | None = None,
-) -> list[dict]:
-    """설명 + 참고 자료 → 후보 3안. 각 안의 색·폰트는 BrandInput 으로 검증된다.
+) -> dict:
+    """설명 + 참고 자료 → 조합 가능한 선택지 묶음.
 
-    반환: [{name, brand: BrandInput 필드들, layout_id, rationale}, ...]
+    반환: {palettes: [4], font_sets: [3], layouts: [추천순], page_width}
+    컬러셋과 폰트셋은 독립적으로 선택된다 — 셀러가 섞어서 고른다.
     """
     client = anthropic.Anthropic(api_key=api_key) if api_key else anthropic.Anthropic()
 
@@ -286,22 +334,9 @@ def propose(
         raw_text = "".join(b.text for b in response.content if b.type == "text")
 
         try:
-            raw = json.loads(raw_text)
-            out = []
-            for cand in raw["candidates"]:
-                fields = {k: v for k, v in cand.items() if k not in ("name", "layout_id", "rationale")}
-                brand = BrandInput(**fields)  # hex 등 최종 검증 — 실패 시 재생성 루프로
-                out.append(
-                    {
-                        "name": cand["name"],
-                        "brand": brand,
-                        "layout_id": cand["layout_id"],
-                        "rationale": cand["rationale"],
-                    }
-                )
-            return out
+            return _validate_proposal(json.loads(raw_text))
 
-        except (json.JSONDecodeError, ValidationError, KeyError, TypeError) as exc:
+        except (json.JSONDecodeError, ValidationError, KeyError, TypeError, ValueError) as exc:
             last_error = str(exc)
             logger.warning("제안 %d차 시도 실패: %s", attempt, last_error)
             if attempt == MAX_ATTEMPTS:

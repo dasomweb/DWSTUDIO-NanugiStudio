@@ -96,12 +96,36 @@ def interpret_brand(body: InterpretIn, _: User = Depends(current_user)) -> Inter
     return InterpretOut(brand=brand, rationale=rationale, report=build_report(brand))
 
 
-class Candidate(BaseModel):
+class PaletteOption(BaseModel):
     name: str
-    brand: BrandInput
+    primary: str
+    background: str
+    foreground: str
+    accent: str
+    rationale: str
+
+
+class FontSetOption(BaseModel):
+    name: str
+    body_font: str
+    heading_font: str
+    subheading_font: str
+    accent_font: str
+    rationale: str
+
+
+class LayoutRec(BaseModel):
     layout_id: str
     rationale: str
-    report: dict
+
+
+class ProposalOut(BaseModel):
+    """조합형 선택지 — 컬러셋과 폰트셋은 독립적으로 고른다."""
+
+    palettes: list[PaletteOption]
+    font_sets: list[FontSetOption]
+    layouts: list[LayoutRec]  # 추천순
+    page_width: str
 
 
 IMAGE_TYPES = {"image/png", "image/jpeg", "image/webp", "image/gif"}
@@ -173,16 +197,16 @@ def list_layouts(_: User = Depends(current_user)) -> list[dict]:
     return [{"id": l.id, "name": l.name, "description": l.description} for l in layouts.LAYOUTS]
 
 
-@router.post("/propose", response_model=list[Candidate])
+@router.post("/propose", response_model=ProposalOut)
 async def propose_brand(
     description: str = Form(""),
     reference_url: str | None = Form(None),
     images: list[UploadFile] = File(default=[]),
     _: User = Depends(current_user),
-) -> list[Candidate]:
-    """설명 + 참고 이미지 + 참조 사이트 → 서로 다른 후보 3안.
+) -> ProposalOut:
+    """설명 + 참고 이미지 + 참조 사이트 → 컬러셋 4 · 폰트셋 3 · 레이아웃 추천.
 
-    선택은 사람이 한다 — 고른 안이 아래 브랜드 폼에 채워지고, 수정 후 주입한다.
+    선택과 조합은 사람이 한다 — 고른 컬러셋/폰트셋이 브랜드 폼에 채워지고, 수정 후 주입한다.
     """
     if not description.strip() and not images and not (reference_url or "").strip():
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "설명·이미지·참조 URL 중 하나는 필요합니다.")
@@ -203,20 +227,11 @@ async def propose_brand(
 
     key = get_settings().anthropic_api_key or None
     try:
-        cands = propose(description, images=prepared, site_hints=hints, api_key=key)
+        raw = propose(description, images=prepared, site_hints=hints, api_key=key)
     except BrandInterpretationError as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
 
-    return [
-        Candidate(
-            name=c["name"],
-            brand=c["brand"],
-            layout_id=c["layout_id"],
-            rationale=c["rationale"],
-            report=build_report(c["brand"]),
-        )
-        for c in cands
-    ]
+    return ProposalOut(**raw)
 
 
 class LayoutIn(BaseModel):
