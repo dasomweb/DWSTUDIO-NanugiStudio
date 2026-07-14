@@ -13,7 +13,8 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
 
 from ..config import get_settings
@@ -40,10 +41,47 @@ class InstallOut(BaseModel):
     installed_at: datetime
 
 
+def _proxy_zip_url(request: Request) -> str:
+    """themeCreate 에 넘길 zip URL — 우리 API 의 프록시 주소.
+
+    GitHub 의 releases/latest/download/… 는 302 리다이렉트인데, Shopify themeCreate 는
+    리다이렉트를 따라가지 않고 "Src must be a zip file" 로 거부한다. 그래서 GitHub 원본을
+    직접 주지 않고, 우리가 200 으로 스트리밍해 주는 아래 /themes/source.zip 을 준다.
+    """
+    base = str(request.base_url).rstrip("/")
+    # Railway 프록시 뒤에서는 base_url 이 http 로 잡힌다. Shopify 는 https 만 받는다.
+    if base.startswith("http://") and "localhost" not in base and "127.0.0.1" not in base:
+        base = "https://" + base[len("http://"):]
+    return f"{base}/themes/source.zip"
+
+
 @router.get("/source")
-def theme_source(_: User = Depends(current_user)) -> dict:
-    """기본 소스 zip URL. 화면이 설치 카드에 보여준다."""
-    return {"zip_url": get_settings().theme_zip_url}
+def theme_source(request: Request, _: User = Depends(current_user)) -> dict:
+    """설치에 실제로 쓰이는 zip URL(프록시)과 그 원본. 화면이 설치 카드에 보여준다."""
+    return {"zip_url": _proxy_zip_url(request), "upstream": get_settings().theme_zip_url}
+
+
+@router.get("/source.zip")
+async def source_zip() -> Response:
+    """소스 테마 zip 을 200 으로 직접 스트리밍한다.
+
+    인증이 없는 것은 의도다 — Shopify 서버가 이 URL 을 직접 가져가야 하기 때문이다.
+    내용은 공개 저장소의 릴리즈 자산이므로 새는 것이 없다. URL 은 설정 고정값만 쓰므로
+    SSRF 여지도 없다.
+    """
+    upstream = get_settings().theme_zip_url
+    async with httpx.AsyncClient(follow_redirects=True, timeout=120) as client:
+        resp = await client.get(upstream)
+    if resp.status_code >= 400:
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            f"소스 zip 을 가져오지 못했습니다 (upstream HTTP {resp.status_code}): {upstream}",
+        )
+    return Response(
+        content=resp.content,
+        media_type="application/zip",
+        headers={"Content-Disposition": 'attachment; filename="theme.zip"'},
+    )
 
 
 def _guard(store: Store) -> None:
@@ -63,7 +101,9 @@ def _guard(store: Store) -> None:
 
 
 @router.post("/stores/{store_id}/install", response_model=InstallOut)
-async def install(body: InstallIn, store: Store = Depends(get_store)) -> InstallOut:
+async def install(
+    body: InstallIn, request: Request, store: Store = Depends(get_store)
+) -> InstallOut:
     """소스 테마를 이 스토어에 설치한다.
 
     기존 테마는 건드리지 않는다 — 새 테마가 하나 늘고, publish=True 면 그걸 라이브로
@@ -71,7 +111,7 @@ async def install(body: InstallIn, store: Store = Depends(get_store)) -> Install
     """
     _guard(store)
 
-    zip_url = body.zip_url or get_settings().theme_zip_url
+    zip_url = body.zip_url or _proxy_zip_url(request)
     name = body.name or f"DWSTUDIO — {store.name}"
 
     try:
