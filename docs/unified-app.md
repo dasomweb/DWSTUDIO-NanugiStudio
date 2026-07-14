@@ -86,7 +86,37 @@ Shopify 가 처리한다. 그래서 읽기 스코프(`read_discounts`) 하나면
 
 ## 3. 클라이언트 스토어 온보딩 절차
 
-새 클라이언트 스토어를 붙일 때마다 반복한다.
+### 3.-1 ⚠️ 전제: 앱은 **고객 이전(Transfer) 이후에만** 설치할 수 있다
+
+**client transfer 스토어(파트너 조직에 남아 있는 "In development" 스토어)에는 커스텀 앱을 설치할 수 없다.**
+그 상태에서는 무료 앱과 파트너 친화 앱만 설치된다. 시도하면 install link 를 몇 번 새로 뽑아도
+`The installation link for this app is invalid` 가 반복된다 — **링크나 로그인 세션 문제가 아니다.**
+(2026-07-13, `braidinghairwholesale` 에서 3회 재시도 후 확인)
+
+그래서 순서가 이렇게 된다:
+
+```
+테마 개발 (앱 없이)  →  고객에게 Transfer  →  앱 설치  →  자격증명  →  StoreForge / CI 연동
+```
+
+**이전 전에 할 수 있는 것**
+- **테마 개발·배포**: `shopify theme dev` / `shopify theme push` 는 CLI 브라우저 로그인을 쓴다.
+  커스텀 앱 자격증명이 필요 없다 → 지금 그대로 진행 가능.
+- **GitHub Actions 테마 배포**: 무료 앱은 설치되므로 Shopify 공식 **Theme Access 앱**으로 토큰을
+  발급받으면 이전 전에도 CI 를 돌릴 수 있다. (§1 의 client_credentials 경로는 이전 후에 붙인다)
+
+**이전 전에 막히는 것**
+- StoreForge(브랜드 주입) · ListPilot · Pricewave — 전부 Admin API 가 필요하고, 그건 커스텀 앱이
+  있어야 한다. 개발 중에는 테마 에디터에서 수동으로 맞추고, 이전 후 주입으로 정리한다.
+
+> ### 🚫 `shopify app dev` 로 우회하지 말 것
+> 개발 스토어에 커스텀/draft 앱을 설치하면 **transfer 가 영구 비활성화**된다. Shopify CLI 는 이
+> 변환을 **경고 없이** 수행한다 (Shopify/cli#3946). 고객에게 넘길 스토어에서 이걸 실행하면
+> 스토어를 넘길 수 없게 된다 — 되돌릴 수 없다.
+
+---
+
+새 클라이언트 스토어를 붙일 때마다 반복한다. (위 전제를 만족한 뒤)
 
 ### 3.0 앱 설치는 Cloud Cowork 에 요청한다 (권장 경로)
 

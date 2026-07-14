@@ -96,6 +96,22 @@ export function buildRequest(
   앱 이름     : ${appName}
   배포 방식   : Custom distribution (이 스토어 전용 / 승인 불요)
 
+■ ⚠️ 시작 전 반드시 확인 (여기서 막히면 뒤 단계가 전부 무의미합니다)
+
+  Dev Dashboard → Stores 에서 ${shopDomain} 의 타입을 확인해 주세요.
+
+  ▸ "Client transfer" 타입이거나 상태가 "In development" 이면 → **작업을 중단하고 알려주세요.**
+    client transfer 스토어가 파트너 조직에 남아 있는 동안에는 무료 앱·파트너 친화 앱만 설치할 수
+    있고, **커스텀 앱은 설치할 수 없습니다.** 설치를 시도하면 install link 를 몇 번 새로 뽑아도
+    "The installation link for this app is invalid" 가 반복됩니다. 링크나 로그인 세션 문제가
+    아니라 구조적 제약입니다. → **고객에게 스토어를 Transfer 한 뒤에 이 요청을 진행합니다.**
+
+  ▸ 절대 하지 말 것: \`shopify app dev\` 로 우회 설치.
+    개발 스토어에 커스텀/draft 앱을 설치하면 **transfer 가 영구 비활성화**되어 고객에게 스토어를
+    넘길 수 없게 됩니다. Shopify CLI 는 이 변환을 경고 없이 수행합니다.
+
+  ▸ 정식 스토어(유료 플랜) 또는 transfer-disabled 개발 스토어이면 → 아래 순서대로 진행합니다.
+
 ■ 작업 순서
 
 1) 앱 생성
