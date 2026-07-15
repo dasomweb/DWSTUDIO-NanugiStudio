@@ -234,6 +234,98 @@ async def propose_brand(
     return ProposalOut(**raw)
 
 
+class HeroImagesIn(BaseModel):
+    description: str = ""
+    primary: str
+    background: str
+    accent: str
+    extra: str = ""  # 추가 지시 (예: "모델 없이 제품만", "야외 느낌")
+
+
+class HeroImagesOut(BaseModel):
+    desktop_url: str
+    mobile_url: str
+    section_id: str
+
+
+@router.post("/stores/{store_id}/hero-images", response_model=HeroImagesOut)
+async def hero_images(body: HeroImagesIn, store: Store = Depends(get_store)) -> HeroImagesOut:
+    """AI 히어로 이미지 생성 (PC 16:9 + 모바일 9:16) → Files 업로드 → 홈 히어로에 반영.
+
+    같은 프롬프트를 비율별로 **따로 생성**한다 — 크롭이 아니라서 모바일 구도가 잘리지 않는다.
+    테마 hero 섹션의 image_1 / image_1_mobile 에 각각 꽂힌다.
+    글자는 이미지에 넣지 않는다 — 헤드라인은 테마 블록의 몫이다.
+    """
+    from ..engine.images import ImageGenError, generate_hero_pair
+
+    if store.granted_scopes and "write_files" not in store.scope_list:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "write_files 스코프가 없어 이미지를 올릴 수 없습니다 — Dev Dashboard 에서 스코프를 "
+            "추가해 새 버전을 Release 하고 앱을 재설치한 뒤 연결 테스트를 다시 하세요.",
+        )
+    if store.granted_scopes and "write_themes" not in store.scope_list:
+        raise HTTPException(status.HTTP_409_CONFLICT, "write_themes 스코프가 없어 홈에 반영할 수 없습니다.")
+
+    try:
+        desktop, mobile = generate_hero_pair(
+            body.description, body.primary, body.background, body.accent, body.extra
+        )
+    except ImageGenError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
+
+    try:
+        client = await client_for(store)
+        theme_gid = await client.main_theme_gid()
+
+        # 홈 템플릿에서 hero 섹션부터 찾는다 — 없는 구성(카탈로그형)이면 이미지 꽂을 곳이 없다.
+        raw = await client.get_theme_file_text(theme_gid, "templates/index.json")
+        if raw is None:
+            raise HTTPException(status.HTTP_409_CONFLICT, "홈 템플릿이 없습니다 — 먼저 테마를 설치하세요.")
+        home = json.loads(re.sub(r"/\*.*?\*/", "", raw, flags=re.S))
+        hero_sid = next(
+            (sid for sid in home["order"] if home["sections"][sid]["type"] == "hero"), None
+        )
+        if hero_sid is None:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "현재 홈 구성에 히어로 섹션이 없습니다 — 히어로가 있는 구성을 먼저 적용하세요.",
+            )
+
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+        urls: dict[str, str] = {}
+        for kind, data in (("desktop", desktop), ("mobile", mobile)):
+            # Gemini 는 보통 JPEG 를 준다 — 매직바이트로 판별한다 (PNG 로 잘못 올리면 CDN 이 거부)
+            if data[:8] == b"\x89PNG\r\n\x1a\n":
+                mime, ext = "image/png", "png"
+            else:
+                mime, ext = "image/jpeg", "jpg"
+            resource = await client.stage_upload(
+                f"storeforge-hero-{store.id}-{stamp}-{kind}.{ext}", mime, data
+            )
+            gid = await client.file_create_image(resource)
+            urls[kind] = await client.file_wait_ready(gid)
+
+        def shop_image_ref(cdn_url: str) -> str:
+            # CDN URL 의 파일명이 Files 상의 최종 이름이다 (중복 시 Shopify 가 접미사를 붙인다).
+            basename = cdn_url.split("?")[0].rsplit("/", 1)[-1]
+            return f"shopify://shop_images/{basename}"
+
+        settings_obj = home["sections"][hero_sid].setdefault("settings", {})
+        settings_obj["image_1"] = shop_image_ref(urls["desktop"])
+        settings_obj["image_1_mobile"] = shop_image_ref(urls["mobile"])
+
+        await client.theme_files_upsert(
+            theme_gid, "templates/index.json", json.dumps(home, ensure_ascii=False, indent=2)
+        )
+    except ShopifyError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
+
+    return HeroImagesOut(
+        desktop_url=urls["desktop"], mobile_url=urls["mobile"], section_id=hero_sid
+    )
+
+
 class LayoutIn(BaseModel):
     layout_id: str
 

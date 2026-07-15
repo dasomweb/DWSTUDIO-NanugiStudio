@@ -130,6 +130,11 @@ export default function StoreDetailPage() {
   const [layoutId, setLayoutId] = useState("");
   const [applyingLayout, setApplyingLayout] = useState(false);
 
+  // AI 히어로 이미지 (PC/모바일 비율별 생성)
+  const [heroExtra, setHeroExtra] = useState("");
+  const [heroBusy, setHeroBusy] = useState(false);
+  const [heroResult, setHeroResult] = useState<{ desktop_url: string; mobile_url: string } | null>(null);
+
   // 자격증명 교체
   const [editingCreds, setEditingCreds] = useState(false);
   const [creds, setCreds] = useState<Credentials>({ auth_type: "client_credentials" });
@@ -285,6 +290,29 @@ export default function StoreDetailPage() {
       subheading_font: f.subheading_font,
       accent_font: f.accent_font,
     }));
+  }
+
+  async function runHeroImages() {
+    setHeroBusy(true);
+    setError(null);
+    setOk(null);
+    setHeroResult(null);
+    try {
+      const r = await api.heroImages(storeId, {
+        description,
+        primary: brand.primary,
+        background: brand.background,
+        // accent 는 선택 입력이다 — 비어 있으면 주색으로 대신한다
+        accent: brand.accent ?? brand.primary,
+        extra: heroExtra,
+      });
+      setHeroResult(r);
+      setOk("히어로 이미지(PC+모바일)를 생성해 홈에 반영했습니다. 스토어프론트를 새로고침하세요.");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setHeroBusy(false);
+    }
   }
 
   async function runApplyLayout() {
@@ -817,6 +845,49 @@ export default function StoreDetailPage() {
             <button className="danger" onClick={() => apply(true)} disabled={busy}>
               색·폰트 덮어쓰기 (재주입)
             </button>
+          )}
+        </div>
+
+        <div style={{ borderTop: "1px solid var(--line)", marginTop: 16, paddingTop: 14 }}>
+          <strong>AI 히어로 이미지</strong>{" "}
+          <span style={{ color: "var(--muted)", fontSize: 12 }}>
+            — 확정한 색감으로 PC(16:9)·모바일(9:16)을 각각 생성해 홈 히어로에 꽂습니다. 글자는
+            넣지 않습니다(헤드라인은 테마가 얹습니다).
+          </span>
+          <div className="row" style={{ marginTop: 8, gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <input
+              value={heroExtra}
+              onChange={(e) => setHeroExtra(e.target.value)}
+              placeholder="추가 지시 (선택 — 예: 모델 없이 제품만, 밝은 야외 느낌)"
+              style={{ flex: 1, minWidth: 240 }}
+            />
+            <button
+              className="ghost"
+              onClick={() => void runHeroImages()}
+              disabled={heroBusy || !store.connected}
+            >
+              {heroBusy ? "생성 중… (PC·모바일 2장, 1분 내외)" : "히어로 이미지 생성 + 반영"}
+            </button>
+          </div>
+          {heroResult && (
+            <div className="row" style={{ marginTop: 10, gap: 12, alignItems: "flex-start" }}>
+              <figure style={{ margin: 0 }}>
+                <img
+                  src={heroResult.desktop_url}
+                  alt="데스크톱 히어로"
+                  style={{ width: 320, borderRadius: 8, border: "1px solid var(--line)" }}
+                />
+                <figcaption style={{ fontSize: 12, color: "var(--muted)" }}>PC 16:9</figcaption>
+              </figure>
+              <figure style={{ margin: 0 }}>
+                <img
+                  src={heroResult.mobile_url}
+                  alt="모바일 히어로"
+                  style={{ width: 120, borderRadius: 8, border: "1px solid var(--line)" }}
+                />
+                <figcaption style={{ fontSize: 12, color: "var(--muted)" }}>모바일 9:16</figcaption>
+              </figure>
+            </div>
           )}
         </div>
       </div>

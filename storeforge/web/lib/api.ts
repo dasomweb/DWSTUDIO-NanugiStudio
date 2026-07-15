@@ -390,6 +390,14 @@ export const api = {
   propose: (form: FormData) =>
     request<Proposal>("/propose", { method: "POST", body: form }),
   listLayouts: () => request<LayoutPreset[]>("/layouts"),
+  heroImages: (
+    storeId: number,
+    body: { description: string; primary: string; background: string; accent: string; extra?: string }
+  ) =>
+    request<{ desktop_url: string; mobile_url: string; section_id: string }>(
+      `/stores/${storeId}/hero-images`,
+      { method: "POST", body: JSON.stringify(body) }
+    ),
   applyLayout: (storeId: number, layoutId: string) =>
     request<{ applied: string; sections: string[] }>(`/stores/${storeId}/layout`, {
       method: "POST",

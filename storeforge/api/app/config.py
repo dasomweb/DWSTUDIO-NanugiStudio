@@ -58,6 +58,8 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     # gemini-2.0-flash 는 퇴역했다 (list_models 에는 아직 뜨지만 generateContent 가 404 를 준다).
     gemini_model: str = "gemini-2.5-flash"
+    # 히어로 배너 등 이미지 생성 (PC/모바일 비율별)
+    gemini_image_model: str = "gemini-3.1-flash-image"
 
     database_url: str = ""
     cors_origins: str = "http://localhost:3000"

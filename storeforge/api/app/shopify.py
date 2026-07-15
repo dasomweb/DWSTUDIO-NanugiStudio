@@ -352,6 +352,81 @@ class ShopifyClient:
             waited += 3
         raise ShopifyError(f"테마 zip 처리가 {int(timeout_seconds)}초 안에 끝나지 않았습니다.")
 
+    async def file_create_image(self, resource_url: str) -> str:
+        """staged upload 된 이미지를 Files(콘텐츠 > 파일)에 등록한다. 반환: File GID.
+
+        테마 섹션의 image_picker 는 Files 의 이미지만 받는다 (테마 asset 은 못 쓴다).
+        write_files 스코프가 필요하다.
+        """
+        mutation = """
+        mutation FileCreate($files: [FileCreateInput!]!) {
+          fileCreate(files: $files) {
+            files { id }
+            userErrors { field message code }
+          }
+        }
+        """
+        result = (
+            await self.graphql(
+                mutation,
+                {"files": [{"originalSource": resource_url, "contentType": "IMAGE"}]},
+            )
+        )["fileCreate"]
+        if result["userErrors"]:
+            raise ShopifyError(
+                "fileCreate 실패 — " + "; ".join(e["message"] for e in result["userErrors"])
+            )
+        return result["files"][0]["id"]
+
+    async def file_wait_ready(self, file_gid: str, timeout_seconds: float = 60.0) -> str:
+        """파일 처리가 끝나길 기다렸다가 CDN URL 을 돌려준다.
+
+        fileCreate 는 비동기라 생성 직후엔 이미지 URL 이 없다 — URL 의 파일명이
+        템플릿 참조(shopify://shop_images/…)에 필요하므로 기다려야 한다.
+        """
+        import asyncio
+
+        waited = 0.0
+        while waited < timeout_seconds:
+            data = await self.graphql(
+                """
+                query($id: ID!) {
+                  node(id: $id) {
+                    ... on MediaImage { fileStatus image { url } }
+                  }
+                }
+                """,
+                {"id": file_gid},
+            )
+            node = data.get("node") or {}
+            if node.get("fileStatus") == "FAILED":
+                raise ShopifyError("이미지 파일 처리가 실패했습니다.")
+            url = (node.get("image") or {}).get("url")
+            if node.get("fileStatus") == "READY" and url:
+                return url
+            await asyncio.sleep(2)
+            waited += 2
+        raise ShopifyError(f"이미지 파일 처리가 {int(timeout_seconds)}초 안에 끝나지 않았습니다.")
+
+    async def get_theme_file_text(self, theme_gid: str, filename: str) -> str | None:
+        """테마 파일 하나의 텍스트 내용. 없으면 None."""
+        data = await self.graphql(
+            """
+            query($id: ID!, $names: [String!]!) {
+              theme(id: $id) {
+                files(filenames: $names, first: 1) {
+                  nodes { body { ... on OnlineStoreThemeFileBodyText { content } } }
+                }
+              }
+            }
+            """,
+            {"id": theme_gid, "names": [filename]},
+        )
+        nodes = data["theme"]["files"]["nodes"]
+        if not nodes:
+            return None
+        return (nodes[0].get("body") or {}).get("content")
+
     async def main_theme_gid(self) -> str:
         data = await self.graphql("{ themes(first: 1, roles: [MAIN]) { nodes { id } } }")
         nodes = data["themes"]["nodes"]
