@@ -140,6 +140,11 @@ export type ThemeInstall = {
   installed_at: string;
 };
 
+/** 페이지·정책 초안 (AI 생성 → 사람 검토 → 반영). */
+export type PageDraft = { kind: string; title: string; body_html: string };
+export type PolicyDraft = { type: string; body_html: string };
+export type PagesDraft = { pages: PageDraft[]; policies: PolicyDraft[] };
+
 export type ThemeSource = {
   zip_url: string;
   upstream: string;
@@ -390,6 +395,35 @@ export const api = {
   propose: (form: FormData) =>
     request<Proposal>("/propose", { method: "POST", body: form }),
   listLayouts: () => request<LayoutPreset[]>("/layouts"),
+
+  // 페이지 · 정책 · 컬렉션 (온보딩 5단계)
+  pagesCatalog: () =>
+    request<{ page_kinds: Record<string, string>; policy_types: Record<string, string> }>(
+      "/pages/catalog"
+    ),
+  draftPages: (storeId: number, body: { description: string; page_kinds: string[]; policy_types: string[] }) =>
+    request<PagesDraft>(`/pages/stores/${storeId}/draft`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  applyPages: (
+    storeId: number,
+    body: {
+      pages: PageDraft[];
+      publish: boolean;
+      policies: PolicyDraft[];
+      policies_reviewed: boolean;
+    }
+  ) =>
+    request<{ pages: { kind: string; title: string; handle: string; published: boolean }[]; policies: string[] }>(
+      `/pages/stores/${storeId}/apply`,
+      { method: "POST", body: JSON.stringify(body) }
+    ),
+  createCollections: (storeId: number, collections: { title: string; tag?: string }[]) =>
+    request<{ created: { title: string; handle: string; smart: boolean }[] }>(
+      `/pages/stores/${storeId}/collections`,
+      { method: "POST", body: JSON.stringify({ collections }) }
+    ),
   heroImages: (
     storeId: number,
     body: { description: string; primary: string; background: string; accent: string; extra?: string }

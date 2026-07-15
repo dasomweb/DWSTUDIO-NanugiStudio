@@ -7,6 +7,7 @@ import Shell from "@/components/Shell";
 import CredentialsFields from "@/components/CredentialsFields";
 import InstallRequest from "@/components/InstallRequest";
 import ThemeInstallCard from "@/components/ThemeInstallCard";
+import PagesCard from "@/components/PagesCard";
 import {
   api,
   ApiError,
@@ -891,6 +892,8 @@ export default function StoreDetailPage() {
           )}
         </div>
       </div>
+
+      <PagesCard store={store} description={description} />
 
       <div className="card">
         <h2>실행 이력</h2>

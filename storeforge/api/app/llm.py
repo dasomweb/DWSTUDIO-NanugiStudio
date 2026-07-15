@@ -355,3 +355,135 @@ def propose(
     raise BrandInterpretationError(
         f"{MAX_ATTEMPTS}회 시도했지만 유효한 제안을 생성하지 못했습니다: {last_error}"
     )
+
+
+# --- 페이지·정책 카피 생성 ---------------------------------------------------------
+
+PAGE_KINDS: dict[str, str] = {
+    "about": "브랜드 소개 (About)",
+    "contact": "문의 (Contact — 폼은 테마가 붙이므로 짧은 안내문만)",
+    "faq": "자주 묻는 질문 (FAQ)",
+    "shipping-info": "배송 안내",
+}
+
+POLICY_TYPES: dict[str, str] = {
+    "PRIVACY_POLICY": "개인정보처리방침",
+    "TERMS_OF_SERVICE": "이용약관",
+    "REFUND_POLICY": "환불·반품 정책",
+    "SHIPPING_POLICY": "배송 정책",
+}
+
+PAGES_SYSTEM = """\
+당신은 이커머스 카피라이터 겸 정책 문서 작성자입니다.
+
+브랜드 설명을 읽고 요청된 페이지와 정책 문서의 본문을 작성합니다.
+
+원칙:
+- **사이트의 대상 언어로 씁니다.** 설명에 "영어 웹사이트"라고 돼 있으면 영어로, 한국어
+  쇼핑몰이면 한국어로. 명시가 없으면 설명에 쓰인 언어를 따릅니다.
+- 본문은 HTML 입니다. <h2>, <p>, <ul>/<li> 만 씁니다. 인라인 스타일 금지 — 디자인은 테마가 합니다.
+- **모르는 사실을 지어내지 않습니다.** 사업자번호·주소·이메일·배송비 같은 구체 값은
+  [대괄호 플레이스홀더] 로 두어 사람이 채우게 합니다.
+- contact 페이지는 문의 폼이 테마 템플릿에 이미 있으므로 2~3문장 안내문만 씁니다.
+- 정책 문서는 표준적인 이커머스 조항을 브랜드 상황(국가·업종)에 맞게 조정하되,
+  법률 자문을 대체하지 않는 초안임을 전제로 합니다.\
+"""
+
+
+def _pages_schema(page_kinds: list[str], policy_types: list[str]) -> dict:
+    page = {
+        "type": "object",
+        "properties": {
+            "kind": {"type": "string", "enum": page_kinds or ["about"]},
+            "title": {"type": "string"},
+            "body_html": {"type": "string"},
+        },
+        "required": ["kind", "title", "body_html"],
+        "additionalProperties": False,
+    }
+    policy = {
+        "type": "object",
+        "properties": {
+            "type": {"type": "string", "enum": policy_types or ["PRIVACY_POLICY"]},
+            "body_html": {"type": "string"},
+        },
+        "required": ["type", "body_html"],
+        "additionalProperties": False,
+    }
+    return {
+        "type": "object",
+        "properties": {
+            "pages": {"type": "array", "items": page},
+            "policies": {"type": "array", "items": policy},
+        },
+        "required": ["pages", "policies"],
+        "additionalProperties": False,
+    }
+
+
+def generate_pages(
+    description: str,
+    page_kinds: list[str],
+    policy_types: list[str],
+    api_key: str | None = None,
+) -> dict:
+    """브랜드 설명 → 페이지·정책 본문 초안. 반영 전에 사람이 검토·수정한다."""
+    client = anthropic.Anthropic(api_key=api_key) if api_key else anthropic.Anthropic()
+
+    wants = []
+    if page_kinds:
+        wants.append("페이지: " + ", ".join(f"{k}({PAGE_KINDS[k]})" for k in page_kinds))
+    if policy_types:
+        wants.append("정책: " + ", ".join(f"{t}({POLICY_TYPES[t]})" for t in policy_types))
+
+    messages = [
+        {
+            "role": "user",
+            "content": (
+                f"브랜드 설명:\n{description.strip()}\n\n"
+                f"작성할 문서 — {' / '.join(wants)}\n"
+                "요청된 것을 각각 하나씩, 빠짐없이 작성하세요."
+            ),
+        }
+    ]
+
+    last_error: str | None = None
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        response = client.messages.create(
+            model=MODEL,
+            max_tokens=16384,
+            system=PAGES_SYSTEM,
+            thinking={"type": "adaptive"},
+            output_config={
+                "effort": "medium",
+                "format": {"type": "json_schema", "schema": _pages_schema(page_kinds, policy_types)},
+            },
+            messages=messages,
+        )
+        if response.stop_reason == "refusal":
+            raise BrandInterpretationError("모델이 요청을 거부했습니다.")
+
+        raw_text = "".join(b.text for b in response.content if b.type == "text")
+        try:
+            raw = json.loads(raw_text)
+            got_pages = {p["kind"] for p in raw["pages"]}
+            got_policies = {p["type"] for p in raw["policies"]}
+            missing = [k for k in page_kinds if k not in got_pages] + [
+                t for t in policy_types if t not in got_policies
+            ]
+            if missing:
+                raise ValueError(f"다음 문서가 빠졌습니다: {', '.join(missing)}")
+            return raw
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+            last_error = str(exc)
+            logger.warning("페이지 생성 %d차 시도 실패: %s", attempt, last_error)
+            if attempt == MAX_ATTEMPTS:
+                break
+            messages.append({"role": "assistant", "content": raw_text})
+            messages.append(
+                {"role": "user", "content": f"출력이 검증에 실패했습니다:\n{last_error}\n\n고쳐서 다시 출력하세요."}
+            )
+
+    raise BrandInterpretationError(
+        f"{MAX_ATTEMPTS}회 시도했지만 유효한 페이지를 생성하지 못했습니다: {last_error}"
+    )

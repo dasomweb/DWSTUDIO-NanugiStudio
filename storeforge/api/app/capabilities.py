@@ -33,12 +33,14 @@ MODULES: tuple[Module, ...] = (
     Module(
         id="storeforge",
         name="StoreForge",
-        summary="브랜드 해석 → 컬러·폰트 metafield 주입 + AI 히어로 이미지 (축①)",
+        summary="브랜드 해석 → 컬러·폰트 주입 + 히어로 이미지 + 페이지·정책 생성 (축①)",
         # 주입 대상이 shop 소유 메타필드라 필요한 스코프가 없다. models.py 주석 참고.
-        # write_files 는 AI 히어로 이미지를 Files 에 올릴 때만 필요하다 — 없으면
-        # 이미지 기능만 막히고 주입은 정상이다.
+        # 아래 optional 은 기능별이다 — 없으면 그 기능만 막히고 주입은 정상이다:
+        #   write_files           AI 히어로 이미지 (Files 업로드)
+        #   write_content         페이지 생성 (About/Contact/FAQ/배송안내)
+        #   write_legal_policies  정책 문서 (약관·환불·배송·프라이버시)
         required_scopes=(),
-        optional_scopes=("read_products", "write_files"),
+        optional_scopes=("read_products", "write_files", "write_content", "write_legal_policies"),
     ),
     Module(
         id="themepush",

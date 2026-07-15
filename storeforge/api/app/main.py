@@ -16,7 +16,7 @@ from sqlmodel import Session
 from .bootstrap import bootstrap_superadmin
 from .config import get_settings
 from .db import engine, init_db
-from .routers import auth, listpilot, onboarding, pricewave, stores, themes
+from .routers import auth, listpilot, onboarding, pages, pricewave, stores, themes
 
 log = logging.getLogger(__name__)
 
@@ -73,6 +73,7 @@ app.include_router(onboarding.router)
 app.include_router(pricewave.router)
 app.include_router(listpilot.router)
 app.include_router(themes.router)
+app.include_router(pages.router)
 
 
 @app.get("/health")

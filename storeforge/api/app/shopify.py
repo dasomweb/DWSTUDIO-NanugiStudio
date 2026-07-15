@@ -478,6 +478,82 @@ class ShopifyClient:
                 "themePublish 실패 — " + "; ".join(e["message"] for e in result["userErrors"])
             )
 
+    # --- 페이지 · 정책 · 컬렉션 -----------------------------------------------------
+    async def page_create(
+        self,
+        title: str,
+        body_html: str,
+        publish: bool,
+        template_suffix: str | None = None,
+    ) -> dict:
+        """온라인 스토어 페이지 생성. 반환: {id, handle}. 스코프: write_content."""
+        mutation = """
+        mutation PageCreate($page: PageCreateInput!) {
+          pageCreate(page: $page) {
+            page { id handle title }
+            userErrors { field message code }
+          }
+        }
+        """
+        page: dict = {"title": title, "body": body_html, "isPublished": publish}
+        if template_suffix:
+            page["templateSuffix"] = template_suffix
+        result = (await self.graphql(mutation, {"page": page}))["pageCreate"]
+        if result["userErrors"]:
+            raise ShopifyError(
+                "pageCreate 실패 — " + "; ".join(e["message"] for e in result["userErrors"])
+            )
+        return result["page"]
+
+    async def shop_policy_update(self, policy_type: str, body_html: str) -> None:
+        """샵 정책(약관·환불·배송·프라이버시) 갱신. 스코프: write_legal_policies.
+
+        정책은 페이지와 달리 '초안' 상태가 없다 — 쓰는 순간 라이브다. 그래서 호출부는
+        반드시 사람이 검토한 본문만 넘겨야 한다.
+        """
+        mutation = """
+        mutation PolicyUpdate($shopPolicy: ShopPolicyInput!) {
+          shopPolicyUpdate(shopPolicy: $shopPolicy) {
+            shopPolicy { type }
+            userErrors { field message code }
+          }
+        }
+        """
+        result = (
+            await self.graphql(mutation, {"shopPolicy": {"type": policy_type, "body": body_html}})
+        )["shopPolicyUpdate"]
+        if result["userErrors"]:
+            raise ShopifyError(
+                "shopPolicyUpdate 실패 — " + "; ".join(e["message"] for e in result["userErrors"])
+            )
+
+    async def collection_create(self, title: str, tag: str | None = None) -> dict:
+        """컬렉션 생성. tag 를 주면 그 태그를 조건으로 하는 스마트 컬렉션이 된다.
+
+        스마트 컬렉션이면 ListPilot 이 등록하는 상품이 태그만 맞으면 자동으로 들어간다
+        (기획안 §축② — AI 분류 결과에 따라 자동 생성·정렬). 스코프: write_products.
+        """
+        mutation = """
+        mutation CollectionCreate($input: CollectionInput!) {
+          collectionCreate(input: $input) {
+            collection { id handle title }
+            userErrors { field message code }
+          }
+        }
+        """
+        payload: dict = {"title": title}
+        if tag:
+            payload["ruleSet"] = {
+                "appliedDisjunctively": False,
+                "rules": [{"column": "TAG", "relation": "EQUALS", "condition": tag}],
+            }
+        result = (await self.graphql(mutation, {"input": payload}))["collectionCreate"]
+        if result["userErrors"]:
+            raise ShopifyError(
+                "collectionCreate 실패 — " + "; ".join(e["message"] for e in result["userErrors"])
+            )
+        return result["collection"]
+
     # --- Pricewave: 할인 조회 -----------------------------------------------------
     async def active_discounts(self) -> list[dict]:
         """코드 할인 중 지금 살아 있는 것들 (원본 노드 그대로 — 해석은 engine.pricewave 가 한다).
