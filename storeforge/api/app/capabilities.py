@@ -36,11 +36,18 @@ MODULES: tuple[Module, ...] = (
         summary="브랜드 해석 → 컬러·폰트 주입 + 히어로 이미지 + 페이지·정책 생성 (축①)",
         # 주입 대상이 shop 소유 메타필드라 필요한 스코프가 없다. models.py 주석 참고.
         # 아래 optional 은 기능별이다 — 없으면 그 기능만 막히고 주입은 정상이다:
-        #   write_files           AI 히어로 이미지 (Files 업로드)
-        #   write_content         페이지 생성 (About/Contact/FAQ/배송안내)
-        #   write_legal_policies  정책 문서 (약관·환불·배송·프라이버시)
+        #   write_files                     AI 히어로 이미지 (Files 업로드)
+        #   write_content                   페이지 생성 (About/Contact/FAQ/배송안내)
+        #   write_legal_policies            정책 문서 (약관·환불·배송·프라이버시)
+        #   write_online_store_navigation   헤더/푸터 메뉴 자동 구성
         required_scopes=(),
-        optional_scopes=("read_products", "write_files", "write_content", "write_legal_policies"),
+        optional_scopes=(
+            "read_products",
+            "write_files",
+            "write_content",
+            "write_legal_policies",
+            "write_online_store_navigation",
+        ),
     ),
     Module(
         id="themepush",

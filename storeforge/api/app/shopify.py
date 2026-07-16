@@ -554,6 +554,42 @@ class ShopifyClient:
             )
         return result["collection"]
 
+    # --- 메뉴(네비게이션) ----------------------------------------------------------
+    async def menus(self) -> list[dict]:
+        data = await self.graphql("{ menus(first: 25) { nodes { id handle title } } }")
+        return data["menus"]["nodes"]
+
+    async def menu_update(self, menu_gid: str, title: str, items: list[dict]) -> None:
+        """메뉴 구조를 통째로 교체한다. 스코프: write_online_store_navigation.
+
+        items: [{title, type, resourceId?, url?, items: []}]
+        type 은 FRONTPAGE / COLLECTION / PAGE / HTTP 만 쓴다 — 그 밖의 타입은
+        리소스 유효성 검증이 복잡해서 필요해질 때 추가한다.
+        """
+        mutation = """
+        mutation MenuUpdate($id: ID!, $title: String!, $items: [MenuItemUpdateInput!]!) {
+          menuUpdate(id: $id, title: $title, items: $items) {
+            menu { id handle }
+            userErrors { field message code }
+          }
+        }
+        """
+        result = (
+            await self.graphql(mutation, {"id": menu_gid, "title": title, "items": items})
+        )["menuUpdate"]
+        if result["userErrors"]:
+            raise ShopifyError(
+                "menuUpdate 실패 — " + "; ".join(e["message"] for e in result["userErrors"])
+            )
+
+    async def pages_list(self) -> list[dict]:
+        data = await self.graphql("{ pages(first: 50) { nodes { id title handle } } }")
+        return data["pages"]["nodes"]
+
+    async def collections_list(self) -> list[dict]:
+        data = await self.graphql("{ collections(first: 50) { nodes { id title handle } } }")
+        return data["collections"]["nodes"]
+
     # --- Pricewave: 할인 조회 -----------------------------------------------------
     async def active_discounts(self) -> list[dict]:
         """코드 할인 중 지금 살아 있는 것들 (원본 노드 그대로 — 해석은 engine.pricewave 가 한다).

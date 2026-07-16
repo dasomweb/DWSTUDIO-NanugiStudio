@@ -140,6 +140,21 @@ export type ThemeInstall = {
   installed_at: string;
 };
 
+/** 메뉴 항목. type: FRONTPAGE | COLLECTION | PAGE | HTTP */
+export type NavItem = {
+  title: string;
+  type: string;
+  resource_gid: string | null;
+  url: string | null;
+};
+
+export type NavPreview = {
+  header: NavItem[];
+  footer: NavItem[];
+  header_menu_found: boolean;
+  footer_menu_found: boolean;
+};
+
 /** 페이지·정책 초안 (AI 생성 → 사람 검토 → 반영). */
 export type PageDraft = { kind: string; title: string; body_html: string };
 export type PolicyDraft = { type: string; body_html: string };
@@ -419,6 +434,15 @@ export const api = {
       `/pages/stores/${storeId}/apply`,
       { method: "POST", body: JSON.stringify(body) }
     ),
+  // 메뉴(네비게이션) — 6단계
+  navPreview: (storeId: number) =>
+    request<NavPreview>(`/navigation/stores/${storeId}/preview`),
+  navApply: (storeId: number, body: { header: NavItem[]; footer: NavItem[] }) =>
+    request<{ applied: string[] }>(`/navigation/stores/${storeId}/apply`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
   createCollections: (storeId: number, collections: { title: string; tag?: string }[]) =>
     request<{ created: { title: string; handle: string; smart: boolean }[] }>(
       `/pages/stores/${storeId}/collections`,

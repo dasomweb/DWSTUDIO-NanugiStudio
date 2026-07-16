@@ -8,6 +8,8 @@ import CredentialsFields from "@/components/CredentialsFields";
 import InstallRequest from "@/components/InstallRequest";
 import ThemeInstallCard from "@/components/ThemeInstallCard";
 import PagesCard from "@/components/PagesCard";
+import NavigationCard from "@/components/NavigationCard";
+import ManualChecklist from "@/components/ManualChecklist";
 import {
   api,
   ApiError,
@@ -894,6 +896,10 @@ export default function StoreDetailPage() {
       </div>
 
       <PagesCard store={store} description={description} />
+
+      <NavigationCard store={store} />
+
+      <ManualChecklist store={store} />
 
       <div className="card">
         <h2>실행 이력</h2>
