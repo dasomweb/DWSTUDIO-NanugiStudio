@@ -47,6 +47,9 @@ class InstallOut(BaseModel):
     theme_gid: str
     theme_name: str
     published: bool
+    # 발행 후 MAIN 을 다시 조회해 확인한 값. "성공 메시지와 실제 반영의 괴리"(UAT 지적)를
+    # 막는 재검증이다 — false 면 발행이 겉으로만 성공한 것이다.
+    live_verified: bool
     version: str  # 실제로 설치된 릴리즈 태그
     installed_at: datetime
 
@@ -156,12 +159,15 @@ async def install(
     _guard(store)
     _check_version(body.version)
 
-    # "latest" 로 설치해도 기록은 정확한 태그로 남긴다. 나중에 "이 스토어 어떤 버전이지?"
-    # 에 '그때의 최신'이라고 답할 수는 없다.
-    version = body.version or await _latest_release_tag()
+    # "latest" 로 설치해도 기록은 정확한 태그로 남긴다. GitHub API 는 비인증 레이트리밋에
+    # 자주 걸리므로(UAT 에서 "unknown" 으로 실증), zip 에 스탬프된 theme_version 을 예비로 쓴다.
+    from ..engine.layouts import theme_version_in_zip
+
+    version = body.version or await _latest_release_tag() or theme_version_in_zip()
     zip_url = _proxy_zip_url(request, body.version)
     name = body.name or f"DWSTUDIO {version or ''} — {store.name}".replace("  ", " ")
 
+    live_verified = False
     try:
         client = await client_for(store)
         theme = await client.theme_create(zip_url, name)
@@ -169,6 +175,8 @@ async def install(
         await client.theme_wait_ready(theme["id"])
         if body.publish:
             await client.theme_publish(theme["id"])
+            # 발행 재검증 — themePublish 가 조용히 실패하면 성공 메시지가 거짓말이 된다.
+            live_verified = (await client.main_theme_gid()) == theme["id"]
     except ShopifyError as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
 
@@ -186,6 +194,7 @@ async def install(
         theme_gid=theme["id"],
         theme_name=name,
         published=body.publish,
+        live_verified=live_verified,
         version=version or "unknown",
         installed_at=now,
     )

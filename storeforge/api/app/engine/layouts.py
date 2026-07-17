@@ -109,6 +109,57 @@ def _base_home(version: str | None) -> dict:
     return _sanitize(json.loads(_strip_comments(raw)))
 
 
+# themeFilesUpsert 는 richtext 설정값의 최상위 노드가 p/ul/ol/h1~h6 이어야 한다며 거부한다.
+# 섹션 schema preset 의 기본값에는 맨몸 텍스트가 흔해서, 스키마에서 richtext 타입 설정을
+# 찾아 <p> 로 감싼다 (dasomdev UAT 에서 실증된 거부 사례).
+_RICHTEXT_OK_RE = re.compile(r"\s*<(p|ul|ol|h[1-6])\b", re.I)
+
+
+def _schema_of(z: zipfile.ZipFile, path: str) -> dict | None:
+    try:
+        src = z.read(path).decode("utf-8")
+    except KeyError:
+        return None
+    m = re.search(r"{%\s*schema\s*%}(.*?){%\s*endschema\s*%}", src, re.S)
+    if not m:
+        return None
+    try:
+        return json.loads(_strip_comments(m.group(1)))
+    except json.JSONDecodeError:
+        return None
+
+
+def _richtext_ids(schema: dict | None) -> set[str]:
+    if not schema:
+        return set()
+    return {
+        s["id"]
+        for s in schema.get("settings", [])
+        if s.get("type") == "richtext" and s.get("id")
+    }
+
+
+def _wrap_richtext(settings: dict | None, rich_ids: set[str]) -> None:
+    for key, value in (settings or {}).items():
+        if key in rich_ids and isinstance(value, str) and value and not _RICHTEXT_OK_RE.match(value):
+            settings[key] = f"<p>{value}</p>"
+
+
+def _fix_richtext(z: zipfile.ZipFile, entry: dict) -> None:
+    """섹션 엔트리(블록 트리 포함)의 richtext 값을 업로드 가능한 형태로 정규화한다."""
+    _wrap_richtext(entry.get("settings"), _richtext_ids(_schema_of(z, f"sections/{entry['type']}.liquid")))
+
+    def walk(blocks: dict | None) -> None:
+        for block in (blocks or {}).values():
+            btype = block.get("type")
+            if btype:
+                # 블록 타입명이 곧 파일명이다 (공개 블록 text → blocks/text.liquid, 비공개 _slide → blocks/_slide.liquid)
+                _wrap_richtext(block.get("settings"), _richtext_ids(_schema_of(z, f"blocks/{btype}.liquid")))
+            walk(block.get("blocks"))
+
+    walk(entry.get("blocks"))
+
+
 def _section_from_preset(version: str | None, section_type: str) -> dict | None:
     """섹션의 {% schema %} preset[0] → 템플릿 섹션 엔트리.
 
@@ -133,7 +184,19 @@ def _section_from_preset(version: str | None, section_type: str) -> dict | None:
     for key in ("settings", "blocks", "block_order"):
         if key in preset:
             entry[key] = preset[key]
+    _fix_richtext(z, entry)
     return entry
+
+
+def theme_version_in_zip(version: str | None = None) -> str | None:
+    """zip 에 스탬프된 theme_version. GitHub API(레이트리밋 있음) 없이 버전을 알아낸다."""
+    try:
+        z = zipfile.ZipFile(io.BytesIO(_fetch_zip(version)))
+        schema = json.loads(_strip_comments(z.read("config/settings_schema.json").decode("utf-8")))
+        tv = schema[0].get("theme_version")
+        return f"v{tv}" if tv else None
+    except Exception:  # noqa: BLE001 — 버전 표기는 보조 정보다. 여기서 설치를 막지 않는다
+        return None
 
 
 def _classify(home: dict) -> dict[str, list[str]]:

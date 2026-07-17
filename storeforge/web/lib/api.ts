@@ -131,11 +131,12 @@ export type LayoutPreset = {
   description: string;
 };
 
-/** 테마 설치 결과. */
+/** 테마 설치 결과. live_verified: 발행 후 MAIN 재조회로 확인된 값. */
 export type ThemeInstall = {
   theme_gid: string;
   theme_name: string;
   published: boolean;
+  live_verified: boolean;
   version: string;
   installed_at: string;
 };

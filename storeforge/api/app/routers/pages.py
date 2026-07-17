@@ -158,7 +158,22 @@ async def apply(body: ApplyPagesIn, store: Store = Depends(get_store)) -> ApplyP
         for policy in body.policies:
             if policy.type not in POLICY_TYPES:
                 raise HTTPException(status.HTTP_400_BAD_REQUEST, f"모르는 정책 타입: {policy.type}")
-            await client.shop_policy_update(policy.type, policy.body_html)
+            try:
+                await client.shop_policy_update(policy.type, policy.body_html)
+            except ShopifyError as exc:
+                # Shopify 가 정책을 '자동 관리' 중이면 API 로 쓸 수 없다 (UAT 실증).
+                # 끄는 API 는 없다 — 관리자에서 사람이 꺼야 한다.
+                if "Automatic management" in str(exc):
+                    handle = store.shop_domain.replace(".myshopify.com", "")
+                    raise HTTPException(
+                        status.HTTP_409_CONFLICT,
+                        f"{POLICY_TYPES[policy.type]}: Shopify 가 이 정책을 자동 관리하고 있어 "
+                        "API 로 쓸 수 없습니다. 관리자 → 설정 → 정책에서 해당 정책의 "
+                        "자동 관리를 끈 뒤 다시 반영하세요 — "
+                        f"https://admin.shopify.com/store/{handle}/settings/legal "
+                        f"(여기까지는 반영됨: {', '.join([p.handle for p in applied_pages] + applied_policies) or '없음'})",
+                    ) from exc
+                raise
             applied_policies.append(policy.type)
     except ShopifyError as exc:
         # 일부만 반영된 상태로 죽을 수 있다 — 무엇까지 됐는지 함께 알려준다.

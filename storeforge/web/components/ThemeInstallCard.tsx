@@ -79,10 +79,20 @@ export default function ThemeInstallCard({
       )}
       {error && <div className="err">{error}</div>}
       {result && (
-        <div className="ok">
+        <div className={result.published && !result.live_verified ? "err" : "ok"}>
           설치 완료 — <strong>{result.theme_name}</strong>{" "}
           (<span className="mono">{result.version}</span>
-          {result.published ? " · 라이브로 발행됨" : " · 미발행"})
+          {result.published
+            ? result.live_verified
+              ? " · 라이브 발행 확인됨 ✓"
+              : " · ⚠️ 발행 확인 실패 — Shopify 관리자에서 테마 상태를 확인하세요"
+            : " · 미발행"})
+          {result.published && result.live_verified && (
+            <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+              확인은 <strong>시크릿 창</strong>에서 하세요 — 이전에 테마 미리보기 링크를 연
+              브라우저는 쿠키 때문에 옛 테마를 계속 보여줍니다.
+            </div>
+          )}
         </div>
       )}
 

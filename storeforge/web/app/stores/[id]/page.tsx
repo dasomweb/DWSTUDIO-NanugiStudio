@@ -122,8 +122,28 @@ export default function StoreDetailPage() {
 
   // 축① LLM 단계 — 자연어 → 색 4개 + 폰트 4개
   const [description, setDescription] = useState("");
+
+  // 새로고침으로 입력이 날아가는 것을 막는다 (UAT: 1~2단계를 두 번 반복하며 8분 손실).
+  // 브랜드 설명·참조 URL 만 로컬에 남긴다 — AI 제안 결과는 다시 받으면 되는 값이다.
+  useEffect(() => {
+    try {
+      setDescription(localStorage.getItem(`sf-desc-${storeId}`) ?? "");
+      setRefUrl(localStorage.getItem(`sf-refurl-${storeId}`) ?? "");
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeId]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(`sf-desc-${storeId}`, description);
+    } catch {}
+  }, [description, storeId]);
   // AI 제안 (참고 이미지 · 참조 사이트 → 컬러셋·폰트셋·레이아웃 선택지)
   const [refUrl, setRefUrl] = useState("");
+  useEffect(() => {
+    try {
+      localStorage.setItem(`sf-refurl-${storeId}`, refUrl);
+    } catch {}
+  }, [refUrl, storeId]);
   const refImagesRef = useRef<HTMLInputElement>(null);
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [pickedPalette, setPickedPalette] = useState<number | null>(null);

@@ -240,6 +240,12 @@ export default function PagesCard({
             >
               {applying ? "반영 중…" : "페이지 · 정책 반영"}
             </button>
+            {/* 버튼이 잠긴 이유를 말해준다 — 조용한 disabled 는 UAT 에서 시간을 잡아먹었다 */}
+            {policies.length > 0 && !reviewed && (
+              <span style={{ fontSize: 12, color: "var(--muted)" }}>
+                ← "정책 초안을 검토했습니다"를 체크해야 열립니다
+              </span>
+            )}
           </div>
         </div>
       )}

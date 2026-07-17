@@ -32,6 +32,12 @@ export default function ManualChecklist({ store }: { store: Store }) {
       menu: "설정 → 배송 및 배달 → 패키지",
     },
     {
+      title: "정책 자동 관리 끄기 (정책 반영 전 필수)",
+      why: "Shopify 가 정책을 자동 관리 중이면 StoreForge 가 정책을 쓸 수 없습니다 — 항목별로 자동 관리를 꺼야 합니다.",
+      href: `${admin}/settings/legal`,
+      menu: "설정 → 정책",
+    },
+    {
       title: "세금 설정",
       why: "국가별 세금 등록은 관리자에서만 됩니다.",
       href: `${admin}/settings/taxes`,
