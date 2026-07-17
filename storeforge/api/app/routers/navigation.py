@@ -90,15 +90,18 @@ async def preview(store: Store = Depends(get_store)) -> PreviewOut:
     handles = {m["handle"] for m in menus}
 
     header: list[NavItem] = [NavItem(title="Home", type="FRONTPAGE", url="/")]
-    for c in collections[:6]:  # 헤더가 넘치지 않게 — 나머지는 사람이 조절한다
+    # 'frontpage' 는 Shopify 가 만드는 기본 'Home page' 컬렉션 — 메뉴에 걸 물건이 아니다
+    real_collections = [c for c in collections if c.get("handle") != "frontpage"]
+    for c in real_collections[:6]:  # 헤더가 넘치지 않게 — 나머지는 사람이 조절한다
         header.append(NavItem(title=c["title"], type="COLLECTION", resource_gid=c["id"]))
-    for needles, fallback in ((("about",), "About"), (("contact",), "Contact")):
+    for needles in (("about",), ("contact",)):
         page = _find_page(pages, *needles)
         if page:
             header.append(NavItem(title=page["title"], type="PAGE", resource_gid=page["id"]))
 
     footer: list[NavItem] = []
-    for needles in (("faq",), ("shipping", "delivery")):
+    # AI 가 지은 제목의 핸들은 'faq' 가 아닐 수 있다 (frequently-asked-questions 등)
+    for needles in (("faq", "frequently"), ("shipping", "delivery")):
         page = _find_page(pages, *needles)
         if page:
             footer.append(NavItem(title=page["title"], type="PAGE", resource_gid=page["id"]))
