@@ -554,6 +554,27 @@ class ShopifyClient:
             )
         return result["collection"]
 
+    async def collection_update_image(self, collection_gid: str, src: str, alt: str = "") -> None:
+        """컬렉션 대표 이미지를 교체한다. src 는 staged upload resourceUrl. 스코프: write_products."""
+        mutation = """
+        mutation CollectionImage($input: CollectionInput!) {
+          collectionUpdate(input: $input) {
+            collection { id }
+            userErrors { field message }
+          }
+        }
+        """
+        result = (
+            await self.graphql(
+                mutation,
+                {"input": {"id": collection_gid, "image": {"src": src, "altText": alt}}},
+            )
+        )["collectionUpdate"]
+        if result["userErrors"]:
+            raise ShopifyError(
+                "collectionUpdate 실패 — " + "; ".join(e["message"] for e in result["userErrors"])
+            )
+
     # --- 메뉴(네비게이션) ----------------------------------------------------------
     async def menus(self) -> list[dict]:
         data = await self.graphql(

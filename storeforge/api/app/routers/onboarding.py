@@ -425,6 +425,147 @@ async def hero_images(body: HeroImagesIn, store: Store = Depends(get_store)) -> 
     )
 
 
+def _guard_files_scope(store: Store) -> None:
+    if store.granted_scopes and "write_files" not in store.scope_list:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "write_files 스코프가 없어 이미지를 올릴 수 없습니다 — 앱 버전에 스코프를 추가해 "
+            "Release 하고 재설치한 뒤 연결 테스트를 다시 하세요.",
+        )
+
+
+async def _upload_image(client, store_id: int, tag: str, data: bytes) -> str:
+    """생성 이미지 → Files. 반환: CDN URL. (MIME 은 매직바이트로 판별 — Gemini 는 보통 JPEG)"""
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        mime, ext = "image/png", "png"
+    else:
+        mime, ext = "image/jpeg", "jpg"
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
+    resource = await client.stage_upload(f"storeforge-{tag}-{store_id}-{stamp}.{ext}", mime, data)
+    gid = await client.file_create_image(resource)
+    return await client.file_wait_ready(gid)
+
+
+class StoryImageIn(BaseModel):
+    description: str = ""
+    primary: str
+    background: str
+    accent: str
+    extra: str = ""
+
+
+@router.post("/stores/{store_id}/story-image")
+async def story_image(body: StoryImageIn, store: Store = Depends(get_store)) -> dict:
+    """브랜드 스토리(media-with-content) 섹션 이미지 생성 → 홈에 반영.
+
+    미디어 블록도 히어로처럼 media_type 이 'image' 여야 렌더된다 — 같은 함정, 같은 처방.
+    """
+    from ..engine.images import ImageGenError, build_story_prompt, generate_one
+
+    _guard_files_scope(store)
+    if store.granted_scopes and "write_themes" not in store.scope_list:
+        raise HTTPException(status.HTTP_409_CONFLICT, "write_themes 스코프가 없어 홈에 반영할 수 없습니다.")
+
+    try:
+        data = generate_one(
+            build_story_prompt(body.description, body.primary, body.background, body.accent, body.extra),
+            "4:5",
+        )
+    except ImageGenError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
+
+    try:
+        client = await client_for(store)
+        theme_gid = await client.main_theme_gid()
+        raw = await client.get_theme_file_text(theme_gid, "templates/index.json")
+        if raw is None:
+            raise HTTPException(status.HTTP_409_CONFLICT, "홈 템플릿이 없습니다 — 먼저 테마를 설치하세요.")
+        home = json.loads(re.sub(r"/\*.*?\*/", "", raw, flags=re.S))
+
+        # media-with-content 섹션 → 그 안의 media 블록(_media 계열)을 찾는다
+        target_block = None
+        for sid in home["order"]:
+            sec = home["sections"][sid]
+            if sec["type"] != "media-with-content":
+                continue
+            for block in (sec.get("blocks") or {}).values():
+                if "_media" in (block.get("type") or ""):
+                    target_block = block
+                    break
+            if target_block:
+                break
+        if target_block is None:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "현재 홈 구성에 브랜드 스토리(미디어+텍스트) 섹션이 없습니다 — "
+                "'쇼핑몰 표준' 또는 '슬라이드 커머스' 구성을 먼저 적용하세요.",
+            )
+
+        url = await _upload_image(client, store.id, "story", data)
+        basename = url.split("?")[0].rsplit("/", 1)[-1]
+        settings_obj = target_block.setdefault("settings", {})
+        settings_obj["image"] = f"shopify://shop_images/{basename}"
+        settings_obj["media_type"] = "image"
+
+        await client.theme_files_upsert(
+            theme_gid, "templates/index.json", json.dumps(home, ensure_ascii=False, indent=2)
+        )
+    except ShopifyError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
+
+    return {"image_url": url}
+
+
+class CollectionImagesIn(BaseModel):
+    description: str = ""
+    primary: str
+    accent: str
+    limit: int = 6
+
+
+@router.post("/stores/{store_id}/collection-images")
+async def collection_images(body: CollectionImagesIn, store: Store = Depends(get_store)) -> dict:
+    """컬렉션마다 배너 이미지를 생성해 대표 이미지로 건다 (1:1, 컬렉션당 1장).
+
+    컬렉션 페이지·카테고리 카드가 이 이미지를 쓴다. 이미 이미지가 있는 컬렉션은 건너뛴다 —
+    사람이 고른 이미지를 말없이 덮지 않는다.
+    """
+    from ..engine.images import ImageGenError, build_collection_prompt, generate_one
+
+    _guard_files_scope(store)
+
+    try:
+        client = await client_for(store)
+        data = await client.graphql(
+            "{ collections(first: 20) { nodes { id handle title image { url } } } }"
+        )
+        targets = [
+            c for c in data["collections"]["nodes"]
+            if c["handle"] != "frontpage" and not c.get("image")
+        ][: max(1, min(body.limit, 10))]
+    except ShopifyError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
+
+    if not targets:
+        return {"results": [], "note": "이미지가 없는 컬렉션이 없습니다 — 전부 채워져 있습니다."}
+
+    results = []
+    for col in targets:
+        try:
+            img = generate_one(
+                build_collection_prompt(col["title"], body.description, body.primary, body.accent),
+                "1:1",
+            )
+            url = await _upload_image(client, store.id, f"col-{col['handle']}", img)
+            await client.collection_update_image(col["id"], url, alt=col["title"])
+            results.append({"title": col["title"], "handle": col["handle"], "ok": True, "url": url})
+        except (ImageGenError, ShopifyError) as exc:
+            # 한 컬렉션이 실패해도 나머지는 계속 — 어디까지 됐는지 결과에 남긴다
+            results.append({"title": col["title"], "handle": col["handle"], "ok": False, "error": str(exc)[:200]})
+
+    return {"results": results}
+
+
 class LayoutIn(BaseModel):
     layout_id: str
 

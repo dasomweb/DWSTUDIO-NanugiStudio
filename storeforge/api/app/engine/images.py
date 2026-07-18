@@ -99,3 +99,34 @@ def generate_hero_pair(
     desktop = generate_image(prompt, DESKTOP_ASPECT, settings.gemini_api_key, settings.gemini_image_model)
     mobile = generate_image(prompt, MOBILE_ASPECT, settings.gemini_api_key, settings.gemini_image_model)
     return desktop, mobile
+
+
+def generate_one(prompt: str, aspect_ratio: str) -> bytes:
+    """단건 생성 — 스토리 섹션·컬렉션 배너 등 히어로 외 용도."""
+    settings = get_settings()
+    if not settings.gemini_api_key:
+        raise ImageGenError("GEMINI_API_KEY 가 설정되어 있지 않습니다 — 이미지 생성을 쓸 수 없습니다.")
+    return generate_image(prompt, aspect_ratio, settings.gemini_api_key, settings.gemini_image_model)
+
+
+def build_story_prompt(description: str, primary: str, background: str, accent: str, extra: str = "") -> str:
+    """브랜드 스토리(미디어+텍스트) 섹션용 — 히어로보다 조용하고 디테일 중심."""
+    return (
+        "Brand story editorial photograph for an e-commerce about section. "
+        f"Brand: {description.strip()[:500]}. "
+        f"Color mood anchored on {primary} with {background} base and {accent} accents. "
+        "Intimate detail shot — craftsmanship, materials, texture close-up. Calm, premium, photorealistic. "
+        "STRICTLY NO text, NO letters, NO logos, NO watermarks. "
+        + (extra.strip() if extra else "")
+    )
+
+
+def build_collection_prompt(collection_title: str, description: str, primary: str, accent: str) -> str:
+    """컬렉션 배너용 — 카테고리가 주인공, 배경은 절제."""
+    return (
+        f"Product category banner photograph for '{collection_title}'. "
+        f"Brand context: {description.strip()[:300]}. "
+        f"Color mood: {primary} with {accent} accents. "
+        "Clean studio composition focused on the product category itself, soft shadows, premium, photorealistic. "
+        "STRICTLY NO text, NO letters, NO logos, NO watermarks."
+    )

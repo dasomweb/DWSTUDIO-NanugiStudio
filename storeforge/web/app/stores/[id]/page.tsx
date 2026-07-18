@@ -154,10 +154,16 @@ export default function StoreDetailPage() {
   const [layoutId, setLayoutId] = useState("");
   const [applyingLayout, setApplyingLayout] = useState(false);
 
-  // AI 히어로 이미지 (PC/모바일 비율별 생성)
+  // AI 이미지 (히어로 PC/모바일 · 스토리 섹션 · 컬렉션 배너)
   const [heroExtra, setHeroExtra] = useState("");
   const [heroBusy, setHeroBusy] = useState(false);
   const [heroResult, setHeroResult] = useState<{ desktop_url: string; mobile_url: string } | null>(null);
+  const [storyBusy, setStoryBusy] = useState(false);
+  const [storyUrl, setStoryUrl] = useState<string | null>(null);
+  const [colBusy, setColBusy] = useState(false);
+  const [colResults, setColResults] = useState<
+    { title: string; ok: boolean; error?: string }[] | null
+  >(null);
 
   // 자격증명 교체
   const [editingCreds, setEditingCreds] = useState(false);
@@ -336,6 +342,47 @@ export default function StoreDetailPage() {
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {
       setHeroBusy(false);
+    }
+  }
+
+  async function runStoryImage() {
+    setStoryBusy(true);
+    setError(null);
+    setOk(null);
+    try {
+      const r = await api.storyImage(storeId, {
+        description,
+        primary: brand.primary,
+        background: brand.background,
+        accent: brand.accent ?? brand.primary,
+      });
+      setStoryUrl(r.image_url);
+      setOk("브랜드 스토리 섹션 이미지를 생성해 홈에 반영했습니다.");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setStoryBusy(false);
+    }
+  }
+
+  async function runCollectionImages() {
+    setColBusy(true);
+    setError(null);
+    setOk(null);
+    setColResults(null);
+    try {
+      const r = await api.collectionImages(storeId, {
+        description,
+        primary: brand.primary,
+        accent: brand.accent ?? brand.primary,
+      });
+      setColResults(r.results);
+      const okCount = r.results.filter((x) => x.ok).length;
+      setOk(r.note ?? `컬렉션 배너 ${okCount}/${r.results.length}개 생성·반영했습니다.`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setColBusy(false);
     }
   }
 
@@ -900,7 +947,48 @@ export default function StoreDetailPage() {
             >
               {heroBusy ? "생성 중… (PC·모바일 2장, 1분 내외)" : "히어로 이미지 생성 + 반영"}
             </button>
+            <button
+              className="ghost"
+              title="브랜드 스토리(미디어+텍스트) 섹션의 이미지 — '쇼핑몰 표준' 등 스토리 섹션이 있는 구성에서"
+              onClick={() => void runStoryImage()}
+              disabled={storyBusy || !store.connected}
+            >
+              {storyBusy ? "스토리 생성 중…" : "스토리 섹션 이미지"}
+            </button>
+            <button
+              className="ghost"
+              title="이미지 없는 컬렉션마다 1:1 배너를 생성해 대표 이미지로 겁니다 (있는 것은 건드리지 않음)"
+              onClick={() => void runCollectionImages()}
+              disabled={colBusy || !store.connected}
+            >
+              {colBusy ? "컬렉션 배너 생성 중… (컬렉션당 ~20초)" : "컬렉션 배너 생성"}
+            </button>
           </div>
+          {(storyUrl || colResults) && (
+            <div className="row" style={{ marginTop: 10, gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
+              {storyUrl && (
+                <figure style={{ margin: 0 }}>
+                  <img
+                    src={storyUrl}
+                    alt="브랜드 스토리"
+                    style={{ width: 140, borderRadius: 8, border: "1px solid var(--line)" }}
+                  />
+                  <figcaption style={{ fontSize: 12, color: "var(--muted)" }}>스토리 4:5</figcaption>
+                </figure>
+              )}
+              {colResults && (
+                <div style={{ fontSize: 13 }}>
+                  {colResults.map((r) => (
+                    <div key={r.title}>
+                      {r.ok ? "✓" : "✗"} {r.title}
+                      {r.error && <span style={{ color: "var(--muted)" }}> — {r.error}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {heroResult && (
             <div className="row" style={{ marginTop: 10, gap: 12, alignItems: "flex-start" }}>
               <figure style={{ margin: 0 }}>

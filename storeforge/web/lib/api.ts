@@ -439,6 +439,26 @@ export const api = {
       `/pages/stores/${storeId}/apply`,
       { method: "POST", body: JSON.stringify(body) }
     ),
+  storyImage: (
+    storeId: number,
+    body: { description: string; primary: string; background: string; accent: string; extra?: string }
+  ) =>
+    request<{ image_url: string }>(`/stores/${storeId}/story-image`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  collectionImages: (
+    storeId: number,
+    body: { description: string; primary: string; accent: string; limit?: number }
+  ) =>
+    request<{
+      results: { title: string; handle: string; ok: boolean; url?: string; error?: string }[];
+      note?: string;
+    }>(`/stores/${storeId}/collection-images`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
   // 온보딩 체크리스트 — Shopify 실상태 기반
   checklist: (storeId: number) =>
     request<Checklist>(`/stores/${storeId}/checklist`),
