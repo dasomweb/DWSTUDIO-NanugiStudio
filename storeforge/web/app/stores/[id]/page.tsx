@@ -10,6 +10,7 @@ import ThemeInstallCard from "@/components/ThemeInstallCard";
 import PagesCard from "@/components/PagesCard";
 import NavigationCard from "@/components/NavigationCard";
 import ManualChecklist from "@/components/ManualChecklist";
+import OnboardingProgress from "@/components/OnboardingProgress";
 import {
   api,
   ApiError,
@@ -444,6 +445,14 @@ export default function StoreDetailPage() {
           {store.last_error ? ` — ${store.last_error}` : ""}
         </div>
       )}
+
+      <OnboardingProgress
+        store={store}
+        brand={brand}
+        description={description}
+        layoutId={layoutId}
+        onChanged={() => void load()}
+      />
 
       <details className="card" open={!store.connected}>
         <summary style={{ cursor: "pointer" }}>

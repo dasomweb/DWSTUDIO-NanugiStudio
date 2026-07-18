@@ -556,8 +556,15 @@ class ShopifyClient:
 
     # --- 메뉴(네비게이션) ----------------------------------------------------------
     async def menus(self) -> list[dict]:
-        data = await self.graphql("{ menus(first: 25) { nodes { id handle title } } }")
+        data = await self.graphql(
+            "{ menus(first: 25) { nodes { id handle title items { title type } } } }"
+        )
         return data["menus"]["nodes"]
+
+    async def shop_policies(self) -> list[dict]:
+        """설정된 정책들. body 가 비어 있으면 미설정으로 본다."""
+        data = await self.graphql("{ shop { shopPolicies { type body } } }")
+        return data["shop"]["shopPolicies"]
 
     async def menu_update(self, menu_gid: str, title: str, items: list[dict]) -> None:
         """메뉴 구조를 통째로 교체한다. 스코프: write_online_store_navigation.

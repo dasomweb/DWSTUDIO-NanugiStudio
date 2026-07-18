@@ -234,6 +234,101 @@ async def propose_brand(
     return ProposalOut(**raw)
 
 
+class ChecklistItem(BaseModel):
+    key: str
+    label: str
+    done: bool
+    hint: str  # 미완료일 때 다음 행동
+
+
+class ChecklistOut(BaseModel):
+    items: list[ChecklistItem]
+    done_count: int
+    total: int
+
+
+@router.get("/stores/{store_id}/checklist", response_model=ChecklistOut)
+async def checklist(store: Store = Depends(get_store)) -> ChecklistOut:
+    """온보딩 진행률 — 화면 표시가 아니라 **Shopify 실상태**를 읽어 판정한다.
+
+    UAT 교훈: "성공 메시지"와 실제 반영은 다를 수 있다. 그래서 이 체크리스트는 저장된
+    플래그가 아니라 매번 스토어에 물어본 결과다.
+    """
+    items: list[ChecklistItem] = []
+
+    def add(key: str, label: str, done: bool, hint: str) -> None:
+        items.append(ChecklistItem(key=key, label=label, done=done, hint=hint))
+
+    add("connect", "스토어 연동", store.connected and not store.missing_scopes,
+        "연동 카드에서 자격증명·스코프를 확인하세요")
+    add("theme", "테마 설치", bool(store.installed_theme_version),
+        "테마 설치 카드에서 설치하세요")
+
+    if not store.connected:
+        # 연결이 없으면 나머지는 판정 불가 — 전부 미완료로 보여준다
+        for key, label in (("brand", "색·폰트 주입"), ("hero", "히어로 이미지"),
+                           ("pages", "페이지"), ("policies", "정책"),
+                           ("collections", "컬렉션"), ("menu", "메뉴")):
+            add(key, label, False, "먼저 스토어를 연동하세요")
+        done = sum(1 for i in items if i.done)
+        return ChecklistOut(items=items, done_count=done, total=len(items))
+
+    try:
+        client = await client_for(store)
+
+        brand_done = (await client.get_brand_metafield()) is not None
+        add("brand", "색·폰트 주입", brand_done, "2단계에서 고르고 4단계에서 주입하세요")
+
+        hero_done = False
+        try:
+            theme_gid = await client.main_theme_gid()
+            raw = await client.get_theme_file_text(theme_gid, "templates/index.json")
+            if raw:
+                home = json.loads(re.sub(r"/\*.*?\*/", "", raw, flags=re.S))
+                hero = next(
+                    (home["sections"][s] for s in home["order"]
+                     if home["sections"][s]["type"] == "hero"), None)
+                img = ((hero or {}).get("settings") or {}).get("image_1") or ""
+                hero_done = img.startswith("shopify://")
+        except ShopifyError:
+            pass
+        add("hero", "히어로 이미지", hero_done, "4단계에서 생성·반영하세요")
+
+        try:
+            pages = await client.pages_list()
+        except ShopifyError:
+            pages = []
+        handles = " ".join((p.get("handle") or "").lower() for p in pages)
+        pages_done = "about" in handles and "contact" in handles
+        add("pages", "페이지 (About·Contact 등)", pages_done, "5단계에서 초안 생성 후 반영하세요")
+
+        try:
+            policies = await client.shop_policies()
+            policies_done = sum(1 for p in policies if (p.get("body") or "").strip()) >= 3
+        except ShopifyError:
+            policies_done = False
+        add("policies", "정책 (약관·환불·배송·프라이버시)", policies_done,
+            "관리자에서 정책 자동 관리를 끈 뒤 5단계에서 반영하세요")
+
+        collections = [c for c in await client.collections_list() if c.get("handle") != "frontpage"]
+        add("collections", "컬렉션", len(collections) > 0, "5단계 하단에서 생성하세요")
+
+        menus = {m["handle"]: m for m in await client.menus()}
+        main_items = (menus.get("main-menu") or {}).get("items") or []
+        menu_done = any(i.get("type") == "COLLECTION" for i in main_items)
+        add("menu", "메뉴 (헤더·푸터)", menu_done, "6단계에서 제안받아 반영하세요")
+
+    except (ShopifyError, RuntimeError):
+        for key, label in (("brand", "색·폰트 주입"), ("hero", "히어로 이미지"),
+                           ("pages", "페이지"), ("policies", "정책"),
+                           ("collections", "컬렉션"), ("menu", "메뉴")):
+            if not any(i.key == key for i in items):
+                add(key, label, False, "상태 확인 실패 — 연결 테스트를 다시 해보세요")
+
+    done = sum(1 for i in items if i.done)
+    return ChecklistOut(items=items, done_count=done, total=len(items))
+
+
 class HeroImagesIn(BaseModel):
     description: str = ""
     primary: str

@@ -141,6 +141,10 @@ export type ThemeInstall = {
   installed_at: string;
 };
 
+/** 온보딩 체크리스트 — 저장된 플래그가 아니라 Shopify 실상태를 읽은 판정. */
+export type ChecklistItem = { key: string; label: string; done: boolean; hint: string };
+export type Checklist = { items: ChecklistItem[]; done_count: number; total: number };
+
 /** 메뉴 항목. type: FRONTPAGE | COLLECTION | PAGE | HTTP */
 export type NavItem = {
   title: string;
@@ -435,6 +439,10 @@ export const api = {
       `/pages/stores/${storeId}/apply`,
       { method: "POST", body: JSON.stringify(body) }
     ),
+  // 온보딩 체크리스트 — Shopify 실상태 기반
+  checklist: (storeId: number) =>
+    request<Checklist>(`/stores/${storeId}/checklist`),
+
   // 메뉴(네비게이션) — 6단계
   navPreview: (storeId: number) =>
     request<NavPreview>(`/navigation/stores/${storeId}/preview`),
