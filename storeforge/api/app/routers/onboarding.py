@@ -314,6 +314,10 @@ async def hero_images(body: HeroImagesIn, store: Store = Depends(get_store)) -> 
         settings_obj = home["sections"][hero_sid].setdefault("settings", {})
         settings_obj["image_1"] = shop_image_ref(urls["desktop"])
         settings_obj["image_1_mobile"] = shop_image_ref(urls["mobile"])
+        # 히어로는 media_type 이 'image' 일 때만 이미지를 렌더한다 — 나누기 원본이 video 모드라
+        # 이걸 안 바꾸면 이미지를 넣어도 플레이스홀더가 뜬다 (dasomdev 실증).
+        settings_obj["media_type_1"] = "image"
+        settings_obj["media_type_1_mobile"] = "image"
 
         await client.theme_files_upsert(
             theme_gid, "templates/index.json", json.dumps(home, ensure_ascii=False, indent=2)

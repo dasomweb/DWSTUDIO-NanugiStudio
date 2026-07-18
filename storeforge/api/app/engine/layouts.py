@@ -87,17 +87,22 @@ def _strip_comments(raw: str) -> str:
 
 
 def _sanitize(node):
-    """shopify:// 리소스 참조 제거 — scripts/build-source-home.py 와 같은 규칙.
+    """스토어 고유 데이터 제거 — scripts/build-source-home.py 와 같은 규칙.
 
-    릴리즈 zip(v1.1.1+)은 이미 새니타이즈되어 있지만, 과거 버전 zip 으로 만들 수도 있으므로
-    여기서도 방어적으로 벗긴다.
+    릴리즈 zip(v1.1.2+)은 이미 새니타이즈되어 있지만, 과거 버전 zip 으로 만들 수도 있으므로
+    여기서도 방어적으로 처리한다: shopify:// 참조 제거, 영상 미디어 모드는 image 로
+    (영상은 지워지므로 video 모드로 두면 히어로가 플레이스홀더로 렌더된다).
     """
     if isinstance(node, dict):
-        return {
-            k: _sanitize(v)
-            for k, v in node.items()
-            if not (isinstance(v, str) and v.startswith("shopify://"))
-        }
+        out = {}
+        for k, v in node.items():
+            if isinstance(v, str) and v.startswith("shopify://"):
+                continue
+            if k.startswith("media_type") and v == "video":
+                out[k] = "image"
+                continue
+            out[k] = _sanitize(v)
+        return out
     if isinstance(node, list):
         return [_sanitize(v) for v in node]
     return node
