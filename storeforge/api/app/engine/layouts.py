@@ -150,19 +150,133 @@ def _wrap_richtext(settings: dict | None, rich_ids: set[str]) -> None:
             settings[key] = f"<p>{value}</p>"
 
 
+def _locale_of(z: zipfile.ZipFile) -> dict:
+    """테마 기본 로케일(en.default.json).
+
+    이 파일은 /* */ 블록 주석에 더해 **// 라인 주석**까지 담고 있다 (실측). 라인 시작
+    주석만 지운다 — 문자열 값 안의 "https://…" 를 건드리면 안 된다. 파싱 실패 시 빈 dict 를
+    돌려주면 t: 해석이 전부 실패해 텍스트 설정이 통째로 삭제되므로(스토리 섹션 텍스트
+    소실로 실증), 여기가 조용히 무너지면 안 된다.
+    """
+    merged: dict = {}
+    # preset 이 참조하는 html_defaults 는 schema 로케일에 산다 (실측). 콘텐츠 로케일과 병합한다.
+    for name in ("locales/en.default.json", "locales/en.default.schema.json"):
+        try:
+            raw = z.read(name).decode("utf-8-sig")
+            raw = _strip_comments(raw)
+            raw = re.sub(r"^\s*//.*$", "", raw, flags=re.M)
+            raw = re.sub(r",(\s*[}\]])", r"\1", raw)  # 주석 제거로 생기는 트레일링 콤마
+            merged.update(json.loads(raw))
+        except (KeyError, json.JSONDecodeError):
+            continue
+    return merged
+
+
+def _resolve_t(value: str, locale: dict) -> str | None:
+    """'t:html_defaults.shop_by_collection' → 로케일의 실제 문자열. 못 찾으면 None.
+
+    테마 에디터는 '섹션 추가' 때 preset 의 t: 키를 해석해 실문자열을 넣는다. 우리는 preset 을
+    직접 템플릿에 박으므로 같은 해석을 여기서 해야 한다 — 안 하면 스토어프론트에
+    't:html_defaults...' 가 그대로 노출된다 (dasomdev 스크린샷으로 실증).
+    """
+    node = locale
+    for part in value[2:].split("."):
+        if not isinstance(node, dict) or part not in node:
+            return None
+        node = node[part]
+    return node if isinstance(node, str) else None
+
+
+def _polish_settings(settings: dict | None, rich_ids: set[str], locale: dict) -> None:
+    for key in list((settings or {}).keys()):
+        value = settings[key]
+        if not isinstance(value, str):
+            continue
+        if value.startswith("t:"):
+            resolved = _resolve_t(value, locale)
+            if resolved is None:
+                # 해석 실패 → 키를 지운다. 설정이 없으면 렌더 시 schema default(t: 포함)가
+                # Shopify 쪽에서 정상 해석된다.
+                del settings[key]
+                continue
+            settings[key] = value = resolved
+        if key in rich_ids and value and not _RICHTEXT_OK_RE.match(value):
+            settings[key] = f"<p>{value}</p>"
+
+
 def _fix_richtext(z: zipfile.ZipFile, entry: dict) -> None:
-    """섹션 엔트리(블록 트리 포함)의 richtext 값을 업로드 가능한 형태로 정규화한다."""
-    _wrap_richtext(entry.get("settings"), _richtext_ids(_schema_of(z, f"sections/{entry['type']}.liquid")))
+    """섹션 엔트리(블록 트리 포함)의 t: 번역 키 해석 + richtext 정규화."""
+    locale = _locale_of(z)
+    _polish_settings(
+        entry.get("settings"), _richtext_ids(_schema_of(z, f"sections/{entry['type']}.liquid")), locale
+    )
 
     def walk(blocks: dict | None) -> None:
         for block in (blocks or {}).values():
             btype = block.get("type")
             if btype:
                 # 블록 타입명이 곧 파일명이다 (공개 블록 text → blocks/text.liquid, 비공개 _slide → blocks/_slide.liquid)
-                _wrap_richtext(block.get("settings"), _richtext_ids(_schema_of(z, f"blocks/{btype}.liquid")))
+                _polish_settings(
+                    block.get("settings"), _richtext_ids(_schema_of(z, f"blocks/{btype}.liquid")), locale
+                )
             walk(block.get("blocks"))
 
     walk(entry.get("blocks"))
+
+
+def bind_collections(home: dict, handles: list[str]) -> int:
+    """collection-list 섹션에 실제 컬렉션 핸들을 바인딩한다. 반환: 바인딩된 섹션 수.
+
+    collection_list 설정이 비어 있으면 섹션은 placeholder 데모 카드를 그린다 —
+    스토어에 있는 컬렉션을 채워야 카드(와 우리가 건 배너 이미지)가 실제로 나온다.
+    """
+    if not handles:
+        return 0
+    count = 0
+    for sid in home["order"]:
+        sec = home["sections"][sid]
+        if sec["type"] == "collection-list":
+            sec.setdefault("settings", {})["collection_list"] = handles[:6]
+            count += 1
+    return count
+
+
+# 레이아웃 재적용이 지워서는 안 되는, 이미지 파이프라인이 심어 둔 설정들.
+_HERO_KEEP = ("image_1", "image_1_mobile", "media_type_1", "media_type_1_mobile")
+
+
+def merge_media(new_home: dict, current_home: dict | None) -> None:
+    """기존 홈의 히어로/스토리 이미지를 새 레이아웃으로 이월한다.
+
+    레이아웃은 zip 기본값에서 다시 조립되므로, 이월하지 않으면 '홈 구성 반영'을 누를 때마다
+    생성해 둔 이미지가 전부 placeholder 로 되돌아간다.
+    """
+    if not current_home:
+        return
+
+    def first(home: dict, stype: str) -> dict | None:
+        return next(
+            (home["sections"][s] for s in home["order"] if home["sections"][s]["type"] == stype),
+            None,
+        )
+
+    cur_hero, new_hero = first(current_home, "hero"), first(new_home, "hero")
+    if cur_hero and new_hero:
+        keep = {k: v for k, v in (cur_hero.get("settings") or {}).items() if k in _HERO_KEEP}
+        new_hero.setdefault("settings", {}).update(keep)
+
+    cur_story, new_story = first(current_home, "media-with-content"), first(new_home, "media-with-content")
+    if cur_story and new_story:
+        def media_block(sec: dict) -> dict | None:
+            for b in (sec.get("blocks") or {}).values():
+                if "_media" in (b.get("type") or ""):
+                    return b
+            return None
+
+        cb, nb = media_block(cur_story), media_block(new_story)
+        if cb and nb:
+            keep = {k: v for k, v in (cb.get("settings") or {}).items() if k in ("image", "media_type")}
+            nb.setdefault("settings", {}).update(keep)
 
 
 def _section_from_preset(version: str | None, section_type: str) -> dict | None:

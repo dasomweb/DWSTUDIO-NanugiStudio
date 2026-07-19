@@ -595,13 +595,34 @@ async def apply_layout(body: LayoutIn, store: Store = Depends(get_store)) -> dic
     try:
         client = await client_for(store)
         theme_gid = await client.main_theme_gid()
+
+        # 기존 홈의 히어로/스토리 이미지 이월 — 재적용이 이미지를 지우면 안 된다
+        current_raw = await client.get_theme_file_text(theme_gid, "templates/index.json")
+        current = (
+            json.loads(re.sub(r"/\*.*?\*/", "", current_raw, flags=re.S)) if current_raw else None
+        )
+        layouts.merge_media(home, current)
+
+        # 스토어의 실제 컬렉션 바인딩 — 없으면 placeholder 데모 카드가 그려진다
+        try:
+            handles = [
+                c["handle"] for c in await client.collections_list() if c.get("handle") != "frontpage"
+            ]
+        except ShopifyError:
+            handles = []
+        bound = layouts.bind_collections(home, handles)
+
         await client.theme_files_upsert(
             theme_gid, "templates/index.json", json.dumps(home, ensure_ascii=False, indent=2)
         )
     except ShopifyError as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
 
-    return {"applied": body.layout_id, "sections": home["order"]}
+    return {
+        "applied": body.layout_id,
+        "sections": home["order"],
+        "collections_bound": bound,
+    }
 
 
 @router.post("/preview", response_model=PreviewOut)

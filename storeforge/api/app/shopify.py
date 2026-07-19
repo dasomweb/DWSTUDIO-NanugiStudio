@@ -552,7 +552,24 @@ class ShopifyClient:
             raise ShopifyError(
                 "collectionCreate 실패 — " + "; ".join(e["message"] for e in result["userErrors"])
             )
-        return result["collection"]
+        collection = result["collection"]
+
+        # API 로 만든 컬렉션은 Online Store 채널에 **미발행**이라 스토어프론트에서 404 가 난다
+        # (dasomdev 실증 — 카드가 placeholder 로 렌더되던 원인). GraphQL 발행은
+        # write_publications 스코프가 필요하지만, REST 의 published 필드는 write_products 로
+        # 되므로 여기서 바로 발행한다.
+        numeric_id = collection["id"].split("/")[-1]
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.put(
+                f"https://{self.shop_domain}/admin/api/{self._version}/smart_collections/{numeric_id}.json",
+                headers={"X-Shopify-Access-Token": self._token, "Content-Type": "application/json"},
+                json={"smart_collection": {"id": int(numeric_id), "published": True}},
+            )
+        if resp.status_code >= 400:
+            raise ShopifyError(
+                f"컬렉션 발행 실패 (HTTP {resp.status_code}) — 생성은 됐지만 스토어프론트에 보이지 않습니다."
+            )
+        return collection
 
     async def collection_update_image(self, collection_gid: str, src: str, alt: str = "") -> None:
         """컬렉션 대표 이미지를 교체한다. src 는 staged upload resourceUrl. 스코프: write_products."""
