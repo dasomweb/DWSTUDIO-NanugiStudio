@@ -46,10 +46,20 @@
     (예: `1,1B,2,27,30,4,425,44,613,C1B/30,C27/613,C4/30`). 버튼 텍스트 정규식 스캔은
     3자리 숫자(425/613 등)를 놓친다 — 쓰지 말 것.
   - **Length**: `LENGTHS` 라벨의 필 버튼들 (`18"`, `24"` — `/^\d+"$/`).
-- **컬러 스와치 이미지 = `img[alt="color"]`**. **파일명 어간이 곧 컬러코드다**
-  (`1B.jpg`, `425.jpg`, `C1B-30.jpg` — 코드의 `/` 는 파일명에서 `-`).
-  → 컬러↔스와치 100% 매핑. 초판의 파일명 추측 매칭(28/131)이나 칩 클릭 캡처(느려서
-  타임아웃)는 전부 불필요했다.
+- **컬러 스와치 이미지 — 페이지 세대별로 2가지** (2026-07-19 22개 전수 재빌드로 확인):
+  - **구형(weave 계열)**: `img[alt="color"]` — **파일명 어간이 곧 컬러코드**
+    (`1B.jpg`, `425.jpg`, `C1B-30.jpg` — 코드의 `/` 는 파일명에서 `-`).
+  - **신형(braids·wigs·ponytails 등 대부분)**: `alt="color"` 칩이 아예 없다. 대신
+    **칩 이미지의 `alt` 가 곧 컬러코드**다 (`alt="2T1B/27"`, `alt="AMBER"` — 데스크톱/모바일
+    중복으로 각 2개). → AVAILABLE COLORS 리스트와 alt 를 대소문자 무시 매칭하면 100% 잡힌다.
+  - 순서: 1차로 `alt="color"` 수집 → 없으면 2차로 alt∈컬러리스트 수집. 두 방식 합치면
+    22개 제품 전부 컬러:칩 = 1:1 이었다.
+  - **AVAILABLE COLORS 행이 없는 페이지**(X-Pression Pre-Stretched Braid 실증)는
+    칩의 코드 목록이 컬러 리스트의 예비 원천이다.
+  - **소스에 칩이 아예 없는 컬러가 있다** — 스크랩 실패가 아니라 outre 쪽 데이터 공백이다.
+    (Twisted Up 20색 중 10색, Burmese 613, A+ Waikiki C27/613 — `VIEW MORE` 를 펼쳐도
+    나오지 않음을 확인.) 이런 변형은 스와치를 비워 두면 테마가 대표 이미지로 폴백한다.
+    억지 매칭하지 말 것 — 엉뚱한 색 칩이 붙는 것이 빈 것보다 나쁘다.
 - **기타 이미지(갤러리)**: `img[alt^="Small image of"]` — 팩샷·모델 앞/옆/뒤컷·브랜드 카드.
   이 중 **영상 썸네일은 이미지로 넣지 말고 링크를 추출**한다. 메인 이미지: `img[alt^="Image of"]`.
 - **YouTube 링크 추출법**: 정적 DOM 엔 없다 (WP youtube-embed-plus — 선택 시 로드).
@@ -64,7 +74,11 @@
 - **variant 이미지 = 해당 컬러의 스와치 칩** (`productVariantAppendMedia`) —
   파일명 어간=컬러코드라 매핑이 결정론적이다. 테마 `show_variant_image: true` 와 결합하면
   outre 와 동일한 헤어 텍스처 칩 스와치 UX 가 된다.
-- 스펙(HAIR MATERIAL 등)은 descriptionHtml 표 또는 메타필드로.
+- **스펙은 메타필드로만** (`outre` 네임스페이스, `single_line_text_field`:
+  `hair_material` / `texture` / `style` / `color_shown`). descriptionHtml 에 표를 박으면
+  상품마다 중복 관리가 되고 테마 교체 시 남는다 — PDP 표는 `templates/product.json` 의
+  **custom-liquid 블록(sf_spec) 하나**가 `closest.product.metafields.outre` 를 읽어
+  전 상품 공용으로 그린다. 메타필드가 없는 상품에선 아무것도 출력하지 않아 안전하다.
 - 태그 규약(스마트 컬렉션과 맞물림): `category:braids`, `category:lace-wigs`, … +
   브랜드 감지(제목/브레드크럼에 X-PRESSION→`brand:x-pression`, MYTRESSES/PURPLE PACK→
   `brand:mytresses`, MELTED→`brand:melted-hairline`, PRETTY QUICK→`brand:pretty-quick`) +
