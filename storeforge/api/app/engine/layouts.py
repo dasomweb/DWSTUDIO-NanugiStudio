@@ -272,4 +272,10 @@ def build_home(layout_id: str, version: str | None = None) -> dict:
         # 아무것도 조립되지 않는 건 소스가 바뀌었다는 뜻 — 원본 그대로 둔다
         return home
 
+    # 기본 레이아웃 폭은 1400px 콘텐츠(page-width + 전역 narrow)로 통일한다.
+    # 나누기 원본·섹션 preset 일부가 full-width 라 그대로 두면 스토어가 풀블리드로 나온다.
+    # 풀블리드를 원하는 섹션은 머천트가 에디터에서 개별적으로 바꾼다.
+    for sid in order:
+        sections[sid].setdefault("settings", {})["section_width"] = "page-width"
+
     return {"sections": sections, "order": order}
