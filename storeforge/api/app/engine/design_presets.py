@@ -331,7 +331,7 @@ def build_footer_group(preset_id: str, schemes: dict[str, str],
                        "column", "flex-start", width="fit-content", gap=10),
                 _group([_text("<h6>Follow Us</h6>", "h6"), _social(social)],
                        "column", "flex-start", width="fit-content", gap=10),
-            ], "row", "space-between", gap=40),
+            ], "row", "space-between", gap=40, vertical_alignment="flex-start"),
         ]
     elif preset_id == "centered-social":
         footer_blocks = [
@@ -348,7 +348,7 @@ def build_footer_group(preset_id: str, schemes: dict[str, str],
                 _menu("footer", "Company"),
                 _group([_text("<h6>Contact</h6>", "h6"), _text(contact)],
                        "column", "flex-start", width="fit-content", gap=10),
-            ], "row", "space-between", gap=40),
+            ], "row", "space-between", gap=40, vertical_alignment="flex-start"),
         ]
     elif preset_id == "slim-bar":
         gap = 8
@@ -363,7 +363,7 @@ def build_footer_group(preset_id: str, schemes: dict[str, str],
                        width="custom", custom_width=32, gap=14),
                 _menu("main-menu", "Shop"),
                 _menu("footer", "Company"),
-            ], "row", "space-between", gap=40),
+            ], "row", "space-between", gap=40, vertical_alignment="flex-start"),
             _divider(),
             _group([_payments("flex-start"), _social(social)], "row", "space-between"),
         ]
