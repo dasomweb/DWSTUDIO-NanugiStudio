@@ -75,7 +75,11 @@ async def _theme_ctx(client: ShopifyClient) -> tuple[str, dict[str, str]]:
     settings_text = await client.get_theme_file_text(theme_gid, "config/settings_data.json")
     if not settings_text:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, "settings_data.json 을 읽지 못했습니다.")
-    return theme_gid, resolve_schemes(settings_text)
+    # 주입 팔레트가 렌더 색을 덮어쓰므로, 톤 판정에도 반드시 반영한다.
+    # get_brand_metafield 는 {value, updated_at} 래핑을 돌려준다 — 페이로드는 value 안.
+    wrapped = await client.get_brand_metafield()
+    brand = (wrapped or {}).get("value")
+    return theme_gid, resolve_schemes(settings_text, brand)
 
 
 @router.post("/stores/{store_id}/header", response_model=ApplyOut)

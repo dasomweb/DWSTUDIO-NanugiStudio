@@ -48,16 +48,29 @@ def _rgb(color: str) -> tuple[float, float, float] | None:
     return None
 
 
-def resolve_schemes(settings_data_text: str) -> dict[str, str]:
-    """settings_data.json 에서 {light, dark, accent} 스킴 id 를 고른다.
+def resolve_schemes(settings_data_text: str, brand: dict | None = None) -> dict[str, str]:
+    """{light, dark, accent} 스킴 id 를 고른다.
 
     light = 배경 휘도 최대, dark = 최소, accent = 채도 최대(단색 흑백 제외; 없으면 dark).
+
+    **판정 기준은 실제 렌더 색이다**: StoreForge 가 주입한 storeforge.brand 메타필드가
+    .color-scheme-N CSS 를 덮어쓰므로(brand-overrides.liquid), brand 가 있으면 그 안의
+    --color-background 가 settings_data 값보다 우선한다 — settings_data 만 보면
+    화면과 다른 스킴을 고르게 된다 (dasomdev 에서 실증).
     """
     data = _parse(settings_data_text)
     schemes = (data.get("current") or {}).get("color_schemes") or {}
+    backgrounds: dict[str, str] = {
+        sid: (sc.get("settings") or {}).get("background") or ""
+        for sid, sc in schemes.items()
+    }
+    for sc in (brand or {}).get("schemes") or []:
+        bg = (sc.get("css") or {}).get("--color-background")
+        if sc.get("id") and bg:
+            backgrounds[sc["id"]] = bg
     scored: list[tuple[str, float, float]] = []  # (id, 휘도, 채도)
-    for sid, sc in schemes.items():
-        rgb = _rgb((sc.get("settings") or {}).get("background") or "")
+    for sid, bg in backgrounds.items():
+        rgb = _rgb(bg)
         if rgb is None:
             continue
         lum = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
