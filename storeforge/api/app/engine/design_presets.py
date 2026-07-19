@@ -193,7 +193,11 @@ def _menu(handle: str, heading: str = "", layout: str = "vertical", align: str =
 
 
 def _logo(inverse: bool = False) -> dict:
-    return {"type": "logo", "settings": {"inverse": inverse}}
+    # unit 기본값이 percent 100% 라 컨테이너를 통째로 차지한다 (라이브에서 실증) —
+    # 푸터 스케일의 픽셀 높이로 고정한다.
+    return {"type": "logo", "settings": {
+        "inverse": inverse, "unit": "pixel", "pixel_height": 32,
+    }}
 
 
 def _social(urls: dict[str, str]) -> dict:
