@@ -9,6 +9,7 @@ import InstallRequest from "@/components/InstallRequest";
 import ThemeInstallCard from "@/components/ThemeInstallCard";
 import PagesCard from "@/components/PagesCard";
 import NavigationCard from "@/components/NavigationCard";
+import DesignPickerCard from "@/components/DesignPickerCard";
 import ManualChecklist from "@/components/ManualChecklist";
 import OnboardingProgress from "@/components/OnboardingProgress";
 import {
@@ -1011,6 +1012,8 @@ export default function StoreDetailPage() {
           )}
         </div>
       </div>
+
+      <DesignPickerCard store={store} />
 
       <PagesCard store={store} description={description} />
 

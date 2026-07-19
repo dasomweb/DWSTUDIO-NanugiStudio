@@ -153,6 +153,21 @@ export type NavItem = {
   url: string | null;
 };
 
+/** 헤더/푸터 디자인 프리셋 카탈로그 항목. tone 은 푸터에만 있다. */
+export type DesignPreset = {
+  id: string;
+  name: string;
+  description: string;
+  tone?: string;
+};
+
+export type DesignApply = {
+  preset_id: string;
+  tone: string;
+  scheme_id: string;
+  preview_url: string;
+};
+
 export type NavPreview = {
   header: NavItem[];
   footer: NavItem[];
@@ -462,6 +477,20 @@ export const api = {
   // 온보딩 체크리스트 — Shopify 실상태 기반
   checklist: (storeId: number) =>
     request<Checklist>(`/stores/${storeId}/checklist`),
+
+  // 헤더/푸터 디자인 프리셋
+  designHeaders: () => request<{ presets: DesignPreset[] }>(`/design/headers`),
+  designFooters: () => request<{ presets: DesignPreset[] }>(`/design/footers`),
+  applyHeaderDesign: (storeId: number, body: { preset_id: string; tone?: string }) =>
+    request<DesignApply>(`/design/stores/${storeId}/header`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  applyFooterDesign: (storeId: number, body: { preset_id: string; tone?: string }) =>
+    request<DesignApply>(`/design/stores/${storeId}/footer`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 
   // 메뉴(네비게이션) — 6단계
   navPreview: (storeId: number) =>
