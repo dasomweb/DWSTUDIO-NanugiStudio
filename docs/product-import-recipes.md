@@ -4,8 +4,13 @@
 조금씩 다르다. 한 번 알아낸 방식을 여기 기록해 다음에 같은 소스를 만나면 바로 재사용한다.
 
 **공통 원칙**
-- **영상은 가져오지 않는다.** 스크린 캡처로 대체하지도 않는다 (지시: 2026-07-19).
-  갤러리 수집 시 영상 썸네일·비디오 파생 이미지는 걸러낸다.
+- **영상 파일을 다운로드하거나 스크린 캡처로 대체하지 않는다.** 대신 **YouTube 링크를
+  추출해 Shopify EXTERNAL_VIDEO 미디어로 첨부**한다 (`productCreateMedia`,
+  mediaContentType: EXTERNAL_VIDEO, originalSource: watch URL) — 상품 갤러리에서
+  재생 가능한 임베드로 뜬다. (정책 확정: 2026-07-19, A+ Straight 로 실증)
+- **스펙성 데이터(제품별 커스텀 필드)는 메타필드로.** 소스 사이트의 라벨-값 행
+  (HAIR MATERIAL 등)은 옵션이 아니라 스펙이다 — `productSet` 의 `metafields` 로
+  namespace 별 저장. PDP 노출은 테마의 동적 소스/스펙 블록으로.
 - 이미지 사용 권한은 **가져오기 전에 사용자에게 확인**받는다 (구두 확인이라도 기록).
 - 개발 스토어에는 디자인 검증용 샘플만 (카테고리당 3~4개). 전량 임포트는 실스토어에서.
 - 등록은 `productSet`(GraphQL) — 상품 REST API 는 폐기 경로다.
@@ -30,31 +35,41 @@
 - 카드 제목: `.product-title` (없으면 slug 를 Title Case 로).
 - 카드 텍스트에 배지·카테고리·브랜드가 붙어 나옴 (`NEWBraids • X-PRESSION - …`) — 제목으로 쓰지 말 것.
 
-### 상품 상세 스크랩 (Next.js)
+### 상품 상세 스크랩 (Next.js) — ★ 2026-07-19 정정판
 - **이미지가 프록시 URL** 로 나온다: `api.outre.com/_next/image?url=<인코딩된 원본>` →
   `image?url=` 뒤를 URL-decode 해서 **원본**(`www.outre.com/wp-content/uploads/…`)을 쓸 것.
-- 갤러리: `img[alt^="Small image of"]` = 썸네일 세트(원본 URL 로 디코드 후 dedupe).
-  메인 이미지: `img[alt^="Image of"]`.
 - 제목: `h1`.
-- **컬러 옵션**: 텍스트 칩 (`button/li/span` 의 innerText 가 컬러코드 패턴
-  `1B`, `27`, `3T4/27613`, `T1B/30` 등). 정규식:
-  `^[0-9]{1,2}[A-Z]{0,3}$|^[A-Z0-9]{1,3}/[A-Z0-9/]+$|^T[0-9]+/`
-- 파일명에 컬러코드가 들어가는 경우가 있어 (`PKG_…_1B.png`) 갤러리↔컬러 매칭에
-  쓸 수 있으나 **적중률 낮음** (실측 28/131). 정확한 매핑은 컬러 칩을 클릭하며 메인
-  이미지 변화를 캡처해야 하는데, 상품×컬러만큼 페이지 상호작용이 필요해 느리다
-  (23상품×~5컬러에 10분+ → 타임아웃). **실스토어 임포트 시 백그라운드 잡으로 돌릴 것.**
+- **스펙(옵션 아님)**: 본문 라벨 행에서 텍스트 추출 — `HAIR MATERIAL` / `TEXTURE` /
+  `STYLE` / `COLOR SHOWN`. → Shopify 메타필드 또는 설명에 넣는다.
+- **variation 은 두 축이다** (초판의 심각한 오류 — Color 하나로 잘못 모델링했었다):
+  - **Color**: `AVAILABLE COLORS` 라벨 행의 **콤마 리스트가 진실의 원천**
+    (예: `1,1B,2,27,30,4,425,44,613,C1B/30,C27/613,C4/30`). 버튼 텍스트 정규식 스캔은
+    3자리 숫자(425/613 등)를 놓친다 — 쓰지 말 것.
+  - **Length**: `LENGTHS` 라벨의 필 버튼들 (`18"`, `24"` — `/^\d+"$/`).
+- **컬러 스와치 이미지 = `img[alt="color"]`**. **파일명 어간이 곧 컬러코드다**
+  (`1B.jpg`, `425.jpg`, `C1B-30.jpg` — 코드의 `/` 는 파일명에서 `-`).
+  → 컬러↔스와치 100% 매핑. 초판의 파일명 추측 매칭(28/131)이나 칩 클릭 캡처(느려서
+  타임아웃)는 전부 불필요했다.
+- **기타 이미지(갤러리)**: `img[alt^="Small image of"]` — 팩샷·모델 앞/옆/뒤컷·브랜드 카드.
+  이 중 **영상 썸네일은 이미지로 넣지 말고 링크를 추출**한다. 메인 이미지: `img[alt^="Image of"]`.
+- **YouTube 링크 추출법**: 정적 DOM 엔 없다 (WP youtube-embed-plus — 선택 시 로드).
+  **보이는**(offsetParent≠null) 갤러리 썸네일을 순서대로 `dispatchEvent(click)` 하고
+  1.5초 뒤 `iframe[src*=youtube]` 를 스캔 → `/embed/{id}` 에서 video id.
+  Playwright locator.click 은 오버레이에 막히므로 dispatch 방식이어야 한다.
 
-### Shopify 등록 매핑
+### Shopify 등록 매핑 — ★ 정정판
 - `productSet`: title=h1, vendor='Outre', status=ACTIVE,
-  productOptions=[Color: 칩값들(≤10)], variants=컬러당 1개,
-  files=[갤러리 원본 URL 그대로 originalSource — Shopify 가 직접 가져감, staged upload 불필요].
+  **productOptions=[Color(12종), Length(18"/24")]** — variants = Color×Length 전 조합,
+  files=[스와치 칩 12장 + 기타 갤러리(영상 제외)] — 원본 URL 그대로 originalSource.
+- **variant 이미지 = 해당 컬러의 스와치 칩** (`productVariantAppendMedia`) —
+  파일명 어간=컬러코드라 매핑이 결정론적이다. 테마 `show_variant_image: true` 와 결합하면
+  outre 와 동일한 헤어 텍스처 칩 스와치 UX 가 된다.
+- 스펙(HAIR MATERIAL 등)은 descriptionHtml 표 또는 메타필드로.
 - 태그 규약(스마트 컬렉션과 맞물림): `category:braids`, `category:lace-wigs`, … +
-  브랜드 감지(제목에 X-PRESSION/TWISTED UP→`brand:x-pression`, PURPLE PACK/MYTRESSES→
+  브랜드 감지(제목/브레드크럼에 X-PRESSION→`brand:x-pression`, MYTRESSES/PURPLE PACK→
   `brand:mytresses`, MELTED→`brand:melted-hairline`, PRETTY QUICK→`brand:pretty-quick`) +
   신상품 `promo:new-arrival`.
 - 등록 직후 REST `PUT /products/{id}.json {"product":{"published":true}}`.
-- **variant 이미지 스와치**: 테마 설정 `show_variant_image: true` + variant 에 미디어 연결
-  (`productVariantAppendMedia`) 하면 컬러 스와치 자리에 해당 variation 이미지가 뜬다.
 - 가격: 소스에 없음(브랜드 사이트) — placeholder 로 넣고 도매가는 사람이 책정.
 
 ### 함정 목록
