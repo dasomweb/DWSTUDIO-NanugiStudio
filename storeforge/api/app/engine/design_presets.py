@@ -400,8 +400,11 @@ def build_footer_group(preset_id: str, schemes: dict[str, str],
         "block_order": list(util_blocks.keys()),
     }
 
+    # 그룹 파일은 최상위 type/name 이 필수다 — 없으면 themeFilesUpsert 가
+    # "missing required key 'type'/'name'" 으로 거부한다.
     return json.dumps(
-        {"sections": {"footer": footer, "utilities": utilities},
+        {"type": "footer", "name": "Footer",
+         "sections": {"footer": footer, "utilities": utilities},
          "order": ["footer", "utilities"]},
         ensure_ascii=False, indent=2,
     )
