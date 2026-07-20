@@ -115,13 +115,26 @@
 (`snippets/product-media-gallery-content.liquid`, `sorted_media` 정렬부).
 - **개별 상품에서 칩을 detach 하면 안 된다** — 색상 스와치까지 빈 원이 된다
   (스와치는 `settings.show_variant_image` 로 같은 칩을 그린다 — `snippets/swatch.liquid`).
-- **정답은 갤러리 스니펫 수정 + `hide_variants` 블록 설정**: `hide_variants` 가 켜지면
-  변형 이미지를 갤러리에서 제외하고 `product.media` 순서(대표=첫 미디어)를 유지하도록
-  `sorted_media` 로직을 고친다. 그러면 (1) 히어로=대표이미지 (2) 갤러리에 칩 안 뜸
-  (3) 색상 원형 스와치는 `show_variant_image` 로 그대로 유지 — 셋 다 만족.
+- **`hide_variants` 설정으로 칩을 갤러리에서 빼는 것도 오답**이다 — 히어로는 대표로
+  고쳐지지만 색상 클릭 시 점프할 이미지가 사라져 **색상 미리보기가 죽는다**.
+- 원하는 최종 동작은 3가지 동시 만족: (1) 첫 로드 히어로=대표이미지 (2) 색상 클릭 시
+  그 색 칩으로 히어로 전환 (3) 색상 원형 스와치 유지. 이걸 위해 **두 파일**을 고친다:
+  1. **`snippets/product-media-gallery-content.liquid`**: 27번째 줄
+     `selected_or_first_available_variant` → **`selected_variant`** 로. selected_variant 는
+     URL 에 `?variant=` 가 있을 때(=사용자가 색을 고른 상태)만 non-nil 이라, 첫 로드엔
+     nil → `sorted_media = product.media`(대표=첫 미디어)가 히어로가 된다.
+  2. **`assets/media-gallery.js`** `#handleVariantUpdate`: 기존엔 서버 재렌더 HTML 로
+     갤러리를 **통째 교체**(`replaceWith`)했다 — 이 재렌더는 `?option_values=` 로 요청돼
+     `selected_variant` 가 nil 이라(그건 `?variant=` 전용) 히어로가 대표로 돌아가 버린다.
+     대신 **`event.detail.resource.featured_media.id` 로 그 변형 칩 슬라이드를 찾아
+     `slideshow.select(index)` 로 이동만** 한다(교체 안 함). 못 찾을 때만 기존 교체로 폴백.
+  → `hide_variants` 는 **false**(칩이 갤러리에 있어야 select 로 점프 가능).
+- 함정: variant-picker.js 는 색 변경 시 `?variant=` 가 아니라 **`?option_values=`** 로
+  섹션을 재요청한다(`buildRequestUrl`). 그래서 재렌더 컨텍스트에선 `selected_variant` 가
+  항상 nil — 스니펫만 고치면 색상 클릭이 안 먹는다. JS 쪽 select 처리가 반드시 필요하다.
 - 테마 파일이라 **23개 전 상품이 동시에 고쳐진다**. storeforge 스토어는
-  `theme_files_upsert` 로 스니펫과 `templates/product.json`(블록 `_product-media-gallery`
-  의 `settings.hide_variants=true`)를 함께 upsert. (2026-07-20 dasomdev 실증)
+  `theme_files_upsert` 로 두 파일 + `templates/product.json`(블록 `_product-media-gallery`
+  의 `settings.hide_variants=false`)을 함께 upsert. (2026-07-20 dasomdev 실증)
 
 ### 스크랩 산출물 스키마가 필드마다 다르다 (outre-corrected.json)
 같은 파일 안에서도 모양이 섞여 있으니 **읽기 전에 타입을 확인**할 것:

@@ -24,7 +24,10 @@
 {%- endif -%}
 {%- liquid
   assign selected_product = closest.product
-  assign selected_variant_media = selected_product.selected_or_first_available_variant.featured_media
+  # selected_variant 는 URL 에 ?variant= 가 있을 때(=사용자가 색상을 고른 상태)만 존재한다.
+  # first_available 을 쓰면 첫 로드에도 첫 변형이 선택된 것으로 취급돼 히어로가 그 변형 칩이 된다.
+  # → 첫 화면은 대표이미지, 색상 클릭 시에만 그 변형 칩으로 점프하도록 selected_variant 를 쓴다.
+  assign selected_variant_media = selected_product.selected_variant.featured_media
   assign first_3d_model = selected_product.media | where: 'media_type', 'model' | first
 
   if block_settings.hide_variants
@@ -100,25 +103,22 @@
   endif
 
   assign sorted_media = '' | split: ','
-  if block_settings.hide_variants
-    # 변형 이미지(색상 칩)를 갤러리에서 제외하고 product.media 순서(대표이미지=첫 미디어)를 유지한다.
-    # → PDP 히어로가 첫 변형 칩이 아니라 대표이미지가 된다. 색상 스와치는 show_variant_image 로 별도 유지.
-    for media in selected_product.media
-      unless variant_images contains media.src
-        assign found_media = selected_product.media | where: 'id', media.id
-        assign sorted_media = sorted_media | concat: found_media
-      endunless
-    endfor
-  elsif selected_variant_media
+  if selected_variant_media
+    # 색상이 선택된 상태(URL ?variant=) — 그 변형의 칩을 히어로 맨 앞에 놓는다.
     assign sorted_media = sorted_media | concat: selected_product.media | where: 'id', selected_variant_media.id
 
     for media in selected_product.media
+      if block_settings.hide_variants and variant_images contains media.src and sorted_media.size > 0
+        continue
+      endif
+
       if media.id != selected_variant_media.id
         assign found_media = selected_product.media | where: 'id', media.id
         assign sorted_media = sorted_media | concat: found_media
       endif
     endfor
   else
+    # 첫 화면(색상 미선택) — product.media 순서 그대로. 대표이미지가 히어로가 된다.
     assign sorted_media = selected_product.media
   endif
   assign has_image_drop = sorted_media | has: 'media_type', 'image'
