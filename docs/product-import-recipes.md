@@ -107,8 +107,21 @@
 썸네일 레일에서 진짜 상품 사진이 화면 밖으로 밀린다. 순서는
 **갤러리(소스 순서) → 외부영상 → 칩**. `productReorderMedia(id, moves:[{id,newPosition}])`
 로 교정하며, 1번 미디어가 곧 대표 이미지가 된다.
-칩을 변형 이미지로 쓰면 컬러 선택 시 히어로가 그 컬러의 칩으로 바뀐다 — 스와치 UX 의
-대가이며, 원치 않으면 칩을 변형에 잇지 말고 스와치 전용으로만 둘 것.
+
+### ★ PDP 히어로가 칩으로 뜨는 문제 — 테마 한 곳으로 전 상품 해결
+칩을 변형 이미지로 연결하면(스와치 UX 목적) **PDP 를 열 때 히어로가 대표 이미지가 아니라
+첫 변형의 칩**으로 뜬다. 카드/추천에는 대표(패키지)가 맞게 나오는데 PDP 만 다르다 —
+테마가 `selected_or_first_available_variant.featured_media` 를 히어로로 쓰기 때문
+(`snippets/product-media-gallery-content.liquid`, `sorted_media` 정렬부).
+- **개별 상품에서 칩을 detach 하면 안 된다** — 색상 스와치까지 빈 원이 된다
+  (스와치는 `settings.show_variant_image` 로 같은 칩을 그린다 — `snippets/swatch.liquid`).
+- **정답은 갤러리 스니펫 수정 + `hide_variants` 블록 설정**: `hide_variants` 가 켜지면
+  변형 이미지를 갤러리에서 제외하고 `product.media` 순서(대표=첫 미디어)를 유지하도록
+  `sorted_media` 로직을 고친다. 그러면 (1) 히어로=대표이미지 (2) 갤러리에 칩 안 뜸
+  (3) 색상 원형 스와치는 `show_variant_image` 로 그대로 유지 — 셋 다 만족.
+- 테마 파일이라 **23개 전 상품이 동시에 고쳐진다**. storeforge 스토어는
+  `theme_files_upsert` 로 스니펫과 `templates/product.json`(블록 `_product-media-gallery`
+  의 `settings.hide_variants=true`)를 함께 upsert. (2026-07-20 dasomdev 실증)
 
 ### 스크랩 산출물 스키마가 필드마다 다르다 (outre-corrected.json)
 같은 파일 안에서도 모양이 섞여 있으니 **읽기 전에 타입을 확인**할 것:

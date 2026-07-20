@@ -100,14 +100,19 @@
   endif
 
   assign sorted_media = '' | split: ','
-  if selected_variant_media
+  if block_settings.hide_variants
+    # 변형 이미지(색상 칩)를 갤러리에서 제외하고 product.media 순서(대표이미지=첫 미디어)를 유지한다.
+    # → PDP 히어로가 첫 변형 칩이 아니라 대표이미지가 된다. 색상 스와치는 show_variant_image 로 별도 유지.
+    for media in selected_product.media
+      unless variant_images contains media.src
+        assign found_media = selected_product.media | where: 'id', media.id
+        assign sorted_media = sorted_media | concat: found_media
+      endunless
+    endfor
+  elsif selected_variant_media
     assign sorted_media = sorted_media | concat: selected_product.media | where: 'id', selected_variant_media.id
 
     for media in selected_product.media
-      if block_settings.hide_variants and variant_images contains media.src and sorted_media.size > 0
-        continue
-      endif
-
       if media.id != selected_variant_media.id
         assign found_media = selected_product.media | where: 'id', media.id
         assign sorted_media = sorted_media | concat: found_media
