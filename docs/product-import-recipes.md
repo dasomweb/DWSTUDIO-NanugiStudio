@@ -86,6 +86,36 @@
 - 등록 직후 REST `PUT /products/{id}.json {"product":{"published":true}}`.
 - 가격: 소스에 없음(브랜드 사이트) — placeholder 로 넣고 도매가는 사람이 책정.
 
+### GraphQL 호출 규격 (2026-07-20 재임포트에서 전부 실증 — 추측하지 말 것)
+- `productSet` 의 변수 타입은 `ProductSetInput!` 이다 (`ProductInput!` 아님).
+- `productOptions[].values` 는 문자열 배열이 아니라 **`[{name: "1B"}]`** 객체 배열.
+- `variants[]` 에 **`title` 을 넣으면 안 된다** (`ProductVariantSetInput` 에 없는 필드) —
+  제목은 옵션값에서 자동 생성된다. 입력은 `optionValues:[{optionName, name}]`.
+- **응답에서 변형 옵션을 읽을 땐 `selectedOptions{name value}`** — `optionValues` 는
+  입력 전용이라 응답 셀렉션에 쓰면 `Field 'optionValues' doesn't exist` 로 죽는다.
+  (입력만 검증하고 응답 셀렉션을 안 맞춰서 23개가 전부 실패했었다.)
+- `productVariantAppendMedia` 는 **URL 을 받지 않는다**. 인자는
+  `productId` + `variantMedia:[{variantId, mediaIds}]` — 즉 **이미 상품에 올라간 미디어**를
+  변형에 잇는 뮤테이션이다. 순서: `productCreateMedia`(alt=`swatch:<code>`) →
+  **status 가 `READY` 될 때까지 폴링** → `productVariantAppendMedia`.
+  PROCESSING 상태로 연결하면 실패한다.
+- 발행은 **REST `published:true`** 로. `publishablePublish` 는 `write_publications`
+  스코프가 필요해 이 앱에선 `PublishablePublishInput isn't a defined input type` 이 난다.
+
+### 미디어 순서 — 상품 사진이 먼저, 칩은 맨 뒤
+칩을 `files` 에 먼저 넣으면 미디어 0번부터 칩이 깔려서 **대표 이미지가 칩이 되고**
+썸네일 레일에서 진짜 상품 사진이 화면 밖으로 밀린다. 순서는
+**갤러리(소스 순서) → 외부영상 → 칩**. `productReorderMedia(id, moves:[{id,newPosition}])`
+로 교정하며, 1번 미디어가 곧 대표 이미지가 된다.
+칩을 변형 이미지로 쓰면 컬러 선택 시 히어로가 그 컬러의 칩으로 바뀐다 — 스와치 UX 의
+대가이며, 원치 않으면 칩을 변형에 잇지 말고 스와치 전용으로만 둘 것.
+
+### 스크랩 산출물 스키마가 필드마다 다르다 (outre-corrected.json)
+같은 파일 안에서도 모양이 섞여 있으니 **읽기 전에 타입을 확인**할 것:
+- `chips` = **URL 문자열 리스트**(구형 스크랩, 파일명 어간이 컬러코드)
+- `chips2`/`chips3`/`chips4` = **`{code, url}` dict 리스트**(신형/보정 패스)
+- `youtube` = **문자열 하나** (리스트 아님 — `[0]` 하면 `'h'` 가 나온다)
+
 ### 함정 목록
 1. 이미지 프록시 URL 을 그대로 쓰면 나중에 깨질 수 있다 — 반드시 원본으로 디코드.
 2. 카드 innerText 를 제목으로 쓰면 배지/브랜드가 섞인다.
