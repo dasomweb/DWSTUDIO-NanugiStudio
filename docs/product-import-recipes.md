@@ -118,20 +118,28 @@
 - **`hide_variants` 설정으로 칩을 갤러리에서 빼는 것도 오답**이다 — 히어로는 대표로
   고쳐지지만 색상 클릭 시 점프할 이미지가 사라져 **색상 미리보기가 죽는다**.
 - 원하는 최종 동작은 3가지 동시 만족: (1) 첫 로드 히어로=대표이미지 (2) 색상 클릭 시
-  그 색 칩으로 히어로 전환 (3) 색상 원형 스와치 유지. 이걸 위해 **두 파일**을 고친다:
-  1. **`snippets/product-media-gallery-content.liquid`**: 27번째 줄
-     `selected_or_first_available_variant` → **`selected_variant`** 로. selected_variant 는
-     URL 에 `?variant=` 가 있을 때(=사용자가 색을 고른 상태)만 non-nil 이라, 첫 로드엔
-     nil → `sorted_media = product.media`(대표=첫 미디어)가 히어로가 된다.
-  2. **`assets/media-gallery.js`** `#handleVariantUpdate`: 기존엔 서버 재렌더 HTML 로
-     갤러리를 **통째 교체**(`replaceWith`)했다 — 이 재렌더는 `?option_values=` 로 요청돼
-     `selected_variant` 가 nil 이라(그건 `?variant=` 전용) 히어로가 대표로 돌아가 버린다.
-     대신 **`event.detail.resource.featured_media.id` 로 그 변형 칩 슬라이드를 찾아
-     `slideshow.select(index)` 로 이동만** 한다(교체 안 함). 못 찾을 때만 기존 교체로 폴백.
+  그 색 칩으로 히어로 전환 (3) 색상 원형 스와치 유지. 이걸 위해 **세 곳**을 고친다:
+  1. **`snippets/product-media-gallery-content.liquid`** `sorted_media` 정렬부:
+     `selected_variant_media` 분기를 없애고 **항상 `featured_media` 를 선두로 강제**한다.
+     URL 에 `?variant=` 가 있어도(카드/스와치 링크) 첫 렌더는 무조건 대표이미지가 뜬다.
+     `selected_variant` 로 첫 로드만 구분하려 해도 색상 클릭이 `?option_values=` 로 오면
+     nil 이라 안 된다 → 서버 렌더에 기대지 말고 히어로는 항상 대표, 전환은 JS 로.
+  2. **같은 스니펫의 slideshow-slide 렌더**: `slide_id: media.id` 를 **반드시 넘긴다**.
+     product 갤러리는 원래 slide_id 를 안 넘겨(card 갤러리만 넘김) 슬라이드에 `slide-id`
+     속성이 없어서 아래 `select({id})` 매칭이 안 된다.
+  3. **`assets/media-gallery.js`** `#handleVariantUpdate`: 서버 재렌더 HTML 로 갤러리를
+     **통째 교체(`replaceWith`)하지 않고**, `event.detail.resource.featured_media.id` 로
+     **`this.slideshow.select({ id: mediaId })`** 를 호출해 그 슬라이드로 이동만 한다.
+     `select(index)` 는 데스크톱/모바일 갤러리 중복과 정렬 편차로 index 가 어긋나 실패한다
+     → 반드시 **`{id}` 방식**(slideshow.select 가 `slide-id` 로 매칭)을 쓴다.
   → `hide_variants` 는 **false**(칩이 갤러리에 있어야 select 로 점프 가능).
 - 함정: variant-picker.js 는 색 변경 시 `?variant=` 가 아니라 **`?option_values=`** 로
   섹션을 재요청한다(`buildRequestUrl`). 그래서 재렌더 컨텍스트에선 `selected_variant` 가
   항상 nil — 스니펫만 고치면 색상 클릭이 안 먹는다. JS 쪽 select 처리가 반드시 필요하다.
+- **검증 함정**: PDP 슬라이드쇼는 이미지를 가로로 늘어놓고 스크롤한다. "가장 큰 보이는
+  이미지"로 히어로를 측정하면 전환 후에도 첫 이미지를 계속 잡아 **오탐(안 바뀐 것처럼)**한다.
+  실제 전환은 `media-gallery.slideshow.current`(활성 인덱스)나 뷰포트 중앙 `elementFromPoint`
+  로 확인할 것.
 - **함정 2 — 카드 링크에 `?variant=` 가 박혀 있다**: `snippets/product-card.liquid` 가
   `href="{{ variant_to_link.url }}"`(= `selected_or_first_available_variant.url`)로 걸려
   컬렉션·추천 카드를 클릭하면 **첫 available 변형이 선택된 채** PDP 가 열린다 →
