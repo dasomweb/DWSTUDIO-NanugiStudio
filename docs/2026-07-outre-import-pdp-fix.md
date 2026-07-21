@@ -103,6 +103,17 @@ Nike PDP 레퍼런스를 참고해 dasomdev 상품 페이지 우측 패널을 �
 - 편집 전 `product.json` 을 백업(`scratchpad/product.json.backup`)하고 파이썬으로
   파싱·수정 후 `theme_files_upsert`. 리뷰 별점은 리뷰 앱/데이터 연동 시 자동 표시.
 
+### 썸네일 레일에서 색상 칩 숨기기 (스와치로만 기능)
+색상 칩이 하단 썸네일 레일에도 섞여 나왔다. 칩을 갤러리(sorted_media)에서 아예 빼면
+색상 클릭 전환(select)이 깨지므로, **메인 슬라이드엔 남기고 썸네일에서만 CSS 로 숨긴다**.
+칩 썸네일은 `img[alt^="swatch:"]` 로 식별된다:
+```css
+.slideshow-controls__thumbnail:has(img[alt^="swatch:"]),
+.dialog-thumbnails-list__thumbnail:has(img[alt^="swatch:"]) { display: none !important; }
+```
+`sf_spec` custom-liquid 의 `<style>` 에 추가. 결과: 썸네일 레일=제품 이미지만,
+색상 칩은 Color 스와치로만 기능, 색상 클릭 히어로 전환은 그대로(current 0→7 확인).
+
 ### 메인 이미지 잘림 해결 (aspect_ratio)
 `_product-media-gallery` 블록의 `aspect_ratio` 가 **`1/1.25`(portrait 고정)** 이었는데,
 Outre 원본 이미지는 약 **0.717:1**(670×934) 이라 `object-fit: cover` 로 상하 ~50px 씩
