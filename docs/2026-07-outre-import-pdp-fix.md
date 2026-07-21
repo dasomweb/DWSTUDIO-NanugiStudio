@@ -80,7 +80,32 @@ dasomdev.myshopify.com(개발 스토어) 대상 작업 기록. 재사용 레시�
 
 ---
 
-## 3. 남은 작업
+## 3. PDP 디자인 개편 (Nike 참고)
+
+Nike PDP 레퍼런스를 참고해 dasomdev 상품 페이지 우측 패널을 개편. `templates/product.json`
+의 `_product-details` 블록 `block_order` 재배치 + custom-liquid 로 반영(테마 코어 수정 없음).
+
+| 요소 | 변경 |
+|------|------|
+| **가격 위치** | 옵션 아래 → **제목·리뷰 바로 아래**(block_order 에서 `price` 를 `review` 뒤로) |
+| **세금 문구** | 가격 아래 "Inclusive of all taxes / (Also includes all applicable duties)" custom-liquid (`show_tax_info` 는 세금 포함 스토어에서만 떠서 문구를 직접 넣음) |
+| **Length 사이즈** | 원형 → **사각 박스**. `.variant-option:not(.variant-option--swatches) .variant-option__button-label { --options-border-radius: 8px }` — Color(=`--swatches`)는 원형 유지 |
+| **스펙** | 옵션 위 표 → **buy-buttons 아래 불릿 리스트**(`sf_spec` custom-liquid 를 아래로 이동 + `<ul class=sf-spec>` 재작성) |
+| **배송 배지** | 트럭 아이콘 + "Free delivery on wholesale orders"(같은 custom-liquid 에 통합) |
+
+- **핵심 함정**: variant-picker 는 Color·Length 모두 `variant-option--buttons` 를 붙이고,
+  Color 만 추가로 `variant-option--swatches` 를 붙인다. 그래서 Length 만 타겟하려면
+  `:not(.variant-option--swatches)` 로 걸러야 한다. 그리고 button-label 은
+  `border-radius: var(--options-border-radius)`(원형 100px) 를 쓰므로 **그 변수를 재정의**해야
+  이긴다(일반 `border-radius: 8px` 는 변수 우선순위에 밀린다).
+- 최종 순서: 브레드크럼 → Wholesale → 제목 → 리뷰 → **가격+세금** → 설명 → Color·Length →
+  구매버튼 → **스펙 불릿·배송** → Shipping/Returns 아코디언.
+- 편집 전 `product.json` 을 백업(`scratchpad/product.json.backup`)하고 파이썬으로
+  파싱·수정 후 `theme_files_upsert`. 리뷰 별점은 리뷰 앱/데이터 연동 시 자동 표시.
+
+---
+
+## 4. 남은 작업
 - **전체 카탈로그 임포트 미완**: outre 83개 상품의 갤러리·영상·칩은 긁었으나
   `AVAILABLE COLORS` 가 동적 로드(Next.js)라 **새 상품 ~60개의 색상 리스트를 못 가져옴**.
   색상 없이는 변형 생성 불가 → 스크랩 방식 재설계 필요.
