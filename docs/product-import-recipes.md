@@ -132,6 +132,14 @@
 - 함정: variant-picker.js 는 색 변경 시 `?variant=` 가 아니라 **`?option_values=`** 로
   섹션을 재요청한다(`buildRequestUrl`). 그래서 재렌더 컨텍스트에선 `selected_variant` 가
   항상 nil — 스니펫만 고치면 색상 클릭이 안 먹는다. JS 쪽 select 처리가 반드시 필요하다.
+- **함정 2 — 카드 링크에 `?variant=` 가 박혀 있다**: `snippets/product-card.liquid` 가
+  `href="{{ variant_to_link.url }}"`(= `selected_or_first_available_variant.url`)로 걸려
+  컬렉션·추천 카드를 클릭하면 **첫 available 변형이 선택된 채** PDP 가 열린다 →
+  selected_variant 가 그 색이라 히어로가 칩. 순수 URL 은 대표가 잘 떠도 **카드로 들어오면
+  칩**이라 "왜 계속 칩이 뜨냐"가 된다. `href="{{ product.url }}"` 로 바꿔야 한다.
+- **함정 3 — media 배열 0번이 칩인 상품**이 있다(reorder 편차). 첫 로드 히어로를
+  `product.media` 순서로 두면 이런 상품은 칩이 히어로다. 스니펫에서 **`featured_media` 를
+  선두로 강제**해야(`sorted_media` else 분기) 배열 순서와 무관하게 대표가 뜬다.
 - 테마 파일이라 **23개 전 상품이 동시에 고쳐진다**. storeforge 스토어는
   `theme_files_upsert` 로 두 파일 + `templates/product.json`(블록 `_product-media-gallery`
   의 `settings.hide_variants=false`)을 함께 upsert. (2026-07-20 dasomdev 실증)

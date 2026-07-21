@@ -118,8 +118,21 @@
       endif
     endfor
   else
-    # 첫 화면(색상 미선택) — product.media 순서 그대로. 대표이미지가 히어로가 된다.
-    assign sorted_media = selected_product.media
+    # 첫 화면(색상 미선택) — 대표이미지(featured_media)를 무조건 맨 앞에 놓아 히어로로 만든다.
+    # media 배열의 0번이 칩인 상품(reorder 편차)이 있어서 product.media 순서를 그대로 쓰면
+    # 히어로가 칩이 되어 버린다. featured_media 를 선두로 강제해야 전 상품이 일관되게 대표가 뜬다.
+    assign featured_first = selected_product.featured_media
+    if featured_first
+      assign sorted_media = sorted_media | concat: selected_product.media | where: 'id', featured_first.id
+      for media in selected_product.media
+        if media.id != featured_first.id
+          assign found_media = selected_product.media | where: 'id', media.id
+          assign sorted_media = sorted_media | concat: found_media
+        endif
+      endfor
+    else
+      assign sorted_media = selected_product.media
+    endif
   endif
   assign has_image_drop = sorted_media | has: 'media_type', 'image'
 
