@@ -103,6 +103,14 @@ Nike PDP 레퍼런스를 참고해 dasomdev 상품 페이지 우측 패널을 �
 - 편집 전 `product.json` 을 백업(`scratchpad/product.json.backup`)하고 파이썬으로
   파싱·수정 후 `theme_files_upsert`. 리뷰 별점은 리뷰 앱/데이터 연동 시 자동 표시.
 
+### 메인 이미지 잘림 해결 (aspect_ratio)
+`_product-media-gallery` 블록의 `aspect_ratio` 가 **`1/1.25`(portrait 고정)** 이었는데,
+Outre 원본 이미지는 약 **0.717:1**(670×934) 이라 `object-fit: cover` 로 상하 ~50px 씩
+잘렸다(인물/패키지 상단이 크롭). **`aspect_ratio` 를 `adapt`(auto)** 로 바꿔 컨테이너가
+이미지 원본 비율을 따라가게 하니(컨테이너 0.718 ≈ 원본 0.717) 잘림이 사라졌다.
+`object-position` 이나 고정 비율값을 손대지 않는 근본 해결. adapt 는 상품마다 이미지
+비율을 따르므로(Outre 패키지는 대부분 비슷한 비율이라 일관) 다른 상품 레이아웃도 안전하다.
+
 ---
 
 ## 4. 남은 작업
