@@ -24,7 +24,10 @@
 {%- endif -%}
 {%- liquid
   assign selected_product = closest.product
-  assign selected_variant_media = selected_product.selected_or_first_available_variant.featured_media
+  # selected_variant 는 URL 에 ?variant= 가 있을 때(=사용자가 색상을 고른 상태)만 존재한다.
+  # first_available 을 쓰면 첫 로드에도 첫 변형이 선택된 것으로 취급돼 히어로가 그 변형 칩이 된다.
+  # → 첫 화면은 대표이미지, 색상 클릭 시에만 그 변형 칩으로 점프하도록 selected_variant 를 쓴다.
+  assign selected_variant_media = selected_product.selected_variant.featured_media
   assign first_3d_model = selected_product.media | where: 'media_type', 'model' | first
 
   if block_settings.hide_variants
@@ -99,16 +102,17 @@
     endif
   endif
 
+  # PDP 히어로는 URL(?variant=)과 무관하게 항상 대표이미지(featured_media)로 고정한다.
+  # 카드/스와치 링크로 ?variant= 가 붙어 들어와도, media 배열 0번이 칩인 상품이어도
+  # featured_media 를 갤러리 선두로 강제하므로 첫 화면은 언제나 대표이미지가 뜬다.
+  # 색상 선택 시의 히어로 전환은 서버 렌더가 아니라 media-gallery.js 의 클라이언트 select 가
+  # 담당한다(그래야 첫 렌더는 대표 유지 + 클릭 시에만 그 칩으로 이동).
   assign sorted_media = '' | split: ','
-  if selected_variant_media
-    assign sorted_media = sorted_media | concat: selected_product.media | where: 'id', selected_variant_media.id
-
+  assign featured_first = selected_product.featured_media
+  if featured_first
+    assign sorted_media = sorted_media | concat: selected_product.media | where: 'id', featured_first.id
     for media in selected_product.media
-      if block_settings.hide_variants and variant_images contains media.src and sorted_media.size > 0
-        continue
-      endif
-
-      if media.id != selected_variant_media.id
+      if media.id != featured_first.id
         assign found_media = selected_product.media | where: 'id', media.id
         assign sorted_media = sorted_media | concat: found_media
       endif
@@ -387,6 +391,7 @@
 
         {% render 'slideshow-slide',
           index: forloop.index0,
+          slide_id: media.id,
           children: children,
           class: class,
           style: style,

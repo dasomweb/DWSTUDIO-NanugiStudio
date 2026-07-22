@@ -1,0 +1,12 @@
+# api
+.venv/
+__pycache__/
+*.db
+.dev-encryption-key
+.env
+
+# web
+node_modules/
+.next/
+.env.local
+*.tsbuildinfo

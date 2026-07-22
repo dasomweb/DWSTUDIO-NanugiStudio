@@ -72,7 +72,11 @@
   <a
     id="{{ product_card_id | md5 }}"
     {% unless onboarding %}
-      href="{{ variant_to_link.url }}"
+      {%- comment -%}
+        variant_to_link.url 은 ?variant= 가 붙어 PDP 가 그 색으로 열리며 히어로가 칩이 된다.
+        카드 클릭은 대표이미지로 열리도록 순수 상품 URL 을 쓴다.
+      {%- endcomment -%}
+      href="{{ product.url }}"
     {% endunless %}
     class="product-card__link"
     ref="productCardLink"

@@ -98,7 +98,9 @@
     display: inline-block;
   }
 
-  .menu--horizontal .list-unstyled {
+  /* .menu 를 붙여 특이도를 맞춘다 — align-center/right 의 inline-block 규칙(3클래스)이
+     이 규칙(2클래스였다면)을 이겨 가로+중앙 조합이 세로로 쌓이던 버그 방지 */
+  .menu.menu--horizontal .list-unstyled {
     display: inline-flex;
     flex-wrap: wrap;
     gap: var(--spacing--size);

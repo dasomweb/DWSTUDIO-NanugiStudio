@@ -3942,16 +3942,18 @@ slideshow-component.slideshow--content-below-media slideshow-slide {
 }
 
 .slide__content {
-  @supports (animation-timeline: auto) {
-    opacity: 0;
-    animation: slide-reveal both linear;
-    animation-timeline: var(--slideshow-timeline);
-  }
+  /* scroll/view-timeline fade(slide-reveal) 제거 — hero 첫 화면에서 content(특히 흰 버튼)가
+     opacity 0.5 로 반투명하게 남던 문제. hero 콘텐츠는 항상 완전 불투명하게 보이도록 한다.
+     슬라이드 간 가로 전환은 slideshow scroll-snap 이 담당하므로 이 fade 없이도 동작한다. */
+  opacity: 1 !important;
+  animation: none !important;
+}
 
-  @media (prefers-reduced-motion) {
-    opacity: 1;
-    animation: none;
-  }
+/* hero 슬라이드의 버튼/텍스트도 scroll-timeline fade 로 반투명해지지 않도록 강제 불투명 */
+.slide__content *,
+slideshow-slide .slide__content .button {
+  opacity: 1 !important;
+  animation: none !important;
 }
 
 /*

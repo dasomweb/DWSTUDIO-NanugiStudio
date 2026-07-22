@@ -1,0 +1,671 @@
+"""Shopify Admin GraphQL 클라이언트.
+
+축① 주입 경로는 metafieldsSet 하나뿐이다 (기획안 §4.3, §6.1).
+write_themes(보호 스코프)를 쓰지 않는 것이 이 설계의 핵심이므로,
+여기에 themeFilesUpsert 를 추가하고 싶어지면 먼저 기획안 §4.5 를 다시 읽을 것.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import time
+from dataclasses import dataclass
+
+import httpx
+
+from .config import get_settings
+from .engine.brand import KEY, NAMESPACE
+
+_DOMAIN_RE = re.compile(r"^[a-z0-9][a-z0-9-]*\.myshopify\.com$")
+
+
+class ShopifyError(RuntimeError):
+    pass
+
+
+def normalize_domain(value: str) -> str:
+    """'https://nanugi.myshopify.com/admin' 같은 입력도 받아준다."""
+    d = value.strip().lower()
+    d = re.sub(r"^https?://", "", d)
+    d = d.split("/")[0]
+    if "." not in d:
+        d = f"{d}.myshopify.com"
+    if not _DOMAIN_RE.match(d):
+        raise ValueError(f"올바른 *.myshopify.com 도메인이 아닙니다: {value!r}")
+    return d
+
+
+@dataclass
+class ShopInfo:
+    name: str
+    plan: str
+    myshopify_domain: str
+
+
+# client_credentials 로 받은 토큰은 수명이 짧다. 요청마다 새로 받으면 낭비이므로
+# 만료 조금 전까지 재사용한다. (프로세스 메모리 캐시 — 재시작하면 비워진다)
+_token_cache: dict[str, tuple[str, float]] = {}
+_TOKEN_SAFETY_MARGIN = 60.0  # 초. 만료 직전 토큰을 쓰다 401 나는 것을 피한다.
+
+
+async def mint_token(shop_domain: str, client_id: str, client_secret: str) -> str:
+    """앱의 client_id/secret 으로 Admin API 액세스 토큰을 발급받는다.
+
+    기존 테마 배포 워크플로(.github/workflows/deploy-theme.yml)가 쓰는 것과 같은 방식이다.
+    영구 토큰을 DB 에 들고 있지 않아도 되므로 유출 리스크가 낮다.
+    """
+    cached = _token_cache.get(shop_domain)
+    if cached and cached[1] > time.monotonic() + _TOKEN_SAFETY_MARGIN:
+        return cached[0]
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.post(
+            f"https://{shop_domain}/admin/oauth/access_token",
+            data={
+                "grant_type": "client_credentials",
+                "client_id": client_id,
+                "client_secret": client_secret,
+            },
+        )
+
+    if resp.status_code >= 400:
+        raise ShopifyError(
+            "토큰 발급 실패 — Client ID/Secret 이 잘못됐거나 앱이 이 스토어에 설치되어 있지 않습니다. "
+            f"(HTTP {resp.status_code})"
+        )
+
+    body = resp.json()
+    token = body.get("access_token")
+    if not token:
+        raise ShopifyError(f"토큰 발급 응답에 access_token 이 없습니다: {str(body)[:200]}")
+
+    expires_in = float(body.get("expires_in", 3600))
+    _token_cache[shop_domain] = (token, time.monotonic() + expires_in)
+    return token
+
+
+class ShopifyClient:
+    def __init__(self, shop_domain: str, access_token: str) -> None:
+        self.shop_domain = shop_domain
+        self._token = access_token
+        self._version = get_settings().shopify_api_version
+
+    @property
+    def endpoint(self) -> str:
+        return f"https://{self.shop_domain}/admin/api/{self._version}/graphql.json"
+
+    async def graphql(self, query: str, variables: dict | None = None) -> dict:
+        headers = {
+            "X-Shopify-Access-Token": self._token,
+            "Content-Type": "application/json",
+        }
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                self.endpoint,
+                headers=headers,
+                json={"query": query, "variables": variables or {}},
+            )
+
+        if resp.status_code == 401:
+            raise ShopifyError("인증 실패 — Admin API 토큰이 잘못됐거나 만료됐습니다.")
+        if resp.status_code == 403:
+            raise ShopifyError(
+                "권한 부족 — 샵 메타필드 주입에는 스코프가 필요 없으므로, 이 오류가 났다면 "
+                "앱이 이 스토어에 설치되어 있는지부터 확인하세요."
+            )
+        if resp.status_code == 404:
+            raise ShopifyError(
+                f"엔드포인트를 찾을 수 없습니다 — 도메인({self.shop_domain})을 확인하세요."
+            )
+        if resp.status_code >= 400:
+            raise ShopifyError(f"Shopify HTTP {resp.status_code}: {resp.text[:300]}")
+
+        body = resp.json()
+        if body.get("errors"):
+            raise ShopifyError(f"GraphQL 오류: {json.dumps(body['errors'], ensure_ascii=False)[:400]}")
+        return body["data"]
+
+    # --- 연결 테스트 ------------------------------------------------------------
+    async def verify(self) -> ShopInfo:
+        """관리자 페이지의 '연결 테스트'가 부르는 것. 토큰이 실제로 동작하는지 확인한다."""
+        data = await self.graphql(
+            "{ shop { name myshopifyDomain plan { displayName } } }"
+        )
+        shop = data["shop"]
+        return ShopInfo(
+            name=shop["name"],
+            plan=shop["plan"]["displayName"],
+            myshopify_domain=shop["myshopifyDomain"],
+        )
+
+    async def access_scopes(self) -> list[str]:
+        """이 앱에 실제로 부여된 스코프. 화면에 표시해 연동 상태를 눈으로 확인하는 용도다.
+
+        축① 주입 자체는 스코프를 요구하지 않는다 (models.REQUIRED_SCOPES 주석 참고).
+        스코프가 실재하는 리소스를 건드리는 축② 부터 이 값이 판단 근거가 된다.
+        """
+        data = await self.graphql(
+            "{ currentAppInstallation { accessScopes { handle } } }"
+        )
+        scopes = data["currentAppInstallation"]["accessScopes"]
+        return sorted(s["handle"] for s in scopes)
+
+    # --- 샵 메타필드 (여러 모듈이 공유한다) --------------------------------------
+    #
+    # 소유자가 Shop 이므로 스코프가 필요 없다. 자세한 이유는 capabilities.py 주석 참고.
+    async def shop_gid(self) -> str:
+        return (await self.graphql("{ shop { id } }"))["shop"]["id"]
+
+    async def set_shop_metafield(self, namespace: str, key: str, payload: dict) -> str:
+        """샵 메타필드에 JSON 을 넣는다. 반환: metafield GID."""
+        mutation = """
+        mutation SetShopMetafield($metafields: [MetafieldsSetInput!]!) {
+          metafieldsSet(metafields: $metafields) {
+            metafields { id key namespace }
+            userErrors { field message code }
+          }
+        }
+        """
+        variables = {
+            "metafields": [
+                {
+                    "ownerId": await self.shop_gid(),
+                    "namespace": namespace,
+                    "key": key,
+                    "type": "json",
+                    "value": json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
+                }
+            ]
+        }
+        result = (await self.graphql(mutation, variables))["metafieldsSet"]
+
+        if result["userErrors"]:
+            msgs = "; ".join(
+                f"{'.'.join(e.get('field') or [])}: {e['message']}" for e in result["userErrors"]
+            )
+            raise ShopifyError(f"metafieldsSet 실패 — {msgs}")
+
+        return result["metafields"][0]["id"]
+
+    async def delete_shop_metafield(self, namespace: str, key: str) -> None:
+        """없으면 조용히 넘어간다 — '지워져 있어야 한다'가 목적이므로 없는 것도 성공이다."""
+        mutation = """
+        mutation ClearShopMetafield($metafields: [MetafieldIdentifierInput!]!) {
+          metafieldsDelete(metafields: $metafields) {
+            deletedMetafields { ownerId key }
+            userErrors { field message }
+          }
+        }
+        """
+        variables = {
+            "metafields": [
+                {"ownerId": await self.shop_gid(), "namespace": namespace, "key": key}
+            ]
+        }
+        await self.graphql(mutation, variables)
+
+    async def get_shop_metafield(self, namespace: str, key: str) -> dict | None:
+        query = """
+        query GetShopMetafield($namespace: String!, $key: String!) {
+          shop { metafield(namespace: $namespace, key: $key) { value updatedAt } }
+        }
+        """
+        data = await self.graphql(query, {"namespace": namespace, "key": key})
+        mf = data["shop"]["metafield"]
+        if not mf:
+            return None
+        return {"value": json.loads(mf["value"]), "updated_at": mf["updatedAt"]}
+
+    # --- 축① 주입 ---------------------------------------------------------------
+    async def set_brand_metafield(self, payload: dict) -> str:
+        """브랜드 페이로드를 shop.metafields.storeforge.brand 에 넣는다. 반환: metafield GID."""
+        return await self.set_shop_metafield(NAMESPACE, KEY, payload)
+
+    async def get_brand_metafield(self) -> dict | None:
+        """현재 주입된 값을 읽는다. 온보딩 중복 실행을 막는 근거로 쓴다 (기획안 §1.4)."""
+        return await self.get_shop_metafield(NAMESPACE, KEY)
+
+    # --- ListPilot: 상품 등록 ------------------------------------------------------
+    #
+    # 원본(DW-ListPilot)은 REST /products.json 을 썼지만 상품 REST API 는 폐기 경로다
+    # (공개앱 2025-02 / 커스텀앱 2025-04 마감). 기획안 §축② 도 productSet 을 지시한다.
+    async def primary_location_gid(self) -> str | None:
+        """재고 수량을 넣으려면 로케이션이 필요하다. 없으면 재고 없이 등록한다."""
+        data = await self.graphql("{ locations(first: 1) { nodes { id } } }")
+        nodes = data["locations"]["nodes"]
+        return nodes[0]["id"] if nodes else None
+
+    async def stage_upload(self, filename: str, content_type: str, data: bytes) -> str:
+        """이미지 바이트를 Shopify 에 올리고 resourceUrl 을 받는다.
+
+        R2 같은 중간 저장소가 필요 없다 — Shopify 가 직접 받아준다.
+        """
+        mutation = """
+        mutation StageUpload($input: [StagedUploadInput!]!) {
+          stagedUploadsCreate(input: $input) {
+            stagedTargets {
+              url
+              resourceUrl
+              parameters { name value }
+            }
+            userErrors { field message }
+          }
+        }
+        """
+        variables = {
+            "input": [
+                {
+                    "filename": filename,
+                    "mimeType": content_type,
+                    "resource": "IMAGE",
+                    "httpMethod": "POST",
+                }
+            ]
+        }
+        result = (await self.graphql(mutation, variables))["stagedUploadsCreate"]
+        if result["userErrors"]:
+            raise ShopifyError(
+                "stagedUploadsCreate 실패 — "
+                + "; ".join(e["message"] for e in result["userErrors"])
+            )
+
+        target = result["stagedTargets"][0]
+        form = {p["name"]: p["value"] for p in target["parameters"]}
+
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.post(
+                target["url"],
+                data=form,
+                files={"file": (filename, data, content_type)},
+            )
+        if resp.status_code >= 400:
+            raise ShopifyError(f"이미지 업로드 실패 (HTTP {resp.status_code})")
+
+        return target["resourceUrl"]
+
+    async def product_set(self, product_input: dict) -> str:
+        """상품을 생성/갱신한다. 반환: product GID.
+
+        productSet 은 옵션·변형을 한 번에 넘길 수 있다 (2024-04 이후 productCreate 로는
+        변형을 직접 만들 수 없다).
+        """
+        mutation = """
+        mutation ProductSet($input: ProductSetInput!) {
+          productSet(synchronous: true, input: $input) {
+            product { id handle }
+            userErrors { field message code }
+          }
+        }
+        """
+        result = (await self.graphql(mutation, {"input": product_input}))["productSet"]
+
+        if result["userErrors"]:
+            msgs = "; ".join(
+                f"{'.'.join(e.get('field') or [])}: {e['message']}" for e in result["userErrors"]
+            )
+            raise ShopifyError(f"productSet 실패 — {msgs}")
+
+        return result["product"]["id"]
+
+    # --- 테마 설치 (기획안 §6.3) ---------------------------------------------------
+    #
+    # 고객 스토어의 테마는 GitHub Actions 로 배포하지 않는다. 소스 테마 zip 을
+    # themeCreate 로 넣어 **GitHub 미연동 테마**를 만든다 — 그래야 에디터 수정이
+    # 저장소로 역류하지 않고, 스토어별 설정이 서로 섞이지 않는다.
+    async def theme_create(self, zip_url: str, name: str) -> dict:
+        """zip URL 로 테마를 생성한다. 반환: {id, name, processing}.
+
+        Shopify 가 zip 을 비동기로 풀기 때문에 생성 직후엔 processing=True 다.
+        발행하려면 theme_wait_ready 로 끝나길 기다려야 한다.
+        """
+        mutation = """
+        mutation ThemeCreate($source: URL!, $name: String) {
+          themeCreate(source: $source, name: $name) {
+            theme { id name role processing }
+            userErrors { field message }
+          }
+        }
+        """
+        result = (await self.graphql(mutation, {"source": zip_url, "name": name}))["themeCreate"]
+        if result["userErrors"]:
+            raise ShopifyError(
+                "themeCreate 실패 — " + "; ".join(e["message"] for e in result["userErrors"])
+            )
+        return result["theme"]
+
+    async def theme_wait_ready(self, theme_gid: str, timeout_seconds: float = 120.0) -> None:
+        """zip 처리가 끝날 때까지 폴링한다. 처리 중에 발행하면 빈 테마가 발행된다."""
+        import asyncio
+
+        waited = 0.0
+        while waited < timeout_seconds:
+            data = await self.graphql(
+                "query($id: ID!) { theme(id: $id) { processing } }", {"id": theme_gid}
+            )
+            theme = data.get("theme")
+            if theme is None:
+                raise ShopifyError("생성한 테마를 찾을 수 없습니다 — 처리 중 삭제된 것 같습니다.")
+            if not theme["processing"]:
+                return
+            await asyncio.sleep(3)
+            waited += 3
+        raise ShopifyError(f"테마 zip 처리가 {int(timeout_seconds)}초 안에 끝나지 않았습니다.")
+
+    async def file_create_image(self, resource_url: str) -> str:
+        """staged upload 된 이미지를 Files(콘텐츠 > 파일)에 등록한다. 반환: File GID.
+
+        테마 섹션의 image_picker 는 Files 의 이미지만 받는다 (테마 asset 은 못 쓴다).
+        write_files 스코프가 필요하다.
+        """
+        mutation = """
+        mutation FileCreate($files: [FileCreateInput!]!) {
+          fileCreate(files: $files) {
+            files { id }
+            userErrors { field message code }
+          }
+        }
+        """
+        result = (
+            await self.graphql(
+                mutation,
+                {"files": [{"originalSource": resource_url, "contentType": "IMAGE"}]},
+            )
+        )["fileCreate"]
+        if result["userErrors"]:
+            raise ShopifyError(
+                "fileCreate 실패 — " + "; ".join(e["message"] for e in result["userErrors"])
+            )
+        return result["files"][0]["id"]
+
+    async def file_wait_ready(self, file_gid: str, timeout_seconds: float = 60.0) -> str:
+        """파일 처리가 끝나길 기다렸다가 CDN URL 을 돌려준다.
+
+        fileCreate 는 비동기라 생성 직후엔 이미지 URL 이 없다 — URL 의 파일명이
+        템플릿 참조(shopify://shop_images/…)에 필요하므로 기다려야 한다.
+        """
+        import asyncio
+
+        waited = 0.0
+        while waited < timeout_seconds:
+            data = await self.graphql(
+                """
+                query($id: ID!) {
+                  node(id: $id) {
+                    ... on MediaImage { fileStatus image { url } }
+                  }
+                }
+                """,
+                {"id": file_gid},
+            )
+            node = data.get("node") or {}
+            if node.get("fileStatus") == "FAILED":
+                raise ShopifyError("이미지 파일 처리가 실패했습니다.")
+            url = (node.get("image") or {}).get("url")
+            if node.get("fileStatus") == "READY" and url:
+                return url
+            await asyncio.sleep(2)
+            waited += 2
+        raise ShopifyError(f"이미지 파일 처리가 {int(timeout_seconds)}초 안에 끝나지 않았습니다.")
+
+    async def get_theme_file_text(self, theme_gid: str, filename: str) -> str | None:
+        """테마 파일 하나의 텍스트 내용. 없으면 None."""
+        data = await self.graphql(
+            """
+            query($id: ID!, $names: [String!]!) {
+              theme(id: $id) {
+                files(filenames: $names, first: 1) {
+                  nodes { body { ... on OnlineStoreThemeFileBodyText { content } } }
+                }
+              }
+            }
+            """,
+            {"id": theme_gid, "names": [filename]},
+        )
+        nodes = data["theme"]["files"]["nodes"]
+        if not nodes:
+            return None
+        return (nodes[0].get("body") or {}).get("content")
+
+    async def main_theme_gid(self) -> str:
+        data = await self.graphql("{ themes(first: 1, roles: [MAIN]) { nodes { id } } }")
+        nodes = data["themes"]["nodes"]
+        if not nodes:
+            raise ShopifyError("발행된(MAIN) 테마가 없습니다 — 먼저 테마를 설치·발행하세요.")
+        return nodes[0]["id"]
+
+    async def theme_files_upsert(self, theme_gid: str, filename: str, value: str) -> None:
+        """테마 파일 하나를 업서트한다.
+
+        기획안 §4.5 주의: 테마 파일 쓰기는 색·폰트에는 쓰지 않는다(그건 metafield 경로).
+        여기서 허용되는 용도는 **레이아웃 프리셋(templates/*.json)** 뿐이다 — Custom
+        distribution 단계라 write_themes 가 있고, Phase 3(퍼블릭) 전환 시 재검토한다.
+        """
+        mutation = """
+        mutation UpsertFile($themeId: ID!, $files: [OnlineStoreThemeFilesUpsertFileInput!]!) {
+          themeFilesUpsert(themeId: $themeId, files: $files) {
+            upsertedThemeFiles { filename }
+            userErrors { field message code }
+          }
+        }
+        """
+        result = (
+            await self.graphql(
+                mutation,
+                {
+                    "themeId": theme_gid,
+                    "files": [{"filename": filename, "body": {"type": "TEXT", "value": value}}],
+                },
+            )
+        )["themeFilesUpsert"]
+        if result["userErrors"]:
+            raise ShopifyError(
+                "themeFilesUpsert 실패 — " + "; ".join(e["message"] for e in result["userErrors"])
+            )
+
+    async def theme_publish(self, theme_gid: str) -> None:
+        mutation = """
+        mutation ThemePublish($id: ID!) {
+          themePublish(id: $id) {
+            theme { id role }
+            userErrors { field message }
+          }
+        }
+        """
+        result = (await self.graphql(mutation, {"id": theme_gid}))["themePublish"]
+        if result["userErrors"]:
+            raise ShopifyError(
+                "themePublish 실패 — " + "; ".join(e["message"] for e in result["userErrors"])
+            )
+
+    # --- 페이지 · 정책 · 컬렉션 -----------------------------------------------------
+    async def page_create(
+        self,
+        title: str,
+        body_html: str,
+        publish: bool,
+        template_suffix: str | None = None,
+    ) -> dict:
+        """온라인 스토어 페이지 생성. 반환: {id, handle}. 스코프: write_content."""
+        mutation = """
+        mutation PageCreate($page: PageCreateInput!) {
+          pageCreate(page: $page) {
+            page { id handle title }
+            userErrors { field message code }
+          }
+        }
+        """
+        page: dict = {"title": title, "body": body_html, "isPublished": publish}
+        if template_suffix:
+            page["templateSuffix"] = template_suffix
+        result = (await self.graphql(mutation, {"page": page}))["pageCreate"]
+        if result["userErrors"]:
+            raise ShopifyError(
+                "pageCreate 실패 — " + "; ".join(e["message"] for e in result["userErrors"])
+            )
+        return result["page"]
+
+    async def shop_policy_update(self, policy_type: str, body_html: str) -> None:
+        """샵 정책(약관·환불·배송·프라이버시) 갱신. 스코프: write_legal_policies.
+
+        정책은 페이지와 달리 '초안' 상태가 없다 — 쓰는 순간 라이브다. 그래서 호출부는
+        반드시 사람이 검토한 본문만 넘겨야 한다.
+        """
+        mutation = """
+        mutation PolicyUpdate($shopPolicy: ShopPolicyInput!) {
+          shopPolicyUpdate(shopPolicy: $shopPolicy) {
+            shopPolicy { type }
+            userErrors { field message code }
+          }
+        }
+        """
+        result = (
+            await self.graphql(mutation, {"shopPolicy": {"type": policy_type, "body": body_html}})
+        )["shopPolicyUpdate"]
+        if result["userErrors"]:
+            raise ShopifyError(
+                "shopPolicyUpdate 실패 — " + "; ".join(e["message"] for e in result["userErrors"])
+            )
+
+    async def collection_create(self, title: str, tag: str | None = None) -> dict:
+        """컬렉션 생성. tag 를 주면 그 태그를 조건으로 하는 스마트 컬렉션이 된다.
+
+        스마트 컬렉션이면 ListPilot 이 등록하는 상품이 태그만 맞으면 자동으로 들어간다
+        (기획안 §축② — AI 분류 결과에 따라 자동 생성·정렬). 스코프: write_products.
+        """
+        mutation = """
+        mutation CollectionCreate($input: CollectionInput!) {
+          collectionCreate(input: $input) {
+            collection { id handle title }
+            userErrors { field message }
+          }
+        }
+        """
+        payload: dict = {"title": title}
+        if tag:
+            payload["ruleSet"] = {
+                "appliedDisjunctively": False,
+                "rules": [{"column": "TAG", "relation": "EQUALS", "condition": tag}],
+            }
+        result = (await self.graphql(mutation, {"input": payload}))["collectionCreate"]
+        if result["userErrors"]:
+            raise ShopifyError(
+                "collectionCreate 실패 — " + "; ".join(e["message"] for e in result["userErrors"])
+            )
+        collection = result["collection"]
+
+        # API 로 만든 컬렉션은 Online Store 채널에 **미발행**이라 스토어프론트에서 404 가 난다
+        # (dasomdev 실증 — 카드가 placeholder 로 렌더되던 원인). GraphQL 발행은
+        # write_publications 스코프가 필요하지만, REST 의 published 필드는 write_products 로
+        # 되므로 여기서 바로 발행한다.
+        numeric_id = collection["id"].split("/")[-1]
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.put(
+                f"https://{self.shop_domain}/admin/api/{self._version}/smart_collections/{numeric_id}.json",
+                headers={"X-Shopify-Access-Token": self._token, "Content-Type": "application/json"},
+                json={"smart_collection": {"id": int(numeric_id), "published": True}},
+            )
+        if resp.status_code >= 400:
+            raise ShopifyError(
+                f"컬렉션 발행 실패 (HTTP {resp.status_code}) — 생성은 됐지만 스토어프론트에 보이지 않습니다."
+            )
+        return collection
+
+    async def collection_update_image(self, collection_gid: str, src: str, alt: str = "") -> None:
+        """컬렉션 대표 이미지를 교체한다. src 는 staged upload resourceUrl. 스코프: write_products."""
+        mutation = """
+        mutation CollectionImage($input: CollectionInput!) {
+          collectionUpdate(input: $input) {
+            collection { id }
+            userErrors { field message }
+          }
+        }
+        """
+        result = (
+            await self.graphql(
+                mutation,
+                {"input": {"id": collection_gid, "image": {"src": src, "altText": alt}}},
+            )
+        )["collectionUpdate"]
+        if result["userErrors"]:
+            raise ShopifyError(
+                "collectionUpdate 실패 — " + "; ".join(e["message"] for e in result["userErrors"])
+            )
+
+    # --- 메뉴(네비게이션) ----------------------------------------------------------
+    async def menus(self) -> list[dict]:
+        data = await self.graphql(
+            "{ menus(first: 25) { nodes { id handle title items { title type } } } }"
+        )
+        return data["menus"]["nodes"]
+
+    async def shop_policies(self) -> list[dict]:
+        """설정된 정책들. body 가 비어 있으면 미설정으로 본다."""
+        data = await self.graphql("{ shop { shopPolicies { type body } } }")
+        return data["shop"]["shopPolicies"]
+
+    async def menu_update(self, menu_gid: str, title: str, items: list[dict]) -> None:
+        """메뉴 구조를 통째로 교체한다. 스코프: write_online_store_navigation.
+
+        items: [{title, type, resourceId?, url?, items: []}]
+        type 은 FRONTPAGE / COLLECTION / PAGE / HTTP 만 쓴다 — 그 밖의 타입은
+        리소스 유효성 검증이 복잡해서 필요해질 때 추가한다.
+        """
+        mutation = """
+        mutation MenuUpdate($id: ID!, $title: String!, $items: [MenuItemUpdateInput!]!) {
+          menuUpdate(id: $id, title: $title, items: $items) {
+            menu { id handle }
+            userErrors { field message code }
+          }
+        }
+        """
+        result = (
+            await self.graphql(mutation, {"id": menu_gid, "title": title, "items": items})
+        )["menuUpdate"]
+        if result["userErrors"]:
+            raise ShopifyError(
+                "menuUpdate 실패 — " + "; ".join(e["message"] for e in result["userErrors"])
+            )
+
+    async def pages_list(self) -> list[dict]:
+        data = await self.graphql("{ pages(first: 50) { nodes { id title handle } } }")
+        return data["pages"]["nodes"]
+
+    async def collections_list(self) -> list[dict]:
+        data = await self.graphql("{ collections(first: 50) { nodes { id title handle } } }")
+        return data["collections"]["nodes"]
+
+    # --- Pricewave: 할인 조회 -----------------------------------------------------
+    async def active_discounts(self) -> list[dict]:
+        """코드 할인 중 지금 살아 있는 것들 (원본 노드 그대로 — 해석은 engine.pricewave 가 한다).
+
+        codeDiscountNodes 는 deprecated 라 discountNodes 를 쓴다.
+        """
+        query = """
+        query ActiveDiscounts {
+          discountNodes(first: 50, query: "status:active") {
+            nodes {
+              id
+              discount {
+                __typename
+                ... on DiscountCodeBasic {
+                  title
+                  status
+                  startsAt
+                  endsAt
+                  codes(first: 1) { nodes { code } }
+                  customerGets {
+                    value {
+                      __typename
+                      ... on DiscountPercentage { percentage }
+                      ... on DiscountAmount { amount { amount currencyCode } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        """
+        data = await self.graphql(query)
+        return data["discountNodes"]["nodes"]

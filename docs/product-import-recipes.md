@@ -1,0 +1,178 @@
+# 상품 임포트 레시피 — 소스 사이트별 기록
+
+**목적**: 클라이언트 스토어마다 상품을 가져오는 소스 사이트가 다르고, 사이트마다 구조가
+조금씩 다르다. 한 번 알아낸 방식을 여기 기록해 다음에 같은 소스를 만나면 바로 재사용한다.
+
+**공통 원칙**
+- **영상 파일을 다운로드하거나 스크린 캡처로 대체하지 않는다.** 대신 **YouTube 링크를
+  추출해 Shopify EXTERNAL_VIDEO 미디어로 첨부**한다 (`productCreateMedia`,
+  mediaContentType: EXTERNAL_VIDEO, originalSource: watch URL) — 상품 갤러리에서
+  재생 가능한 임베드로 뜬다. (정책 확정: 2026-07-19, A+ Straight 로 실증)
+- **스펙성 데이터(제품별 커스텀 필드)는 메타필드로.** 소스 사이트의 라벨-값 행
+  (HAIR MATERIAL 등)은 옵션이 아니라 스펙이다 — `productSet` 의 `metafields` 로
+  namespace 별 저장. PDP 노출은 테마의 동적 소스/스펙 블록으로.
+- 이미지 사용 권한은 **가져오기 전에 사용자에게 확인**받는다 (구두 확인이라도 기록).
+- 개발 스토어에는 디자인 검증용 샘플만 (카테고리당 3~4개). 전량 임포트는 실스토어에서.
+- 등록은 `productSet`(GraphQL) — 상품 REST API 는 폐기 경로다.
+- **API 로 만든 리소스는 Online Store 채널에 미발행**이다. 컬렉션·상품 모두 REST 의
+  `published: true` 로 발행해야 스토어프론트에 보인다 (write_products 로 가능,
+  GraphQL 발행은 write_publications 필요).
+
+---
+
+## outre.com (Outre — 헤어 브랜드 공식) — 2026-07-19 검증
+
+**스택**: WooCommerce(카테고리 목록, Flatsome 테마) + Next.js(상품 상세). JS 렌더 필수 → Playwright.
+
+### 카테고리(제품군) 구조
+`/product-category/{parent}/{child}/` 계층. 주요 라인:
+`lace-wigs`(6하위) · `wigs`(converti-caps/full/half/headband/u-part…) · `weaves`(human/remi/synthetic…) ·
+`braids`(pre-stretched/crochet-braid-pre-loop/braiding-hair/bulk) · `hair-pieces`(ponytails/bangs/buns/clip-ins…).
+서브 브랜드: X-Pression, MyTresses, Melted Hairline, Pretty Quick 등 (`/brands/`).
+
+### 목록 페이지 스크랩
+- 상품 링크: `a[href*='/product/']` (전체 카드가 앵커). href 로 dedupe.
+- 카드 제목: `.product-title` (없으면 slug 를 Title Case 로).
+- 카드 텍스트에 배지·카테고리·브랜드가 붙어 나옴 (`NEWBraids • X-PRESSION - …`) — 제목으로 쓰지 말 것.
+
+### 상품 상세 스크랩 (Next.js) — ★ 2026-07-19 정정판
+- **이미지가 프록시 URL** 로 나온다: `api.outre.com/_next/image?url=<인코딩된 원본>` →
+  `image?url=` 뒤를 URL-decode 해서 **원본**(`www.outre.com/wp-content/uploads/…`)을 쓸 것.
+- 제목: `h1`.
+- **스펙(옵션 아님)**: 본문 라벨 행에서 텍스트 추출 — `HAIR MATERIAL` / `TEXTURE` /
+  `STYLE` / `COLOR SHOWN`. → Shopify 메타필드 또는 설명에 넣는다.
+- **variation 은 두 축이다** (초판의 심각한 오류 — Color 하나로 잘못 모델링했었다):
+  - **Color**: `AVAILABLE COLORS` 라벨 행의 **콤마 리스트가 진실의 원천**
+    (예: `1,1B,2,27,30,4,425,44,613,C1B/30,C27/613,C4/30`). 버튼 텍스트 정규식 스캔은
+    3자리 숫자(425/613 등)를 놓친다 — 쓰지 말 것.
+  - **Length**: `LENGTHS` 라벨의 필 버튼들 (`18"`, `24"` — `/^\d+"$/`).
+- **컬러 스와치 이미지 — 페이지 세대별로 2가지** (2026-07-19 22개 전수 재빌드로 확인):
+  - **구형(weave 계열)**: `img[alt="color"]` — **파일명 어간이 곧 컬러코드**
+    (`1B.jpg`, `425.jpg`, `C1B-30.jpg` — 코드의 `/` 는 파일명에서 `-`).
+  - **신형(braids·wigs·ponytails 등 대부분)**: `alt="color"` 칩이 아예 없다. 대신
+    **칩 이미지의 `alt` 가 곧 컬러코드**다 (`alt="2T1B/27"`, `alt="AMBER"` — 데스크톱/모바일
+    중복으로 각 2개). → AVAILABLE COLORS 리스트와 alt 를 대소문자 무시 매칭하면 100% 잡힌다.
+  - 순서: 1차로 `alt="color"` 수집 → 없으면 2차로 alt∈컬러리스트 수집. 두 방식 합치면
+    22개 제품 전부 컬러:칩 = 1:1 이었다.
+  - **AVAILABLE COLORS 행이 없는 페이지**(X-Pression Pre-Stretched Braid 실증)는
+    칩의 코드 목록이 컬러 리스트의 예비 원천이다.
+  - **소스에 칩이 아예 없는 컬러가 있다** — 스크랩 실패가 아니라 outre 쪽 데이터 공백이다.
+    (Twisted Up 20색 중 10색, Burmese 613, A+ Waikiki C27/613 — `VIEW MORE` 를 펼쳐도
+    나오지 않음을 확인.) 이런 변형은 스와치를 비워 두면 테마가 대표 이미지로 폴백한다.
+    억지 매칭하지 말 것 — 엉뚱한 색 칩이 붙는 것이 빈 것보다 나쁘다.
+- **기타 이미지(갤러리)**: `img[alt^="Small image of"]` — 팩샷·모델 앞/옆/뒤컷·브랜드 카드.
+  이 중 **영상 썸네일은 이미지로 넣지 말고 링크를 추출**한다. 메인 이미지: `img[alt^="Image of"]`.
+- **YouTube 링크 추출법**: 정적 DOM 엔 없다 (WP youtube-embed-plus — 선택 시 로드).
+  **보이는**(offsetParent≠null) 갤러리 썸네일을 순서대로 `dispatchEvent(click)` 하고
+  1.5초 뒤 `iframe[src*=youtube]` 를 스캔 → `/embed/{id}` 에서 video id.
+  Playwright locator.click 은 오버레이에 막히므로 dispatch 방식이어야 한다.
+
+### Shopify 등록 매핑 — ★ 정정판
+- `productSet`: title=h1, vendor='Outre', status=ACTIVE,
+  **productOptions=[Color(12종), Length(18"/24")]** — variants = Color×Length 전 조합,
+  files=[스와치 칩 12장 + 기타 갤러리(영상 제외)] — 원본 URL 그대로 originalSource.
+- **variant 이미지 = 해당 컬러의 스와치 칩** (`productVariantAppendMedia`) —
+  파일명 어간=컬러코드라 매핑이 결정론적이다. 테마 `show_variant_image: true` 와 결합하면
+  outre 와 동일한 헤어 텍스처 칩 스와치 UX 가 된다.
+- **스펙은 메타필드로만** (`outre` 네임스페이스, `single_line_text_field`:
+  `hair_material` / `texture` / `style` / `color_shown`). descriptionHtml 에 표를 박으면
+  상품마다 중복 관리가 되고 테마 교체 시 남는다 — PDP 표는 `templates/product.json` 의
+  **custom-liquid 블록(sf_spec) 하나**가 `closest.product.metafields.outre` 를 읽어
+  전 상품 공용으로 그린다. 메타필드가 없는 상품에선 아무것도 출력하지 않아 안전하다.
+- 태그 규약(스마트 컬렉션과 맞물림): `category:braids`, `category:lace-wigs`, … +
+  브랜드 감지(제목/브레드크럼에 X-PRESSION→`brand:x-pression`, MYTRESSES/PURPLE PACK→
+  `brand:mytresses`, MELTED→`brand:melted-hairline`, PRETTY QUICK→`brand:pretty-quick`) +
+  신상품 `promo:new-arrival`.
+- 등록 직후 REST `PUT /products/{id}.json {"product":{"published":true}}`.
+- 가격: 소스에 없음(브랜드 사이트) — placeholder 로 넣고 도매가는 사람이 책정.
+
+### GraphQL 호출 규격 (2026-07-20 재임포트에서 전부 실증 — 추측하지 말 것)
+- `productSet` 의 변수 타입은 `ProductSetInput!` 이다 (`ProductInput!` 아님).
+- `productOptions[].values` 는 문자열 배열이 아니라 **`[{name: "1B"}]`** 객체 배열.
+- `variants[]` 에 **`title` 을 넣으면 안 된다** (`ProductVariantSetInput` 에 없는 필드) —
+  제목은 옵션값에서 자동 생성된다. 입력은 `optionValues:[{optionName, name}]`.
+- **응답에서 변형 옵션을 읽을 땐 `selectedOptions{name value}`** — `optionValues` 는
+  입력 전용이라 응답 셀렉션에 쓰면 `Field 'optionValues' doesn't exist` 로 죽는다.
+  (입력만 검증하고 응답 셀렉션을 안 맞춰서 23개가 전부 실패했었다.)
+- `productVariantAppendMedia` 는 **URL 을 받지 않는다**. 인자는
+  `productId` + `variantMedia:[{variantId, mediaIds}]` — 즉 **이미 상품에 올라간 미디어**를
+  변형에 잇는 뮤테이션이다. 순서: `productCreateMedia`(alt=`swatch:<code>`) →
+  **status 가 `READY` 될 때까지 폴링** → `productVariantAppendMedia`.
+  PROCESSING 상태로 연결하면 실패한다.
+- 발행은 **REST `published:true`** 로. `publishablePublish` 는 `write_publications`
+  스코프가 필요해 이 앱에선 `PublishablePublishInput isn't a defined input type` 이 난다.
+
+### 미디어 순서 — 상품 사진이 먼저, 칩은 맨 뒤
+칩을 `files` 에 먼저 넣으면 미디어 0번부터 칩이 깔려서 **대표 이미지가 칩이 되고**
+썸네일 레일에서 진짜 상품 사진이 화면 밖으로 밀린다. 순서는
+**갤러리(소스 순서) → 외부영상 → 칩**. `productReorderMedia(id, moves:[{id,newPosition}])`
+로 교정하며, 1번 미디어가 곧 대표 이미지가 된다.
+
+### ★ PDP 히어로가 칩으로 뜨는 문제 — 테마 한 곳으로 전 상품 해결
+칩을 변형 이미지로 연결하면(스와치 UX 목적) **PDP 를 열 때 히어로가 대표 이미지가 아니라
+첫 변형의 칩**으로 뜬다. 카드/추천에는 대표(패키지)가 맞게 나오는데 PDP 만 다르다 —
+테마가 `selected_or_first_available_variant.featured_media` 를 히어로로 쓰기 때문
+(`snippets/product-media-gallery-content.liquid`, `sorted_media` 정렬부).
+- **개별 상품에서 칩을 detach 하면 안 된다** — 색상 스와치까지 빈 원이 된다
+  (스와치는 `settings.show_variant_image` 로 같은 칩을 그린다 — `snippets/swatch.liquid`).
+- **`hide_variants` 설정으로 칩을 갤러리에서 빼는 것도 오답**이다 — 히어로는 대표로
+  고쳐지지만 색상 클릭 시 점프할 이미지가 사라져 **색상 미리보기가 죽는다**.
+- 원하는 최종 동작은 3가지 동시 만족: (1) 첫 로드 히어로=대표이미지 (2) 색상 클릭 시
+  그 색 칩으로 히어로 전환 (3) 색상 원형 스와치 유지. 이걸 위해 **세 곳**을 고친다:
+  1. **`snippets/product-media-gallery-content.liquid`** `sorted_media` 정렬부:
+     `selected_variant_media` 분기를 없애고 **항상 `featured_media` 를 선두로 강제**한다.
+     URL 에 `?variant=` 가 있어도(카드/스와치 링크) 첫 렌더는 무조건 대표이미지가 뜬다.
+     `selected_variant` 로 첫 로드만 구분하려 해도 색상 클릭이 `?option_values=` 로 오면
+     nil 이라 안 된다 → 서버 렌더에 기대지 말고 히어로는 항상 대표, 전환은 JS 로.
+  2. **같은 스니펫의 slideshow-slide 렌더**: `slide_id: media.id` 를 **반드시 넘긴다**.
+     product 갤러리는 원래 slide_id 를 안 넘겨(card 갤러리만 넘김) 슬라이드에 `slide-id`
+     속성이 없어서 아래 `select({id})` 매칭이 안 된다.
+  3. **`assets/media-gallery.js`** `#handleVariantUpdate`: 서버 재렌더 HTML 로 갤러리를
+     **통째 교체(`replaceWith`)하지 않고**, `event.detail.resource.featured_media.id` 로
+     **`this.slideshow.select({ id: mediaId })`** 를 호출해 그 슬라이드로 이동만 한다.
+     `select(index)` 는 데스크톱/모바일 갤러리 중복과 정렬 편차로 index 가 어긋나 실패한다
+     → 반드시 **`{id}` 방식**(slideshow.select 가 `slide-id` 로 매칭)을 쓴다.
+  → `hide_variants` 는 **false**(칩이 갤러리에 있어야 select 로 점프 가능).
+- 함정: variant-picker.js 는 색 변경 시 `?variant=` 가 아니라 **`?option_values=`** 로
+  섹션을 재요청한다(`buildRequestUrl`). 그래서 재렌더 컨텍스트에선 `selected_variant` 가
+  항상 nil — 스니펫만 고치면 색상 클릭이 안 먹는다. JS 쪽 select 처리가 반드시 필요하다.
+- **검증 함정**: PDP 슬라이드쇼는 이미지를 가로로 늘어놓고 스크롤한다. "가장 큰 보이는
+  이미지"로 히어로를 측정하면 전환 후에도 첫 이미지를 계속 잡아 **오탐(안 바뀐 것처럼)**한다.
+  실제 전환은 `media-gallery.slideshow.current`(활성 인덱스)나 뷰포트 중앙 `elementFromPoint`
+  로 확인할 것.
+- **함정 2 — 카드 링크에 `?variant=` 가 박혀 있다**: `snippets/product-card.liquid` 가
+  `href="{{ variant_to_link.url }}"`(= `selected_or_first_available_variant.url`)로 걸려
+  컬렉션·추천 카드를 클릭하면 **첫 available 변형이 선택된 채** PDP 가 열린다 →
+  selected_variant 가 그 색이라 히어로가 칩. 순수 URL 은 대표가 잘 떠도 **카드로 들어오면
+  칩**이라 "왜 계속 칩이 뜨냐"가 된다. `href="{{ product.url }}"` 로 바꿔야 한다.
+- **함정 3 — media 배열 0번이 칩인 상품**이 있다(reorder 편차). 첫 로드 히어로를
+  `product.media` 순서로 두면 이런 상품은 칩이 히어로다. 스니펫에서 **`featured_media` 를
+  선두로 강제**해야(`sorted_media` else 분기) 배열 순서와 무관하게 대표가 뜬다.
+- 테마 파일이라 **23개 전 상품이 동시에 고쳐진다**. storeforge 스토어는
+  `theme_files_upsert` 로 두 파일 + `templates/product.json`(블록 `_product-media-gallery`
+  의 `settings.hide_variants=false`)을 함께 upsert. (2026-07-20 dasomdev 실증)
+
+### 스크랩 산출물 스키마가 필드마다 다르다 (outre-corrected.json)
+같은 파일 안에서도 모양이 섞여 있으니 **읽기 전에 타입을 확인**할 것:
+- `chips` = **URL 문자열 리스트**(구형 스크랩, 파일명 어간이 컬러코드)
+- `chips2`/`chips3`/`chips4` = **`{code, url}` dict 리스트**(신형/보정 패스)
+- `youtube` = **문자열 하나** (리스트 아님 — `[0]` 하면 `'h'` 가 나온다)
+
+### 함정 목록
+1. 이미지 프록시 URL 을 그대로 쓰면 나중에 깨질 수 있다 — 반드시 원본으로 디코드.
+2. 카드 innerText 를 제목으로 쓰면 배지/브랜드가 섞인다.
+3. 컬러 검색 시 Shopify products query 의 `tag:category:braids` 는 콜론 때문에 실패 —
+   전체 조회 후 코드에서 필터하거나 태그를 따옴표로 감쌀 것.
+4. 발행 잊으면 스토어프론트 404 + 컬렉션 카드가 placeholder 로 렌더.
+
+---
+
+## (다음 소스 사이트 — 이 양식으로 추가)
+
+- 스택/렌더 방식:
+- 카테고리 구조:
+- 목록 셀렉터:
+- 상세(제목/갤러리/옵션) 셀렉터:
+- 이미지 원본 규칙:
+- Shopify 매핑·태그 규약:
+- 함정:

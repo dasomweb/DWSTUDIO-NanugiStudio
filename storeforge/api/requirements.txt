@@ -1,0 +1,19 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+sqlmodel==0.0.22
+pydantic==2.10.4
+pydantic-settings==2.7.0
+email-validator==2.2.0
+httpx==0.28.1
+PyJWT==2.10.1
+bcrypt==4.2.1
+cryptography==44.0.0
+anthropic==0.116.0
+psycopg[binary]==3.2.3
+
+# ListPilot (축②) — 원본 DW-ListPilot 에서 쓰던 것과 같은 스택
+google-generativeai==0.8.4  # 상품 추출·설명 생성 (원본 파이프라인 유지)
+Pillow==11.1.0              # 이미지 리사이즈 → WebP
+openpyxl==3.1.5             # 엑셀 파싱
+PyMuPDF==1.25.3             # PDF → 이미지
+python-multipart==0.0.20    # 파일 업로드 (FastAPI)

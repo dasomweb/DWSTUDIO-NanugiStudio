@@ -1,0 +1,54 @@
+# 소스 테마 릴리즈 — 어떤 스토어에도 배포하지 않는다.
+#
+# v* 태그를 밀면 그 시점의 테마 폴더를 theme.zip 으로 묶어 GitHub Release 에 붙인다.
+# 각 프로젝트는 이 릴리즈를 **자기 시점에** 채택한다:
+#   - 나누기: main 머지 → deploy-theme.yml (자동)
+#   - 고객/개발 스토어: StoreForge 테마 설치 (버전 선택 가능, 스토어별 기록)
+# 릴리즈 zip 을 수동으로 업로드하지 말 것 — 태그와 내용이 어긋난다.
+name: Release Source Theme
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build theme.zip and create release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Stamp theme_version from tag
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          node -e "
+            const fs = require('fs');
+            const path = 'config/settings_schema.json';
+            const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+            data[0].theme_version = '$VERSION';
+            fs.writeFileSync(path, JSON.stringify(data, null, 2) + '\n');
+            console.log('theme_version =', data[0].theme_version);
+          "
+
+      # 나누기 고유 데이터(shopify:// 리소스, video 미디어 모드, 커스텀 메뉴 핸들)를 벗긴다.
+      # 남겨두면 다른 스토어에서 홈 404 / 히어로 플레이스홀더 / 헤더 메뉴 실종이 된다 (스크립트 주석 참고).
+      - name: Sanitize store-specific data for source theme
+        run: python3 scripts/build-source-home.py templates/index.json sections/header-group.json sections/footer-group.json
+
+      # 테마 폴더만 담는다 — storeforge/, docs/ 가 섞이면 Shopify 가 zip 을 거부한다.
+      # (git archive 는 커밋 트리를 쓰므로 위 스탬프·새니타이즈가 빠진다 — zip 명령을 쓴다)
+      - name: Build theme.zip
+        run: zip -qr theme.zip assets blocks config layout locales sections snippets templates
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: theme.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
