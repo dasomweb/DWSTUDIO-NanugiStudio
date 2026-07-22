@@ -122,11 +122,17 @@ def build_story_prompt(description: str, primary: str, background: str, accent: 
 
 
 def build_collection_prompt(collection_title: str, description: str, primary: str, accent: str) -> str:
-    """컬렉션 배너용 — 카테고리가 주인공, 배경은 절제."""
+    """컬렉션 배너용 — 카테고리가 주인공, 왼쪽은 제목 오버레이용 여백으로 비운다.
+
+    컬렉션 페이지 배너는 제목이 왼쪽에 얹힌다. 그래서 피사체를 오른쪽에 두고 왼쪽은
+    어둡고 깔끔한 네거티브 스페이스로 남겨, 왼쪽 흰색 제목이 이미지와 겹쳐도 읽히게 한다.
+    """
     return (
-        f"Product category banner photograph for '{collection_title}'. "
+        f"Wide cinematic e-commerce category banner photograph for '{collection_title}'. "
         f"Brand context: {description.strip()[:300]}. "
         f"Color mood: {primary} with {accent} accents. "
-        "Clean studio composition focused on the product category itself, soft shadows, premium, photorealistic. "
+        "Composition: the product/subject sits on the RIGHT half of the frame; the LEFT third is "
+        "intentionally kept as clean, darker, uncluttered negative space so that overlay TITLE TEXT "
+        "placed on the left remains fully readable. Premium, photorealistic, soft studio light. "
         "STRICTLY NO text, NO letters, NO logos, NO watermarks."
     )
